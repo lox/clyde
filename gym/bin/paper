@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Run the throwaway Paper gym server as a supervised orb service.
+# Usage: gym/bin/paper start|stop|status|logs|reset
+set -euo pipefail
+
+PAPER="${PAPER_DIR:-$HOME/paper}"
+JAVA="${JAVA:-$HOME/tools/jdk/bin/java}"
+NAME=paper
+
+case "${1:-}" in
+  start)
+    amp orb service start "$NAME" --command "cd $PAPER && $JAVA -Xms768M -Xmx1200M -jar paper.jar nogui"
+    ;;
+  stop)
+    amp orb service stop "$NAME"
+    ;;
+  status)
+    amp orb service status "$NAME"
+    ;;
+  logs)
+    amp orb service logs "$NAME"
+    ;;
+  reset)
+    amp orb service stop "$NAME" || true
+    rm -rf "$PAPER"/world "$PAPER"/world_nether "$PAPER"/world_the_end
+    echo "World removed; next start regenerates seed $(grep level-seed "$PAPER/server.properties")"
+    ;;
+  *)
+    echo "usage: $0 start|stop|status|logs|reset" >&2
+    exit 2
+    ;;
+esac

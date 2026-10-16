@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Orb setup for Clyde: Go, JDK, Paper gym server, body dependencies.
+# Idempotent; safe to re-run. Tools go under ~/tools, the gym server under ~/paper.
+set -euo pipefail
+
+GO_VERSION=1.27.2
+JDK_MAJOR=25
+PAPER_VERSION=26.1.2
+
+TOOLS="$HOME/tools"
+mkdir -p "$TOOLS"
+
+if [ ! -x "$TOOLS/go/bin/go" ] || ! "$TOOLS/go/bin/go" version | grep -q "go$GO_VERSION"; then
+  echo "Installing Go $GO_VERSION"
+  rm -rf "$TOOLS/go"
+  curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -xz -C "$TOOLS"
+fi
+
+if [ ! -x "$TOOLS/jdk/bin/java" ]; then
+  echo "Installing Temurin JDK $JDK_MAJOR"
+  tmp=$(mktemp -d)
+  curl -fsSL "https://api.adoptium.net/v3/binary/latest/${JDK_MAJOR}/ga/linux/x64/jdk/hotspot/normal/eclipse" | tar -xz -C "$tmp"
+  rm -rf "$TOOLS/jdk"
+  mv "$tmp"/jdk-* "$TOOLS/jdk"
+  rm -rf "$tmp"
+fi
+
+export PATH="$TOOLS/go/bin:$TOOLS/jdk/bin:$PATH"
+if ! grep -q 'tools/go/bin' "$HOME/.bashrc" 2>/dev/null; then
+  echo 'export PATH="$HOME/tools/go/bin:$HOME/tools/jdk/bin:$PATH"' >> "$HOME/.bashrc"
+fi
+
+PAPER="$HOME/paper"
+mkdir -p "$PAPER"
+if [ ! -f "$PAPER/paper.jar" ]; then
+  echo "Downloading Paper $PAPER_VERSION"
+  url=$(curl -fsSL "https://fill.papermc.io/v3/projects/paper/versions/${PAPER_VERSION}/builds/latest" | jq -r '.downloads["server:default"].url')
+  curl -fsSL -o "$PAPER/paper.jar" "$url"
+fi
+echo "eula=true" > "$PAPER/eula.txt"
+if [ ! -f "$PAPER/server.properties" ]; then
+  cp "$(dirname "$0")/../gym/server.properties" "$PAPER/server.properties"
+fi
+
+if [ -f "$(dirname "$0")/../body/package-lock.json" ]; then
+  (cd "$(dirname "$0")/../body" && npm ci --no-audit --no-fund)
+fi
+
+if [ -f "$(dirname "$0")/../harness/go.mod" ]; then
+  (cd "$(dirname "$0")/../harness" && go mod download)
+fi
+
+echo "Setup complete. Start the gym server with: gym/bin/paper start"
