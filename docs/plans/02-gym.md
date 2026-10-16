@@ -14,7 +14,7 @@ scoreboard, so every later slice can show numbers instead of anecdotes.
 - World templates: `gym/bin/paper reset` restores a pristine snapshot of the
   `mcbot` world, generated on first use and cached outside git (for example
   `~/paper-templates/mcbot`). Reset plus start is fast enough to run before every task;
-  the PR states the measured time.
+  the commit message states the measured time.
 - `api/goal.schema.json` defines a typed goal with an `until` predicate of
   kind `items`, `arrived`, `built`, or `delivered`. `judged` is reserved in
   the schema and rejected by the runner until slice 3's judge is wired in.
@@ -46,9 +46,9 @@ scoreboard, so every later slice can show numbers instead of anecdotes.
   body: `idle` joins as `MC_USERNAME` and stands still (every task fails at
   timeout), and `cheat` joins and then satisfies the goal over RCON (every
   task passes). Both scoreboards, run twice to show they are repeatable, are
-  in the PR.
+  in the commit message.
 - CI: a `gym` job in `.github/workflows/ci.yml` installs Java, downloads
-  Paper, and runs `gym/bin/run --all --agent cheat`. It must pass on the PR.
+  Paper, and runs `gym/bin/run --all --agent cheat`. It must pass on `main`.
 
 ## Starting point
 

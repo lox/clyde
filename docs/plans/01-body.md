@@ -20,7 +20,7 @@ server.
   rendering from a fixture, and the safety caps. These run without a server.
 - An end-to-end script (`body/scripts/smoke.sh`) starts against the gym
   server and exercises goto, collect, dig, chat, eval, and stop; its output is
-  in the PR.
+  in the commit message.
 
 ## Starting point
 

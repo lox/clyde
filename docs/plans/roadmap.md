@@ -171,7 +171,7 @@ Clyde is an opt-in compose profile with its own kill switch.
 
 ## Delivery slices
 
-Each slice is one PR-sized unit with its own plan file and gym evidence.
+Each slice is one reviewable unit with its own plan file and gym evidence.
 
 | # | Slice | Plan | Depends on |
 |---|-------|------|------------|
@@ -198,7 +198,8 @@ choice and can be reversed by saying so.
 - LLM providers: Anthropic and OpenAI-compatible first, behind one interface
   (default).
 - Issue tracking: GitHub issues on this repo (default).
-- Review: Amp auto-review on every PR; no Codex (default).
+- Delivery: commit to `main` (Amp merge-to-main), no pull requests; Auto-review
+  runs locally before every ship; no Codex.
 - Minecraft version: body pinned to 26.1 (mineflayer 4.39.0 ceiling); Paper
   26.2 servers need ViaBackwards.
 - No Microsoft account; Velocity-based join (see Deployment).

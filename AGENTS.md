@@ -25,7 +25,7 @@ it is the source of truth for architecture, decisions, and slice order.
 - Harness: `cd harness && go build ./... && go test ./...`.
 - Gym server: `gym/bin/paper start|stop|logs` (installed by `.agents/setup`;
   Paper runs offline mode on 127.0.0.1:25565 with seed `mcbot`).
-- Gym tasks: `gym/bin/run <task>` prints a scoreboard; include it in PRs.
+- Gym tasks: `gym/bin/run <task>` prints a scoreboard; include it in the commit message.
 
 Tools installed by `.agents/setup` live under `~/tools` (Go, JDK); put
 `~/tools/go/bin` and `~/tools/jdk/bin` on `PATH` if a shell does not have
@@ -48,11 +48,15 @@ them.
 - One coordinator thread owns the roadmap. It writes slice plans, creates one
   thread per slice with `create_thread`, reviews results, and updates the
   roadmap. It does not implement.
+- Changes land by committing to `main` (Amp's Ship / merge-to-main
+  workflow), not through pull requests. Before shipping: run Auto-review and
+  fix its findings, run the build and tests above, rebase onto
+  `origin/main`, then push. Keep commits small and logical; prefix the
+  subject with the area (`body:`, `gym:`, `judge:`, `plans:`).
 - Slice threads implement one `docs/plans/NN-name.md`, update that plan if
-  reality differs, and finish with Auto-review, a PR written with the
-  PR-description skill, and Babysit until green. Title PRs
-  `clyde: slice NN – name`.
-- PRs carry evidence: test output, and for anything touching behavior, a gym
-  scoreboard or smoke-script transcript.
-- Never push to `main` directly. Never deploy to Bonnie's server from a
-  thread; production changes go through `lox/selfhosted-ovh` PRs.
+  reality differs, ship to `main`, and confirm CI on the pushed commit is
+  green, fixing forward if it is not.
+- Commit messages carry evidence: test output, and for anything touching
+  behavior, a gym scoreboard or smoke-script transcript.
+- Never deploy to Bonnie's server from a thread; production changes go
+  through `lox/selfhosted-ovh` PRs.

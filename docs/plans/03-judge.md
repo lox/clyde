@@ -49,7 +49,7 @@ actions.
   standing in lava, drowning, a `goto` with no progress for 20 s, a
   `collect` that is progressing, and a player asking for help in chat.
   `judge eval --backend jev` runs them against live Jev and prints accuracy
-  plus latency p50/p95 over at least 20 calls. That output is in the PR.
+  plus latency p50/p95 over at least 20 calls. That output is in the commit message.
 - `go build ./...`, `go vet ./...`, and `go test ./...` pass in `harness/`
   without network access; the live Jev check is a separate command, skipped
   when `TYPESAFE_API_KEY` is unset.
