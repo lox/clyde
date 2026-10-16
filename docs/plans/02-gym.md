@@ -30,9 +30,10 @@ scoreboard, so every later slice can show numbers instead of anecdotes.
   Unit tests use a fake observer and cover both sides of each boundary
   (N-1 vs N items, R vs R+0.01 distance, one wrong block in a structure).
 - `gym/tasks/*.yaml`: name, template, setup (RCON commands such as `tp`,
-  `give`, `fill`, `time set`, `gamerule`), goal, timeout. At least three
-  tasks: `collect-logs` (items), `goto-marker` (arrived), and
-  `place-crafting-table` (built). The task file format is documented in
+  `give`, `fill`, `time set`, `gamerule`), goal, timeout. At least four
+  tasks, one per predicate, so every RCON path runs live: `collect-logs`
+  (items), `goto-marker` (arrived), `place-crafting-table` (built), and
+  `stock-chest` (delivered). The task file format is documented in
   `gym/tasks/README.md`.
 - `gym/bin/run <task>|--all [--agent <cmd>]` resets the world, starts Paper
   if needed, runs setup, launches the agent with `GYM_TASK` (path to the

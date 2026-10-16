@@ -26,10 +26,13 @@ actions.
   the executor to stop and replan, never actions.
 - Pre-checks run first every tick and decide without the model when they
   can: health at or below a threshold, a hostile within N blocks, no
-  position or progress change for M seconds while an action is running, and
-  nothing happening at all (no action, no hostiles, healthy: skip the
-  model). Thresholds are config. Table tests cover both sides of each
-  threshold.
+  position or progress change for M seconds while an action is running,
+  standing in lava, oxygen at or below a threshold, and nothing happening at
+  all (skip the model). "Nothing happening" means no action, no hostiles,
+  healthy, not in lava or water, and no new chat or damage events since the
+  last tick; a quiet bot with a fresh chat message still goes to the model.
+  Thresholds are config. Table tests cover both sides of each threshold,
+  and the lava, drowning, and player-chat fixtures must not hit the skip.
 - The loop ticks at a configurable rate (default 2 Hz) with a per-tick
   deadline (default 800 ms). A slow or failed backend call is logged as a
   timeout or error and the tick falls back to pre-checks; ticks never
