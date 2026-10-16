@@ -202,6 +202,13 @@ choice and can be reversed by saying so.
 - Minecraft version: body pinned to 26.1 (mineflayer 4.39.0 ceiling); Paper
   26.2 servers need ViaBackwards.
 - No Microsoft account; Velocity-based join (see Deployment).
+- Contract ownership for the parallel slices: slice 1 owns
+  `api/state.schema.json`, slice 2 owns `api/goal.schema.json`. Harness Go
+  module is `github.com/lox/clyde/harness` (default).
+- CI: one GitHub Actions workflow, `.github/workflows/ci.yml`, with a job per
+  component; slices extend it rather than adding workflows (default).
+- Gym observes the server over RCON, not through a second bot, and agents
+  plug in as an executable plus environment variables (default).
 
 ## Open questions
 

@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  body:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: body
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: body/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      # Slice 1 adds tests and makes the drafts compile; until then this job only installs.
+      - name: test and build
+        run: |
+          if ! ls src/*.test.ts >/dev/null 2>&1; then echo "no body tests yet"; exit 0; fi
+          npm test
+          npm run build
+
+  harness:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: harness
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.27.x
+          cache: false
+      - name: build, vet, test
+        run: |
+          if [ ! -f go.mod ]; then echo "no harness module yet"; exit 0; fi
+          go build ./...
+          go vet ./...
+          go test ./...
