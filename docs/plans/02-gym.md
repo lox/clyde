@@ -13,8 +13,7 @@ scoreboard, so every later slice can show numbers instead of anecdotes.
   of copying it only once.
 - World templates: `gym/bin/paper reset` restores a pristine snapshot of the
   `mcbot` world, generated on first use and cached outside git (for example
-  `~/paper-templates/mcbot`). A second template, `flat` (superflat), exists
-  for build tasks. Reset plus start is fast enough to run before every task;
+  `~/paper-templates/mcbot`). Reset plus start is fast enough to run before every task;
   the PR states the measured time.
 - `api/goal.schema.json` defines a typed goal with an `until` predicate of
   kind `items`, `arrived`, `built`, or `delivered`. `judged` is reserved in
@@ -27,7 +26,7 @@ scoreboard, so every later slice can show numbers instead of anecdotes.
     which counts without removing).
   - `arrived`: player within R blocks of a point (`data get entity <p> Pos`).
   - `built`: every listed block matches (`execute if block`).
-  - `delivered`: a container or another player holds at least N of an item.
+  - `delivered`: a container at a given position holds at least N of an item.
   Unit tests use a fake observer and cover both sides of each boundary
   (N-1 vs N items, R vs R+0.01 distance, one wrong block in a structure).
 - `gym/tasks/*.yaml`: name, template, setup (RCON commands such as `tp`,
