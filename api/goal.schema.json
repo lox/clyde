@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/lox/clyde/api/goal.schema.json",
+  "title": "Goal",
+  "description": "A typed goal for Clyde. The until predicate is machine-checkable and is the same check the gym uses to score a task. Predicates apply to the player pursuing the goal.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["description", "until"],
+  "properties": {
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What to do, in plain words, for the model."
+    },
+    "until": {
+      "$ref": "#/definitions/Predicate"
+    }
+  },
+  "definitions": {
+    "Predicate": {
+      "description": "Exactly one predicate kind, keyed by name.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 1,
+      "properties": {
+        "items": { "$ref": "#/definitions/ItemsPredicate" },
+        "arrived": { "$ref": "#/definitions/ArrivedPredicate" },
+        "built": { "$ref": "#/definitions/BuiltPredicate" },
+        "delivered": { "$ref": "#/definitions/DeliveredPredicate" },
+        "judged": { "$ref": "#/definitions/JudgedPredicate" }
+      }
+    },
+    "ItemsPredicate": {
+      "description": "The player holds at least count of item anywhere in their inventory.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item", "count"],
+      "properties": {
+        "item": { "$ref": "#/definitions/ItemID" },
+        "count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "ArrivedPredicate": {
+      "description": "The player's feet are within radius blocks (Euclidean, inclusive) of at.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at", "radius"],
+      "properties": {
+        "at": { "$ref": "#/definitions/Vec3" },
+        "radius": { "type": "number", "minimum": 0 }
+      }
+    },
+    "BuiltPredicate": {
+      "description": "Every listed block position matches its block.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blocks"],
+      "properties": {
+        "blocks": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/BlockAt" }
+        }
+      }
+    },
+    "BlockAt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pos", "block"],
+      "properties": {
+        "pos": { "$ref": "#/definitions/BlockPos" },
+        "block": { "$ref": "#/definitions/BlockID" }
+      }
+    },
+    "DeliveredPredicate": {
+      "description": "The container block at container holds at least count of item.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["container", "item", "count"],
+      "properties": {
+        "container": { "$ref": "#/definitions/BlockPos" },
+        "item": { "$ref": "#/definitions/ItemID" },
+        "count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "JudgedPredicate": {
+      "description": "Reserved: a yes/no question answered by the judge. Not evaluated until the judge is wired in.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question"],
+      "properties": {
+        "question": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ItemID": {
+      "description": "An item id such as minecraft:oak_log, or an item tag such as #minecraft:logs.",
+      "type": "string",
+      "pattern": "^#?([a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+    },
+    "BlockID": {
+      "description": "A block id with optional states such as minecraft:oak_stairs[facing=north], or a block tag such as #minecraft:logs.",
+      "type": "string",
+      "pattern": "^#?([a-z0-9_.-]+:)?[a-z0-9_./-]+(\\[[a-z0-9_]+=[a-z0-9_]+(,[a-z0-9_]+=[a-z0-9_]+)*\\])?$"
+    },
+    "Vec3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    },
+    "BlockPos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "z": { "type": "integer" }
+      }
+    }
+  }
+}
