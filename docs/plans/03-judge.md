@@ -84,6 +84,46 @@ to Jev as raw JSON. If slice 1 merges first, use its generated Go types.
   gitignored). They are the training data for slice 8, so keep the full
   state card and full answers, not summaries.
 
+## As built
+
+- Layout: `harness/jev` (client), `harness/judge` (pre-checks, backends,
+  loop, records, eval), `harness/cmd/judge` (`judge [run]` and `judge
+  eval`), `prompts/judge.yaml`. YAML is `go.yaml.in/yaml/v3`, the
+  maintained fork of `gopkg.in/yaml.v3`.
+- Thresholds default in `harness/judge/config.go` and can be overridden
+  with `--config file.yaml`: low health ≤ 6, low oxygen ≤ 6, hostile ≤ 4
+  blocks, stuck after 10 s without ≥ 0.5 blocks of movement or a progress
+  text change, healthy (for the idle skip) ≥ 14, choice confidence cut-off
+  0.5. A low-confidence choice still interrupts when the noul of the same
+  name (`danger`, `stuck`) is ≥ 0.7.
+- "New since the last tick" uses card time: an event is new when `ts −
+  ageMs` is after the previous card's `ts`, and every event on the first
+  card is new. A card older than the previous one resets pre-check state,
+  so a fixture directory read in name order behaves like separate streams.
+  Attention event types default to `chat`, `whisper`, `damage`; align them
+  with slice 1's event names when its schema lands. If the backend fails
+  on the tick that first sees a chat message, that message is not new on
+  later ticks and does not reach the model again; the executor should not
+  rely on the judge alone for chat it must answer.
+- A single card cannot show "no progress for 20 s", so `goto_no_progress`
+  goes to the model; the code `stalled` check fires only across ticks.
+- `replay` reads any judge JSONL log (including `judge eval --log`) and
+  matches answers by card `ts`. `testdata/replay.jsonl` is a recorded live
+  Jev run over the fixtures.
+- `judge eval` asks the model on every fixture, even ones pre-checks decide,
+  so every call measures Jev. It reports per-question model accuracy and a
+  separate `judge` line: the full verdict (pre-checks, then model through
+  the confidence gate) against the interrupt label. Ten fixtures: the eight
+  required plus `creeper_approaching` (hostile beyond the code range) and
+  `player_chat_casual` (chat not addressed to the bot).
+- Live result, 30 calls (10 fixtures × 3) from an orb on 2026-10-17:
+  100% on all questions and on the judge verdict; latency p50 76 ms, p95
+  126 ms, max 336 ms; 1,431 input tokens and $0.00006 per call at $0.042
+  per Mtok. That is about 5× faster, 40% fewer tokens, and 40% cheaper
+  than the herobrine numbers. The fixtures are clear-cut, so accuracy on
+  them says little about ambiguous situations; JSONL logs from real play
+  are the better benchmark.
+
 ## Not in this slice
 
 `logprob` and `classifier` backends, acting on interrupts (the executor does
