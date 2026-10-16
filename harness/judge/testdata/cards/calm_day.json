@@ -1,0 +1,119 @@
+{
+  "ts": 1792000000000,
+  "bot": {
+    "name": "Clyde",
+    "dimension": "overworld",
+    "position": {
+      "x": 12.5,
+      "y": 64,
+      "z": -30.5
+    },
+    "yaw": 1.6,
+    "pitch": 0.0,
+    "health": 20,
+    "food": 18,
+    "oxygen": 20,
+    "xpLevel": 3,
+    "gameMode": "survival",
+    "onGround": true,
+    "inWater": false,
+    "inLava": false
+  },
+  "world": {
+    "timeOfDay": 6000,
+    "phase": "day",
+    "raining": false,
+    "thundering": false
+  },
+  "action": null,
+  "lastAction": {
+    "id": 6,
+    "type": "collect",
+    "params": {
+      "block": "oak_log",
+      "count": 6
+    },
+    "status": "succeeded",
+    "startedAt": 1791999959000,
+    "elapsedMs": 41000
+  },
+  "inventory": {
+    "used": 3,
+    "total": 36,
+    "held": null,
+    "items": [
+      {
+        "name": "oak_log",
+        "count": 6
+      },
+      {
+        "name": "cobblestone",
+        "count": 12
+      },
+      {
+        "name": "bread",
+        "count": 3
+      }
+    ]
+  },
+  "entities": {
+    "players": [],
+    "hostiles": [],
+    "passives": [
+      {
+        "name": "cow",
+        "distance": 9.4,
+        "direction": "NE",
+        "dy": 0,
+        "position": {
+          "x": 19.1,
+          "y": 64,
+          "z": -36.8
+        },
+        "health": 10
+      },
+      {
+        "name": "sheep",
+        "distance": 14.0,
+        "direction": "E",
+        "dy": 0,
+        "position": {
+          "x": 26.4,
+          "y": 64,
+          "z": -31.2
+        },
+        "health": 8
+      }
+    ],
+    "items": []
+  },
+  "blocks": [
+    {
+      "name": "oak_log",
+      "count": 14,
+      "nearest": 3.2,
+      "nearestPos": {
+        "x": 14,
+        "y": 64,
+        "z": -28
+      }
+    },
+    {
+      "name": "crafting_table",
+      "count": 1,
+      "nearest": 5.0,
+      "nearestPos": {
+        "x": 9,
+        "y": 64,
+        "z": -27
+      }
+    }
+  ],
+  "events": [
+    {
+      "ageMs": 25000,
+      "type": "action.succeeded",
+      "text": "collect succeeded"
+    }
+  ]
+}

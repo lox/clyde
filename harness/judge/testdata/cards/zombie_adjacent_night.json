@@ -1,0 +1,106 @@
+{
+  "ts": 1792000600000,
+  "bot": {
+    "name": "Clyde",
+    "dimension": "overworld",
+    "position": {
+      "x": 12.5,
+      "y": 64,
+      "z": -30.5
+    },
+    "yaw": 1.6,
+    "pitch": 0.0,
+    "health": 18,
+    "food": 18,
+    "oxygen": 20,
+    "xpLevel": 3,
+    "gameMode": "survival",
+    "onGround": true,
+    "inWater": false,
+    "inLava": false
+  },
+  "world": {
+    "timeOfDay": 18200,
+    "phase": "night",
+    "raining": false,
+    "thundering": false
+  },
+  "action": {
+    "id": 7,
+    "type": "goto",
+    "params": {
+      "x": 40,
+      "y": 64,
+      "z": -12,
+      "range": 1
+    },
+    "status": "running",
+    "startedAt": 1792000593800,
+    "elapsedMs": 6200,
+    "progress": "28.1 blocks remaining"
+  },
+  "lastAction": null,
+  "inventory": {
+    "used": 3,
+    "total": 36,
+    "held": null,
+    "items": [
+      {
+        "name": "oak_log",
+        "count": 6
+      },
+      {
+        "name": "cobblestone",
+        "count": 12
+      },
+      {
+        "name": "bread",
+        "count": 3
+      }
+    ]
+  },
+  "entities": {
+    "players": [],
+    "hostiles": [
+      {
+        "name": "zombie",
+        "distance": 1.6,
+        "direction": "W",
+        "dy": 0,
+        "position": {
+          "x": 10.9,
+          "y": 64,
+          "z": -30.4
+        },
+        "health": 20
+      },
+      {
+        "name": "skeleton",
+        "distance": 17.3,
+        "direction": "SW",
+        "dy": 1,
+        "position": {
+          "x": 1.2,
+          "y": 65,
+          "z": -17.4
+        },
+        "health": 20
+      }
+    ],
+    "passives": [],
+    "items": []
+  },
+  "blocks": [],
+  "events": [
+    {
+      "ageMs": 6200,
+      "type": "action.start",
+      "text": "goto x=40 y=64 z=-12 range=1"
+    },
+    {
+      "ageMs": 800,
+      "type": "damage",
+      "text": "Clyde was hurt by zombie (health 18)"
+    }
+  ]
+}

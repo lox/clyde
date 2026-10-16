@@ -1,0 +1,74 @@
+# Judge questions (tier 1). The judge sends all of them in one request per
+# tick, with the body's state card JSON as `state`, whenever code pre-checks
+# cannot decide. Shapes are Jev's native question types: noul, choice, score.
+# See https://docs.typesafe.ai/api.md.
+#
+# The judge never chooses actions. `interrupt` names a reason for the
+# executor to stop and replan; its options must include `none`. A noul with
+# the same name as an interrupt reason (danger, stuck) can corroborate a
+# low-confidence interrupt; see harness/judge/config.go.
+#
+# Keep noul criteria keys quoted ("true"/"false"); bare true/false are YAML
+# booleans.
+
+questions:
+  danger:
+    type: noul
+    instructions: >-
+      The state is a Minecraft bot's state card. Is the bot in danger of
+      taking damage or dying within the next few seconds? Consider
+      `bot.health`, `bot.oxygen`, `bot.inLava`, `bot.inWater`, hostile mobs in
+      `entities.hostiles` (with their `distance` in blocks), and damage in
+      recent `events`.
+    criteria:
+      "true": >-
+        A hostile mob is close and threatening, the bot is burning, drowning,
+        falling, or in lava, or health is low and dropping.
+      "false": >-
+        Nothing nearby can hurt the bot soon; distant or absent hostiles,
+        healthy, on safe ground.
+
+  stuck:
+    type: noul
+    instructions: >-
+      The state is a Minecraft bot's state card. Is the current `action`
+      failing to make progress? Judge from `action.type`, `action.elapsedMs`,
+      `action.progress`, the bot's `position`, and recent `events` such as
+      repeated identical progress logs.
+    criteria:
+      "true": >-
+        An action is running but its progress has not changed for a long
+        time, it keeps repeating the same step, or it has clearly gone wrong.
+      "false": >-
+        No action is running, or the running action is visibly advancing
+        (distance shrinking, items being collected, blocks being broken).
+
+  progress:
+    type: score
+    instructions: >-
+      The state is a Minecraft bot's state card. How well is the current
+      `action` progressing toward finishing? If `action` is null, there is no
+      progress to make.
+    criteria:
+      - No action, or the action is making no progress at all.
+      - The action is progressing slowly or unevenly.
+      - The action is progressing steadily toward completion.
+
+  interrupt:
+    type: choice
+    instructions: >-
+      The state is a Minecraft bot's state card. Should whatever is driving
+      the bot stop and replan right now, and if so, why? Pick the single most
+      important reason. This is not a choice of what to do next.
+    criteria:
+      none: >-
+        Keep going. The bot is safe, any running action is progressing, and
+        nobody is asking for anything.
+      danger: >-
+        The bot is in danger: a hostile mob is close, health or oxygen is low,
+        or it is in lava or fire.
+      stuck: >-
+        The running action has stopped making progress or keeps failing.
+      player_request: >-
+        A player in recent chat `events` is asking the bot for something or
+        talking directly to it and expects a response.

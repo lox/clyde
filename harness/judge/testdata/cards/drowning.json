@@ -1,0 +1,92 @@
+{
+  "ts": 1792002400000,
+  "bot": {
+    "name": "Clyde",
+    "dimension": "overworld",
+    "position": {
+      "x": 301.5,
+      "y": 52,
+      "z": -77.5
+    },
+    "yaw": 1.6,
+    "pitch": 0.0,
+    "health": 14,
+    "food": 18,
+    "oxygen": 2,
+    "xpLevel": 3,
+    "gameMode": "survival",
+    "onGround": false,
+    "inWater": true,
+    "inLava": false
+  },
+  "world": {
+    "timeOfDay": 6000,
+    "phase": "day",
+    "raining": false,
+    "thundering": false
+  },
+  "action": {
+    "id": 11,
+    "type": "goto",
+    "params": {
+      "x": 330,
+      "y": 63,
+      "z": -60,
+      "range": 1
+    },
+    "status": "running",
+    "startedAt": 1792002386000,
+    "elapsedMs": 14000,
+    "progress": "31.6 blocks remaining"
+  },
+  "lastAction": null,
+  "inventory": {
+    "used": 3,
+    "total": 36,
+    "held": null,
+    "items": [
+      {
+        "name": "oak_log",
+        "count": 6
+      },
+      {
+        "name": "cobblestone",
+        "count": 12
+      },
+      {
+        "name": "bread",
+        "count": 3
+      }
+    ]
+  },
+  "entities": {
+    "players": [],
+    "hostiles": [],
+    "passives": [],
+    "items": []
+  },
+  "blocks": [
+    {
+      "name": "water",
+      "count": 256,
+      "nearest": 0.0,
+      "nearestPos": {
+        "x": 301,
+        "y": 52,
+        "z": -78
+      }
+    }
+  ],
+  "events": [
+    {
+      "ageMs": 3000,
+      "type": "damage",
+      "text": "Clyde was hurt by drowning (health 16)"
+    },
+    {
+      "ageMs": 1000,
+      "type": "damage",
+      "text": "Clyde was hurt by drowning (health 14)"
+    }
+  ]
+}

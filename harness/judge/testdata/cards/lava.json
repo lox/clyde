@@ -1,0 +1,100 @@
+{
+  "ts": 1792001800000,
+  "bot": {
+    "name": "Clyde",
+    "dimension": "overworld",
+    "position": {
+      "x": -142.5,
+      "y": 11,
+      "z": 88.5
+    },
+    "yaw": 1.6,
+    "pitch": 0.0,
+    "health": 16,
+    "food": 17,
+    "oxygen": 20,
+    "xpLevel": 3,
+    "gameMode": "survival",
+    "onGround": false,
+    "inWater": false,
+    "inLava": true
+  },
+  "world": {
+    "timeOfDay": 6000,
+    "phase": "day",
+    "raining": false,
+    "thundering": false
+  },
+  "action": {
+    "id": 9,
+    "type": "collect",
+    "params": {
+      "block": "diamond_ore",
+      "count": 1
+    },
+    "status": "running",
+    "startedAt": 1792001769000,
+    "elapsedMs": 31000,
+    "progress": "digging deepslate_diamond_ore"
+  },
+  "lastAction": null,
+  "inventory": {
+    "used": 3,
+    "total": 36,
+    "held": null,
+    "items": [
+      {
+        "name": "oak_log",
+        "count": 6
+      },
+      {
+        "name": "cobblestone",
+        "count": 12
+      },
+      {
+        "name": "bread",
+        "count": 3
+      }
+    ]
+  },
+  "entities": {
+    "players": [],
+    "hostiles": [],
+    "passives": [],
+    "items": []
+  },
+  "blocks": [
+    {
+      "name": "lava",
+      "count": 23,
+      "nearest": 0.0,
+      "nearestPos": {
+        "x": -143,
+        "y": 11,
+        "z": 88
+      }
+    },
+    {
+      "name": "deepslate_diamond_ore",
+      "count": 2,
+      "nearest": 2.1,
+      "nearestPos": {
+        "x": -141,
+        "y": 11,
+        "z": 90
+      }
+    }
+  ],
+  "events": [
+    {
+      "ageMs": 1500,
+      "type": "damage",
+      "text": "Clyde was hurt by lava (health 18)"
+    },
+    {
+      "ageMs": 400,
+      "type": "damage",
+      "text": "Clyde was hurt by lava (health 16)"
+    }
+  ]
+}

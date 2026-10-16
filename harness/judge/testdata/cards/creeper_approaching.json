@@ -1,0 +1,103 @@
+{
+  "ts": 1792004800000,
+  "bot": {
+    "name": "Clyde",
+    "dimension": "overworld",
+    "position": {
+      "x": 12.5,
+      "y": 64,
+      "z": -30.5
+    },
+    "yaw": 1.6,
+    "pitch": 0.0,
+    "health": 20,
+    "food": 18,
+    "oxygen": 20,
+    "xpLevel": 3,
+    "gameMode": "survival",
+    "onGround": true,
+    "inWater": false,
+    "inLava": false
+  },
+  "world": {
+    "timeOfDay": 13600,
+    "phase": "night",
+    "raining": false,
+    "thundering": false
+  },
+  "action": {
+    "id": 15,
+    "type": "collect",
+    "params": {
+      "block": "oak_log",
+      "count": 10
+    },
+    "status": "running",
+    "startedAt": 1792004791000,
+    "elapsedMs": 9000,
+    "progress": "collected 2/10 oak_log"
+  },
+  "lastAction": null,
+  "inventory": {
+    "used": 3,
+    "total": 36,
+    "held": null,
+    "items": [
+      {
+        "name": "oak_log",
+        "count": 6
+      },
+      {
+        "name": "cobblestone",
+        "count": 12
+      },
+      {
+        "name": "bread",
+        "count": 3
+      }
+    ]
+  },
+  "entities": {
+    "players": [],
+    "hostiles": [
+      {
+        "name": "creeper",
+        "distance": 6.5,
+        "direction": "N",
+        "dy": 0,
+        "position": {
+          "x": 12.8,
+          "y": 64,
+          "z": -37.0
+        },
+        "health": 20
+      }
+    ],
+    "passives": [],
+    "items": []
+  },
+  "blocks": [
+    {
+      "name": "oak_log",
+      "count": 14,
+      "nearest": 3.2,
+      "nearestPos": {
+        "x": 14,
+        "y": 64,
+        "z": -28
+      }
+    }
+  ],
+  "events": [
+    {
+      "ageMs": 9000,
+      "type": "action.start",
+      "text": "collect block=oak_log count=10"
+    },
+    {
+      "ageMs": 4000,
+      "type": "action.log",
+      "text": "collected 2/10 oak_log"
+    }
+  ]
+}

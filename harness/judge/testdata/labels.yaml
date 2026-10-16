@@ -1,0 +1,41 @@
+# Expected judgements for the fixture cards in cards/. `interrupt` is
+# required; omitted fields are not scored for that card. `progressing` means
+# the progress score is at or above the middle level.
+calm_day:
+  danger: false
+  stuck: false
+  interrupt: none
+zombie_adjacent_night:
+  danger: true
+  interrupt: danger
+low_health:
+  danger: true
+  stuck: false
+  interrupt: danger
+lava:
+  danger: true
+  interrupt: danger
+drowning:
+  danger: true
+  interrupt: danger
+goto_no_progress:
+  danger: false
+  stuck: true
+  progressing: false
+  interrupt: stuck
+collect_progressing:
+  danger: false
+  stuck: false
+  progressing: true
+  interrupt: none
+player_help:
+  danger: false
+  stuck: false
+  interrupt: player_request
+creeper_approaching:
+  danger: true
+  interrupt: danger
+player_chat_casual:
+  danger: false
+  stuck: false
+  interrupt: none
