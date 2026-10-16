@@ -192,7 +192,7 @@ Slices 1, 2, and 3 are independent and run as parallel threads.
 Settled with the user unless marked default. Defaults are the coordinator's
 choice and can be reversed by saying so.
 
-- Name: Clyde. Repo: `lox/clyde`, private (default).
+- Name: Clyde. Repo: `lox/clyde`, public, MIT.
 - Body in TypeScript on mineflayer; harness in Go.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: Anthropic and OpenAI-compatible first, behind one interface
