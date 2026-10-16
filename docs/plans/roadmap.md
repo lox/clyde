@@ -160,7 +160,9 @@ Clyde is an opt-in compose profile with its own kill switch.
 ## Learnings adopted from herobrine (xatuke/herobrine)
 
 - Jev: p50 398 ms, p95 580 ms, about 2,350 tokens and $0.0001 per call; flat
-  under three agents. Good enough for a 2–4 Hz judge.
+  under three agents. Good enough for a 2–4 Hz judge. Our slice 3 measurement
+  (30 calls on state-card fixtures, 2026-10-17): p50 76 ms, p95 126 ms,
+  1,431 input tokens, $0.00006 per call.
 - Action timeouts dominate wall time (mine p95 90 s, goto p95 45 s). Hence:
   progress deltas from the body and a judge that calls "stuck" early.
 - Planner latency 5–11 s p50 and a FIFO queue delayed chat replies. Hence:
@@ -178,7 +180,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 0 | Bootstrap: repo, docs, setup, CI skeleton | this file | – |
 | 1 | Body v0: HTTP API, actions, eval, events, safety | `01-body.md` | 0 |
 | 2 | Gym v0: Paper runner, world templates, tasks, scoreboard | `02-gym.md` | 0 |
-| 3 | Judge v0: contract, jev + replay backends, pre-checks, JSONL | `03-judge.md` | 0 |
+| 3 | Judge v0: contract, jev + replay backends, pre-checks, JSONL (done, `53778fc`) | `03-judge.md` | 0 |
 | 4 | Executor + MCP server | `04-executor.md` | 1, 2, 3 |
 | 5 | Skills: format, loader, gym gate, first five skills | `05-skills.md` | 4 |
 | 6 | Planner + memory | `06-planner.md` | 4, 5 |
@@ -208,6 +210,13 @@ choice and can be reversed by saying so.
   module is `github.com/lox/clyde/harness` (default).
 - CI: one GitHub Actions workflow, `.github/workflows/ci.yml`, with a job per
   component; slices extend it rather than adding workflows (default).
+- Go YAML library is `go.yaml.in/yaml/v3`; use it everywhere in `harness/`
+  (default).
+- Body event types the judge treats as needing attention: `chat`,
+  `whisper`, `damage`. The body emits those names (default).
+- The judge flags new chat only on the first tick that sees it; the executor
+  reads chat it must answer from `GET /events`, not from judge interrupts
+  (default).
 - Gym observes the server over RCON, not through a second bot, and agents
   plug in as an executable plus environment variables (default).
 
