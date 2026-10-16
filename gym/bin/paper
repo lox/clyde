@@ -1,32 +1,141 @@
 #!/usr/bin/env bash
-# Run the throwaway Paper gym server as a supervised orb service.
-# Usage: gym/bin/paper start|stop|status|logs|reset
+# Run the throwaway Paper gym server.
+# Usage: gym/bin/paper install|start|stop|status|logs|reset
+#
+# In an orb, Paper runs as a supervised `amp orb service`. Elsewhere (CI, a
+# laptop) it runs as a plain background process with a pidfile. Set
+# GYM_PAPER_MODE=orb|process to override the detection.
 set -euo pipefail
 
+PAPER_VERSION=26.1.2
+GYM=$(cd "$(dirname "$0")/.." && pwd)
 PAPER="${PAPER_DIR:-$HOME/paper}"
+TEMPLATES="${GYM_TEMPLATES:-$HOME/paper-templates}"
+TEMPLATE=mcbot
 JAVA="${JAVA:-$HOME/tools/jdk/bin/java}"
+command -v "$JAVA" >/dev/null || JAVA=java
 NAME=paper
+READY_TIMEOUT="${GYM_READY_TIMEOUT:-300}"
+
+mode() {
+  if [ -n "${GYM_PAPER_MODE:-}" ]; then
+    echo "$GYM_PAPER_MODE"
+  elif command -v amp >/dev/null && amp orb service list >/dev/null 2>&1; then
+    echo orb
+  else
+    echo process
+  fi
+}
+MODE=$(mode)
+
+# Render server.properties from gym/server.properties, taking the RCON
+# password from GYM_RCON_PASSWORD when it is set.
+render_properties() {
+  local password="${GYM_RCON_PASSWORD:-}"
+  if [ -n "$password" ]; then
+    sed "s|^rcon.password=.*|rcon.password=$password|" "$GYM/server.properties" > "$PAPER/server.properties"
+  else
+    cp "$GYM/server.properties" "$PAPER/server.properties"
+  fi
+}
+
+install() {
+  mkdir -p "$PAPER"
+  if [ ! -f "$PAPER/paper.jar" ]; then
+    echo "Downloading Paper $PAPER_VERSION"
+    local url
+    url=$(curl -fsSL "https://fill.papermc.io/v3/projects/paper/versions/${PAPER_VERSION}/builds/latest" | jq -r '.downloads["server:default"].url')
+    curl -fsSL -o "$PAPER/paper.jar.tmp" "$url"
+    mv "$PAPER/paper.jar.tmp" "$PAPER/paper.jar"
+  fi
+  echo "eula=true" > "$PAPER/eula.txt"
+  render_properties
+}
+
+running() {
+  if [ "$MODE" = orb ]; then
+    amp orb service status "$NAME" 2>/dev/null | grep -qi running
+  else
+    [ -f "$PAPER/paper.pid" ] && kill -0 "$(cat "$PAPER/paper.pid")" 2>/dev/null
+  fi
+}
+
+start() {
+  install
+  if running; then
+    echo "Paper is already running"
+    return
+  fi
+  rm -f "$PAPER/logs/latest.log"
+  local cmd="$JAVA -Xms768M -Xmx1200M -jar paper.jar nogui"
+  if [ "$MODE" = orb ]; then
+    amp orb service start "$NAME" --cwd "$PAPER" --command "cd $PAPER && exec $cmd" >/dev/null
+  else
+    # --noconsole: with stdin closed, Paper's console would spin on EOF.
+    (cd "$PAPER" || exit 1; nohup $cmd --noconsole > "$PAPER/console.log" 2>&1 < /dev/null & echo $! > "$PAPER/paper.pid")
+  fi
+  # RCON comes up last, after the world is loaded.
+  local deadline=$((SECONDS + READY_TIMEOUT))
+  until grep -qs "RCON running on" "$PAPER/logs/latest.log"; do
+    if [ $SECONDS -ge $deadline ]; then
+      echo "Paper did not become ready in ${READY_TIMEOUT}s; see gym/bin/paper logs" >&2
+      exit 1
+    fi
+    if ! running; then
+      echo "Paper exited during startup; see gym/bin/paper logs" >&2
+      exit 1
+    fi
+    sleep 0.5
+  done
+  echo "Paper is ready (RCON on 127.0.0.1:25575)"
+}
+
+stop() {
+  if [ "$MODE" = orb ]; then
+    amp orb service stop "$NAME" >/dev/null 2>&1 || true
+  elif [ -f "$PAPER/paper.pid" ]; then
+    local pid
+    pid=$(cat "$PAPER/paper.pid")
+    if kill "$pid" 2>/dev/null; then
+      # SIGTERM makes Paper save and exit; give it time before forcing.
+      for _ in $(seq 1 120); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+    rm -f "$PAPER/paper.pid"
+  fi
+}
+
+# Restore the pristine world snapshot, generating it on first use.
+reset() {
+  stop
+  if [ ! -f "$TEMPLATES/$TEMPLATE/level.dat" ]; then
+    echo "Generating world template $TEMPLATE (first use)"
+    rm -rf "$PAPER/world"
+    start
+    stop
+    rm -rf "$TEMPLATES/$TEMPLATE.tmp"
+    mkdir -p "$TEMPLATES"
+    cp -a "$PAPER/world" "$TEMPLATES/$TEMPLATE.tmp"
+    rm -f "$TEMPLATES/$TEMPLATE.tmp/session.lock"
+    rm -rf "$TEMPLATES/$TEMPLATE"
+    mv "$TEMPLATES/$TEMPLATE.tmp" "$TEMPLATES/$TEMPLATE"
+  fi
+  rm -rf "$PAPER/world"
+  cp -a "$TEMPLATES/$TEMPLATE" "$PAPER/world"
+  echo "World restored from $TEMPLATES/$TEMPLATE"
+}
 
 case "${1:-}" in
-  start)
-    amp orb service start "$NAME" --command "cd $PAPER && $JAVA -Xms768M -Xmx1200M -jar paper.jar nogui"
-    ;;
-  stop)
-    amp orb service stop "$NAME"
-    ;;
+  install) install ;;
+  start) start ;;
+  stop) stop ;;
   status)
-    amp orb service status "$NAME"
+    if running; then echo "running ($MODE)"; else echo "stopped ($MODE)"; exit 1; fi
     ;;
-  logs)
-    amp orb service logs "$NAME"
-    ;;
-  reset)
-    amp orb service stop "$NAME" || true
-    rm -rf "$PAPER"/world "$PAPER"/world_nether "$PAPER"/world_the_end
-    echo "World removed; next start regenerates seed $(grep level-seed "$PAPER/server.properties")"
-    ;;
+  logs) tail -n "${2:-100}" "$PAPER/logs/latest.log" ;;
+  reset) reset ;;
   *)
-    echo "usage: $0 start|stop|status|logs|reset" >&2
+    echo "usage: $0 install|start|stop|status|logs [lines]|reset" >&2
     exit 2
     ;;
 esac
