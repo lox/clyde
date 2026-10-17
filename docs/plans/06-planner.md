@@ -95,6 +95,56 @@ keep SQL/schema ownership in the memory package.
 - Production safety/kill-switch latching belongs to slice 7. Never run the
   live demo against Bonnie's server.
 
+## As built (in progress)
+
+- Isolated packages are implemented; CLI/skill integration and the live demo
+  still wait for slice 5 to ship. This slice is not complete yet.
+- `harness/planner` uses the existing `llm` provider and agent-harness with
+  independent `CLYDE_PLANNER_PROVIDER`, `CLYDE_PLANNER_MODEL` and
+  `CLYDE_PLANNER_EFFORT` (Sol 6.1, low by default). A decision has one
+  schema-validated goal or explicit idle. There are at most two attempts
+  within a 30-second deadline. No model calls are triggered by repeated
+  idle cards. Context contains bounded recent episodes, observed places
+  and semantic notes, not executor transcripts.
+- The scheduler persists accepted requests, goal queue, send intents and
+  outcomes before dispatch. One worker handles planning or execution; player
+  requests cancel autonomous work, join its cleanup and then take priority.
+  Suspended goals retain their predicate and resume with a fresh executor.
+  Startup stops stale body actions and checks unfinished predicates against
+  live state: satisfied work is recorded, unsatisfied work is requeued,
+  observer errors stop startup. This is predicate reconciliation, not replay
+  of the old executor conversation or a guarantee of idempotent side effects.
+- Failure/death/judge events receive one bounded post-mortem, which can
+  curate notes but cannot dispatch a retry. Danger pauses execution until
+  live code prechecks clear. Failure pauses autonomous goals until a new
+  player event. A durable autonomous session budget defaults to ten goals.
+- Body chat is transported through `/events`, never judge notifications.
+  Whispers and public messages starting with `Clyde`, `Clyde:` or `Clyde,`
+  enter the player lane; own chat and ordinary public conversation do not.
+  The bounded event ring is reread with SQLite-backed content identities
+  (sequence, timestamp and content), because `since=N` alone cannot detect
+  a restarted body's counter already exceeding N. Sequence high-water marks
+  and timestamps remain durable; missing ring prefixes are recorded as gaps,
+  not reconstructed. Events evicted while offline can be lost.
+- `harness/memory` owns SQLite (pure-Go `modernc.org/sqlite`, WAL/FULL),
+  atomic queue/event/episode commits, observed spatial locations and bounded
+  Markdown. Semantic updates require existing supporting episode IDs, are
+  confined with `os.Root`, and are limited to 4 KiB/note and 16 KiB total.
+  Home means the explicitly labelled first-observed anchor, not an inferred
+  bed. Last-seen players and nearest visible resource/POI blocks come only
+  from cards. No planner API can insert spatial observations.
+- Reply intent is committed **before** sending chat. Restart therefore
+  does not resend an answered request, but a crash between intent and send
+  can lose a reply. Without chat acknowledgements this is at-most-once send
+  attempt, not exactly-once delivery. Costs cover provider-reported usage;
+  a provider may bill cancelled/crashed calls whose usage was not returned.
+- Offline validation so far: harness build/vet/test; ten repeated race-test
+  runs for memory/planner. Tests cover cleanup-before-preemption, autonomous
+  resumption, slow planning cancellation, chat deduplication through a SQLite
+  close/reopen and body sequence reuse, restart predicate reconciliation,
+  invalid-goal retry bounds, idle quiescence, sustained danger and post-mortem
+  retry suppression, persistence and semantic path/citation limits.
+
 ## Not in this slice
 
 Multi-agent play, production deployment, classifier distillation, vector
