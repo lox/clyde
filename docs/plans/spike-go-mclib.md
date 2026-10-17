@@ -1,16 +1,21 @@
 # Spike: a Go body on go-mclib
 
 Investigated 2026-10-17, before slice 5. **Recommendation: keep the TypeScript
-mineflayer body and JavaScript skills.** A Go body is technically possible,
-but go-mclib is not a practical drop-in replacement. Moving now means owning
-a Minecraft client, packet/data updates, physics fixes, and a new skill API,
-not translating Clyde's small HTTP wrapper into Go.
+mineflayer body and JavaScript skills for now.** The recovered go-mclib stack
+is not a practical drop-in replacement: migrating on that stack means owning
+client repairs, packet/data updates, physics fixes, and a new skill API, not
+translating Clyde's small HTTP wrapper into Go. This is **not a finding that
+all Go clients require the same work**. Supplemental research below identifies
+**mc26-kit as the strongest next candidate**, worth a separate Paper spike
+before closing the Go option; no such prototype has been started here.
 
 The hands-on spike did join Paper 26.2, walk, dig, collect a log and chat.
 That required dependency repair and a registry-decoding patch. Its physics
 also needed the same wall-width workaround as mineflayer; race detection
 found additional concurrency bugs. This is enough to demonstrate feasibility,
-not enough to justify delaying skills by an estimated 4–8 engineer-weeks.
+not enough to justify delaying skills by an estimated 4–8 engineer-weeks
+to reach parity on the **recovered go-mclib stack**. That estimate does not
+apply to mc26-kit, MineGo, or other Go clients without their own evaluation.
 
 Prototype and transcripts: [spike/go-mclib](https://github.com/lox/clyde/tree/spike/go-mclib/spike/gomclib).
 Only this document lands on main. No body, harness, gym, or production changes
@@ -149,7 +154,8 @@ Compared against current `body/src`, `api/action.schema.json` and
 upstream facility exists, not that it passed production acceptance. **Partial**
 means useful lower-level pieces but missing semantics or reliability.
 Effort below is estimated engineer-days to match Clyde, after a working
-connection, including focused tests; rows overlap and must not be summed.
+connection on the recovered go-mclib stack, including focused tests; rows
+overlap and must not be summed. These are not estimates for other Go clients.
 
 | Contract/capability | Coverage and evidence | Remaining work / effort |
 |---------------------|-----------------------|-------------------------|
@@ -268,6 +274,73 @@ pass after the NBT patch. The live race run does **not** pass. Existing Clyde
 body tests (20/20) and TypeScript build pass; harness build/tests pass. Those
 checks demonstrate no main-body changes, not parity of the prototype.
 
+## Supplemental survey: other Go clients
+
+Source inspection and local tests on 2026-10-17 broaden the candidate list.
+They do not supersede the measured go-mclib failures above, but they do limit
+the conclusion: **do not generalize go-mclib's repair/parity estimate to the
+Go ecosystem**. No additional Paper prototype was run for this survey.
+
+### mc26-kit: strongest next candidate
+
+[mj41/go-mc26-kit](https://github.com/mj41/go-mc26-kit/tree/f742fe252fe301624946de5b5a562ee000c8c9a0)
+is an MIT-licensed derivative of Tnze/go-mc, with retained upstream copyright
+and a per-file [provenance ledger](https://github.com/mj41/go-mc26-kit/blob/f742fe252fe301624946de5b5a562ee000c8c9a0/COPIED).
+Inspected source includes actual physics/collision, A* navigation, goto/follow,
+entity/world tracking, digging/placing, recipe lookup/crafting and containers,
+not just README promises. Its generated protocol/data dependency is
+[go-mc26](https://github.com/mj41/go-mc26); the selected dependency version
+chooses the server protocol at **build time**, not per connection. A gym 26.1
+and production 26.2 deployment would need separately pinned builds or a
+separately tested translation arrangement.
+
+Evidence, with distinct limits:
+
+- Locally, `go test -race ./...` **passed** at kit revision
+  `f742fe252fe301624946de5b5a562ee000c8c9a0`, using its default
+  `go-mc26 v0.261.2` dependency. This includes physics, pathfinding, simulated
+  worlds and example-robot tests; it is not a live Paper run or an exhaustive
+  concurrency audit.
+- The [kit CI run](https://github.com/mj41/go-mc26-kit/actions/runs/38288719650)
+  passed its [26.1/26.2/26.3 matrix](https://github.com/mj41/go-mc26-kit/blob/f742fe252fe301624946de5b5a562ee000c8c9a0/.github/workflows/ci.yml):
+  dependencies `v0.261.2`, `v0.262.2`, `v0.263.2`, with build, vet and tests.
+  Those upstream matrix tests do not use `-race`.
+- The [mc26 release run](https://github.com/mj41/mc26/actions/runs/38293848810)
+  succeeded; its [release workflow](https://github.com/mj41/mc26/blob/11f103787488f5a74cf3b2febcaafd4716c196a9/.github/workflows/release.yml)
+  invokes the pipeline with `--e2e`. The
+  [robot scenarios](https://github.com/mj41/go-mc26-kit/blob/f742fe252fe301624946de5b5a562ee000c8c9a0/examples/robot/README.md#how-it-is-tested)
+  describe live **vanilla** server checks of positions, inventory and blocks,
+  and rejection of movement complaints/kicks. This is upstream evidence,
+  not a reproduction here and not Paper acceptance.
+- **Paper movement remains unverified.** Do not infer freedom from Clyde's
+  wall-boundary rubber-banding, proxy/plugin incompatibility or kicks. The
+  [physics package](https://github.com/mj41/go-mc26-kit/blob/f742fe252fe301624946de5b5a562ee000c8c9a0/bot/physics/player.go)
+  documents gaps including swimming pose, cobwebs/berry bushes, powder snow,
+  bubble columns and some effects. The robot docs also acknowledge stuck
+  cases and survival deaths.
+
+The kit repository was created October 3 and had one listed contributor,
+`mj41`, with activity October 12. It is very young, declares no API compatibility
+promise, and has no independently established long-term maintenance record.
+Nevertheless, its existing high-level client code makes it a stronger next
+candidate than rebuilding the recovered go-mclib stack. The next authorized
+experiment should repeat the Paper walk/wall/dig/log/chat test, then crafting,
+containers and stop/preemption, before estimating a Clyde migration. A new
+skill runtime and Clyde's safety/HTTP contract would still be required.
+
+### Other candidates and limitations
+
+| Candidate / inspected revision | Verified evidence | Consequence for Clyde |
+|-------------------------------|-------------------|-----------------------|
+| [Tnze/go-mc](https://github.com/Tnze/go-mc/tree/539b4a3a7f030332eb58b8a946116ae7907630d2) | MIT; established history, but current master's [protocol constant](https://github.com/Tnze/go-mc/blob/539b4a3a7f030332eb58b8a946116ae7907630d2/bot/mcbot.go) is **767 (1.21/1.21.1)**, not 26.x. Last master commit December 24, 2024; a later repository `pushed_at` is not a newer master implementation. Login/chat, chunk load/unload and inventory/container-click primitives exist; no current movement/physics/pathfinding engine or high-level crafting automation found. | A foundation rather than a mineflayer substitute. `go test ./bot/... ./net/... ./level/...` passed locally, but bot itself had no tests to run and its subpackages had no test files. [Issue 299](https://github.com/Tnze/go-mc/issues/299) requests 26.2 and points to mc26; that derivative is more relevant than porting upstream master ourselves. |
+| [zeozeozeo/minego](https://github.com/zeozeozeo/minego/tree/9c0afa678fadf85a13c88b3e2772601fc59bb758) | Real version packs for 26.1/26.2, navigation/physics, mining, crafting and containers; local `go test -race ./...` passed. Its [parity matrix](https://github.com/zeozeozeo/minego/blob/9c0afa678fadf85a13c88b3e2772601fc59bb758/docs/mineflayer-parity.md) still records partial semantics and pending server coverage. The opt-in live 26.2 integration test was **not run** here. | Technically promising, but **licensing is unresolved**: no project license in the inspected tree; [protocol NOTICE](https://github.com/zeozeozeo/minego/blob/9c0afa678fadf85a13c88b3e2772601fc59bb758/internal/protocol/NOTICE.md) identifies copied go-mclib revision `6905af045007` and references an absent `third_party/go-mclib-protocol/LICENSE.md`. No module dependency does not mean no inherited code. Resolve the license grant and retained notices before adoption; do not infer permission from public visibility. |
+| [Understudy client](https://github.com/blocktopiaworld/understudy-client/tree/7cd731ddb193a20c1229b0e87f5e5804183c7f6c) | Apache-2.0; current version tables including 26.1/26.2; library and HTTP controls, world/entity/inventory state, digging, placement and crafting. Local `go test -race ./...` passed. Its [movement implementation](https://github.com/blocktopiaworld/understudy-client/blob/7cd731ddb193a20c1229b0e87f5e5804183c7f6c/understudy/move.go) explicitly uses straight-line dead reckoning, **not pathfinding**. Offline-mode only. | Useful for controlled server tests, not a ready autonomous-survival body. Navigation/terrain behavior remains substantial work; no Paper run was performed here. |
+
+Keep mineflayer for now, but distinguish that immediate delivery choice from
+rejecting every Go migration. **mc26-kit warrants the next Paper evaluation**;
+its migration effort is not yet estimated. None of these clients automatically
+preserves `/eval`, `/query`, or JavaScript skills against mineflayer's `bot`.
+
 ## Code-as-action and the slice 5 decision
 
 Preserving the URL and `{code, timeoutMs}` shape does **not** preserve the
@@ -317,38 +390,43 @@ a migration is mandated, not a recommendation to implement it for slice 5.
 For slice 5 **accept the mineflayer dependency deliberately**. Keep the planned
 JS format, supply the exact runtime/API in skill descriptions, prefer public
 methods over private plugin internals, and gym-test every admitted skill.
-Do not build a comprehensive portability shim for a migration we are rejecting.
+Do not build a comprehensive portability shim for an unproven migration.
 Five small JS skills are cheaper to rewrite later than a clone of mineflayer's
 API is to build now. If future portability is valuable, record the required
 operations per skill; this is an inventory of actual needs, not a speculative
-abstraction. The coordinator should record this body choice as settled in the
-roadmap before starting slice 5; this spike intentionally changes only its doc.
+abstraction. The coordinator should record the immediate body choice and
+whether mc26-kit's Paper evaluation should precede slice 5 in the roadmap;
+this spike intentionally changes only its doc.
 
 ## Depend, vendor, fork, or reimplement?
 
-These are estimates for one engineer familiar with Clyde/Go; not measured
-delivery promises. “Minimal client” still has to receive/configure/play,
-decode world and entities, move like Minecraft, manipulate inventory and
-preserve cancellation/safety. A packet transport library does not do that.
+These are estimates **specifically for the recovered go-mclib client/data/
+protocol stack**, for one engineer familiar with Clyde/Go; not measured
+delivery promises or estimates for mc26-kit or other Go clients. “Minimal
+client” below still has to receive/configure/play, decode world and entities,
+move like Minecraft, manipulate inventory and preserve cancellation/safety.
+A packet transport library does not do that.
 
 | Approach | Initial work to Clyde parity | Risk and ongoing ownership |
 |----------|-----------------------------|-----------------------------|
 | Depend on cached pins | Hours to build a demo; **not viable unpatched** for normal Paper registry configuration | No currently accessible upstream client release channel; broken dependency pins, unsafe parsing and races. Checksums preserve identity, not correctness. Would still need local replacements for required fixes |
 | Vendor pinned sources | Roughly 1–2 d to capture/license/document, then **4–8 weeks** total parity/hardening work | Prevents source disappearance and enables patches; no automatic update support. Once modified it is a private fork in substance, with less convenient upstream comparison |
-| Maintain a fork of client + data (+ protocol as needed) | Same **4–8 weeks** broad estimate; best Go route if a move is mandated | Explicit owner for three coupled layers, codec/security fixes, race-safe snapshots/tick ownership, version branches and Paper acceptance matrix. GitHub Fork UI cannot fork inaccessible repos; seed a new repository from MIT proxy archives, preserving notices/provenance |
+| Maintain a fork of client + data (+ protocol as needed) | Same **4–8 weeks** broad estimate; most practical route **within this recovered stack**, not the best of all Go candidates | Explicit owner for three coupled layers, codec/security fixes, race-safe snapshots/tick ownership, version branches and Paper acceptance matrix. GitHub Fork UI cannot fork inaccessible repos; seed a new repository from MIT proxy archives, preserving notices/provenance |
 | New minimal client on protocol (+ data or replacement codecs) | Approximately **8–16+ weeks**, with greater uncertainty | Rebuild configuration/session orchestration, chunk/world/metadata state, physics/collision, A*, transactions, crafting and safety; shared packet/data faults still apply if reused. Dropping data also means replacing its mappings/codecs. Less inherited architecture, much more Minecraft expertise required |
 | Keep mineflayer + existing Go harness | No migration delay; **0.5–1 d** to make the slice-5 API decision/documentation explicit | Keep known width/oxygen/preemption workarounds and existing version translator plan; retain mature plugin/data ecosystem. Best fit for model-authored skills and current gym evidence |
 
-The 4–8 week fork estimate covers roughly: upstream codec/concurrency/physics
-hardening (1–2 weeks), body/state/action/safety parity (1–2 weeks), containers,
-recipes/crafting and scripting (1–2 weeks), then gym/proxy/soak acceptance
+The recovered go-mclib stack's 4–8 week fork estimate covers roughly: upstream
+codec/concurrency/physics hardening (1–2 weeks), body/state/action/safety parity
+(1–2 weeks), containers, recipes/crafting and scripting (1–2 weeks), then gym/proxy/soak acceptance
 (about a week), with overlap. It excludes production rollout and unspecified
 future gameplay, and the upper bound is not a guarantee. There is no measured
 CPU/memory/deployment benefit here to offset that work; Go performance is not
 assumed from the language alone.
 
-No move is recommended, so no migration slices should block skills. If a Go-only
-requirement overrides that recommendation later, use these **gated** slices:
+No immediate move is recommended. Before choosing a Go migration, evaluate
+mc26-kit on Paper; do not begin by assuming it needs go-mclib's repairs or
+missing features. If the recovered go-mclib stack is nevertheless chosen,
+use these **gated** slices (not a migration plan or estimate for mc26-kit):
 
 1. Recover/license a pinned stack; fix registry/codecs and race ownership;
    establish repeatable Paper join/wall/physics tests. Stop if this cannot be
