@@ -195,7 +195,10 @@ Settled with the user unless marked default. Defaults are the coordinator's
 choice and can be reversed by saying so.
 
 - Name: Clyde. Repo: `lox/clyde`, public, MIT.
-- Body in TypeScript on mineflayer; harness in Go.
+- Harness in Go.
+- Body in TypeScript on mineflayer (default: proposed in the spec thread,
+  never explicitly approved). Revisit before slice 5, because skills are
+  written as JavaScript against mineflayer's `bot` API and lock it in.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
