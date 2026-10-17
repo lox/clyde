@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -16,6 +13,7 @@ import (
 	harness "github.com/lox/agent-harness"
 
 	"github.com/lox/clyde/harness/body"
+	"github.com/lox/clyde/harness/skills"
 )
 
 // Tool is defined once and adapted for both the executor loop (Harness) and
@@ -62,7 +60,7 @@ func Harness(tools []Tool) []harness.Tool {
 // only state is the chat cursor for observe.
 type Toolbox struct {
 	Body      *body.Client
-	SkillsDir string // skills/; find_skill searches skills/*/skill.md
+	SkillsDir string // admitted library; empty disables both skill tools
 
 	mu        sync.Mutex
 	chatSince int
@@ -71,9 +69,9 @@ type Toolbox struct {
 // pollInterval is how often act and observe re-read the card while waiting.
 const pollInterval = 250 * time.Millisecond
 
-// Tools returns observe, act, eval_js, recipes_for, lookup, and find_skill.
+// Tools returns body tools and, when configured, admitted skill tools.
 func (tb *Toolbox) Tools() []Tool {
-	return []Tool{
+	tools := []Tool{
 		{
 			Name: "observe",
 			Description: "Read Clyde's state card: position, health, food, the running and last action, inventory, " +
@@ -109,13 +107,17 @@ func (tb *Toolbox) Tools() []Tool {
 			Schema:      schema(`{"name": {"type": "string", "description": "Block, item, or entity name such as oak_log, iron_ore, or zombie."}}`, "name"),
 			Run:         tb.lookup,
 		},
-		{
-			Name:        "find_skill",
-			Description: "Search Clyde's skill library (skills/*/skill.md) for a reusable skill. Returns matching skill names and descriptions.",
-			Schema:      schema(`{"query": {"type": "string", "description": "What you want to do, in a few words."}}`, "query"),
-			Run:         tb.findSkill,
-		},
 	}
+	if tb.SkillsDir != "" {
+		tools = append(tools, Tool{
+			Name: "find_skill", Description: "Search admitted reusable skills. Returns full descriptions including arguments and preconditions. Run a match with run_skill.",
+			Schema: schema(`{"query":{"type":"string"}}`, "query"), Run: tb.findSkill,
+		}, Tool{
+			Name: "run_skill", Description: "Run an admitted JavaScript skill with JSON args (see find_skill). Replaces the running action, with the same body safety, timeout, and cancellation as eval_js.",
+			Schema: schema(`{"name":{"type":"string"},"args":{"type":"object","additionalProperties":true},"timeoutMs":{"type":"integer","minimum":1,"maximum":600000}}`, "name", "args"), Run: tb.runSkill,
+		})
+	}
+	return tools
 }
 
 func schema(props string, required ...string) json.RawMessage {
@@ -420,36 +422,35 @@ func (tb *Toolbox) findSkill(ctx context.Context, args json.RawMessage) (string,
 	if err != nil {
 		return "", err
 	}
-	paths, _ := filepath.Glob(filepath.Join(tb.SkillsDir, "*", "skill.md"))
-	words := strings.Fields(strings.ToLower(query))
-	type hit struct {
-		name, summary string
-		score         int
-	}
-	var hits []hit
-	for _, p := range paths {
-		b, err := os.ReadFile(p)
-		if err != nil {
-			return "", err
-		}
-		text := strings.ToLower(string(b))
-		score := 0
-		for _, w := range words {
-			score += strings.Count(text, w)
-		}
-		if score == 0 {
-			continue
-		}
-		summary, _, _ := strings.Cut(strings.TrimSpace(string(b)), "\n\n")
-		hits = append(hits, hit{filepath.Base(filepath.Dir(p)), summary, score})
+	hits, err := (skills.Store{Dir: tb.SkillsDir}).Find(query)
+	if err != nil {
+		return "", err
 	}
 	if len(hits) == 0 {
 		return "no matching skills", nil
 	}
-	slices.SortStableFunc(hits, func(a, b hit) int { return b.score - a.score })
 	var out []string
-	for _, h := range hits[:min(5, len(hits))] {
-		out = append(out, "## "+h.name+"\n"+h.summary)
+	for _, h := range hits {
+		out = append(out, "## "+h.Name+"\n"+h.Description)
 	}
 	return strings.Join(out, "\n\n"), nil
+}
+
+func (tb *Toolbox) runSkill(ctx context.Context, raw json.RawMessage) (string, error) {
+	var a struct {
+		Name      string          `json:"name"`
+		Args      json.RawMessage `json:"args"`
+		TimeoutMs int             `json:"timeoutMs"`
+	}
+	if err := decodeArgs(raw, &a); err != nil {
+		return "", err
+	}
+	status, err := (skills.Store{Dir: tb.SkillsDir}).Run(ctx, tb.Body, a.Name, a.Args, a.TimeoutMs)
+	if err != nil {
+		return "", err
+	}
+	if status.Status != "succeeded" {
+		return "", fmt.Errorf("skill %s: %s", a.Name, statusJSON(&status))
+	}
+	return statusJSON(&status), nil
 }

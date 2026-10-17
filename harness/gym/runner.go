@@ -46,7 +46,26 @@ type Runner struct {
 	Timeout  time.Duration // overrides each task's timeout when non-zero
 	RunDir   string        // gym/runs/<timestamp>
 	Log      io.Writer     // progress output
+	Env      []string      // per-instance overrides inherited by Paper and agent (last value wins)
 }
+
+// env reads the same effective configuration passed to both child processes.
+func (r *Runner) env(name, fallback string) string {
+	for i := len(r.Env) - 1; i >= 0; i-- {
+		if v, ok := strings.CutPrefix(r.Env[i], name+"="); ok {
+			if v == "" {
+				return fallback
+			} // shell ${VAR:-default} has the same semantics
+			return v
+		}
+	}
+	if v := os.Getenv(name); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func (r *Runner) rconAddr() string { return MCHost + ":" + r.env("GYM_RCON_PORT", "25575") }
 
 // Result is the outcome of one task.
 type Result struct {
@@ -59,9 +78,10 @@ type Result struct {
 	Detail    string    `json:"detail"`
 	StartedAt time.Time `json:"started_at"`
 	// From the agent's GYM_OUTCOME file, when it writes one.
-	Model   string  `json:"model,omitempty"`
-	Tokens  int     `json:"tokens,omitempty"`
-	CostUSD float64 `json:"cost_usd,omitempty"`
+	Model      string         `json:"model,omitempty"`
+	Tokens     int            `json:"tokens,omitempty"`
+	CostUSD    float64        `json:"cost_usd,omitempty"`
+	SkillCalls map[string]int `json:"skill_calls,omitempty"`
 }
 
 // Run plays one task and always returns a result; setup problems are
@@ -97,10 +117,12 @@ func readOutcome(path string, res *Result) {
 		Tokens struct {
 			Total int `json:"total"`
 		} `json:"tokens"`
-		CostUSD float64 `json:"cost_usd"`
+		CostUSD    float64        `json:"cost_usd"`
+		SkillCalls map[string]int `json:"skill_calls"`
 	}
 	if json.Unmarshal(b, &o) == nil {
 		res.Model, res.Tokens, res.CostUSD = o.Model, o.Tokens.Total, o.CostUSD
+		res.SkillCalls = o.SkillCalls
 	}
 }
 
@@ -117,6 +139,13 @@ func (r *Runner) run(ctx context.Context, t *Task, dir string, timeout time.Dura
 	if err := os.WriteFile(goalPath, b, 0o644); err != nil {
 		return err
 	}
+	// A caller may reuse RunDir. Never let a previous run release the next
+	// agent before setup, or report previous token/skill usage after failure.
+	for _, path := range []string{readyPath, filepath.Join(dir, "outcome.json")} {
+		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
 
 	fmt.Fprintf(r.Log, "== %s: resetting world\n", t.Name)
 	resetStart := time.Now()
@@ -128,7 +157,7 @@ func (r *Runner) run(ctx context.Context, t *Task, dir string, timeout time.Dura
 	}
 	fmt.Fprintf(r.Log, "== %s: server ready in %.1fs\n", t.Name, time.Since(resetStart).Seconds())
 
-	conn, err := dialRCON(ctx)
+	conn, err := r.dialRCON(ctx)
 	if err != nil {
 		return err
 	}
@@ -151,6 +180,18 @@ func (r *Runner) run(ctx context.Context, t *Task, dir string, timeout time.Dura
 		}
 		if CommandFailed(out) {
 			return fmt.Errorf("setup %q: %s", cmd, out)
+		}
+	}
+	// RCON setup may finish before the bot has received block/inventory packets.
+	settle := time.Duration(t.Settle)
+	if settle == 0 {
+		settle = 500 * time.Millisecond
+	}
+	if settle > 0 {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(settle):
 		}
 	}
 	obs := goal.RCON{Conn: conn}
@@ -200,16 +241,17 @@ func (r *Runner) run(ctx context.Context, t *Task, dir string, timeout time.Dura
 func (r *Runner) paper(ctx context.Context, verb string) error {
 	cmd := exec.CommandContext(ctx, filepath.Join(r.Root, "gym", "bin", "paper"), verb)
 	cmd.Stdout, cmd.Stderr = r.Log, r.Log
+	cmd.Env = append(os.Environ(), r.Env...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("gym/bin/paper %s: %w", verb, err)
 	}
 	return nil
 }
 
-func dialRCON(ctx context.Context) (*rcon.Client, error) {
+func (r *Runner) dialRCON(ctx context.Context) (*rcon.Client, error) {
 	deadline := time.Now().Add(30 * time.Second)
 	for {
-		c, err := rcon.Dial(ctx, RCONAddr, RCONPassword())
+		c, err := rcon.Dial(ctx, r.rconAddr(), r.env("GYM_RCON_PASSWORD", DefaultRCONPassword))
 		if err == nil || errors.Is(err, rcon.ErrAuth) || time.Now().After(deadline) {
 			return c, err
 		}
@@ -262,15 +304,15 @@ func (r *Runner) startAgent(dir, goalPath, readyPath string) (*agentProc, error)
 	cmd.Dir = r.Root
 	cmd.Stdout, cmd.Stderr = log, log
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Env = append(os.Environ(),
+	cmd.Env = append(append(os.Environ(), r.Env...),
 		"GYM_TASK="+goalPath,
 		"GYM_READY="+readyPath,
 		"GYM_OUTCOME="+filepath.Join(dir, "outcome.json"),
 		"MC_HOST="+MCHost,
-		"MC_PORT="+MCPort,
+		"MC_PORT="+r.env("GYM_MC_PORT", MCPort),
 		"MC_USERNAME="+r.Username,
-		"GYM_RCON_ADDR="+RCONAddr,
-		"GYM_RCON_PASSWORD="+RCONPassword(),
+		"GYM_RCON_ADDR="+r.rconAddr(),
+		"GYM_RCON_PASSWORD="+r.env("GYM_RCON_PASSWORD", DefaultRCONPassword),
 	)
 	if err := cmd.Start(); err != nil {
 		log.Close()

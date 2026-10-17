@@ -18,6 +18,7 @@ func Scoreboard(agent string, results []Result) string {
 		tokens       int
 		cost         float64
 		models       []string
+		skills       int
 	}
 	var order []string
 	byTask := map[string]*agg{}
@@ -35,6 +36,9 @@ func Scoreboard(agent string, results []Result) string {
 		}
 		a.tokens += r.Tokens
 		a.cost += r.CostUSD
+		for _, n := range r.SkillCalls {
+			a.skills += n
+		}
 		if r.Model != "" && !slices.Contains(a.models, r.Model) {
 			a.models = append(a.models, r.Model)
 		}
@@ -47,12 +51,13 @@ func Scoreboard(agent string, results []Result) string {
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "agent `%s`: %d/%d passed\n\n", agent, passed, len(results))
-	b.WriteString("| task | passed | median time to pass | tokens/run | cost/run | model |\n")
-	b.WriteString("|------|-------:|--------------------:|-----------:|---------:|-------|\n")
+	b.WriteString("| task | passed | median time to pass | tokens/run | cost/run | skill calls | model |\n")
+	b.WriteString("|------|-------:|--------------------:|-----------:|---------:|------------:|-------|\n")
 	for _, task := range order {
 		a := byTask[task]
-		fmt.Fprintf(&b, "| %s | %d/%d | %s | %s | %s | %s |\n", task, a.passed, a.runs, median(a.times),
+		fmt.Fprintf(&b, "| %s | %d/%d | %s | %s | %s | %d | %s |\n", task, a.passed, a.runs, median(a.times),
 			orDash(a.tokens > 0, fmt.Sprintf("%d", a.tokens/max(a.reported, 1))), orDash(a.cost > 0, fmt.Sprintf("$%.4f", a.cost/float64(max(a.reported, 1)))),
+			a.skills,
 			orDash(len(a.models) > 0, strings.Join(a.models, ", ")))
 	}
 

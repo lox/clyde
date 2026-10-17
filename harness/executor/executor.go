@@ -66,17 +66,18 @@ type Tokens struct {
 
 // Outcome is the result of one run, printed as JSON by `clyde run`.
 type Outcome struct {
-	Outcome   string           `json:"outcome"`
-	Detail    string           `json:"detail,omitempty"`
-	Goal      string           `json:"goal"`
-	Until     string           `json:"until,omitempty"` // last predicate check
-	Interrupt *judge.Interrupt `json:"interrupt,omitempty"`
-	Final     string           `json:"final,omitempty"` // the model's last text
-	Model     string           `json:"model"`
-	Steps     int              `json:"steps"`
-	Tokens    Tokens           `json:"tokens"`
-	CostUSD   float64          `json:"cost_usd"`
-	Seconds   float64          `json:"seconds"`
+	Outcome    string           `json:"outcome"`
+	Detail     string           `json:"detail,omitempty"`
+	Goal       string           `json:"goal"`
+	Until      string           `json:"until,omitempty"` // last predicate check
+	Interrupt  *judge.Interrupt `json:"interrupt,omitempty"`
+	Final      string           `json:"final,omitempty"` // the model's last text
+	Model      string           `json:"model"`
+	Steps      int              `json:"steps"`
+	Tokens     Tokens           `json:"tokens"`
+	CostUSD    float64          `json:"cost_usd"`
+	Seconds    float64          `json:"seconds"`
+	SkillCalls map[string]int   `json:"skill_calls,omitempty"` // actual attempted run_skill calls, including failures
 }
 
 var (
@@ -190,6 +191,8 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 
 	user := fmt.Sprintf("Goal: %s\n\nDone when (checked automatically; the run ends as soon as it holds): %s\n\nCurrent state:\n%s",
 		g.Description, until, first)
+	var usageMu sync.Mutex
+	logEvent := transcript(logw)
 	res, runErr := harness.Run(runCtx, o.Provider,
 		harness.WithSystem(o.System),
 		harness.WithMessages(harness.Message{Role: harness.RoleUser, Content: user}),
@@ -201,7 +204,22 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 			checkNow()
 			return nil
 		}),
-		harness.WithEventHandler(transcript(logw)),
+		harness.WithEventHandler(func(e harness.Event) {
+			usageMu.Lock()
+			defer usageMu.Unlock()
+			logEvent(e)
+			if e.Type == harness.EventToolStart && e.ToolCall.Name == "run_skill" {
+				var a struct {
+					Name string `json:"name"`
+				}
+				if json.Unmarshal(e.ToolCall.Arguments, &a) == nil {
+					if out.SkillCalls == nil {
+						out.SkillCalls = map[string]int{}
+					}
+					out.SkillCalls[a.Name]++
+				}
+			}
+		}),
 	)
 	cancel(errRunEnded) // first cause wins; this only stops the watchers
 	wg.Wait()

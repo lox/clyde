@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Deterministic skill admission; no model or API key is used.
+set -euo pipefail
+root=$(cd "$(dirname "$0")/../.." && pwd)
+command -v go >/dev/null || export PATH="$HOME/tools/go/bin:$PATH"
+mkdir -p "$root/gym/.bin"
+(cd "$root/harness" && go build -o "$root/gym/.bin/clyde" ./cmd/clyde)
+if [ "$#" -eq 0 ]; then
+  for file in "$root"/skills/*/test.yaml; do
+    set -- "$@" "$(basename "$(dirname "$file")")"
+  done
+fi
+cd "$root"
+exec "$root/gym/.bin/clyde" skill gate "$@"

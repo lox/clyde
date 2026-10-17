@@ -21,15 +21,18 @@ what belongs here.
   (`github.com/lox/agent-harness`: OpenAI Responses by default, Anthropic
   as an alternative), plus per-model prices.
 - `executor/`: tier-2 loop. One goal, one agent-harness `Run`, body tools
-  (`observe`, `act`, `eval_js`, `recipes_for`, `lookup`, `find_skill`),
+  (`observe`, `act`, `eval_js`, `recipes_for`, `lookup`, `find_skill`, `run_skill`),
   the `until` check, and the judge beside it. The prompt lives in
   `prompts/executor.md`.
 - `mcp/`: the same tools plus `run_goal` and `stop` over MCP.
 - `cmd/clyde/`: `clyde run` and `clyde mcp`.
+- `skills/`: shared content-bound skill loading/admission; see
+  [skill format, gate, promotion, and isolation](../skills/README.md).
 
 ## Executor and MCP
 
-Both need a running body (`cd body && npm run dev`) and `OPENAI_API_KEY`.
+Both need a running body (`cd body && npm run dev`). Executor goals need
+`OPENAI_API_KEY`; direct MCP body/skill tools do not.
 
 ```sh
 cd harness
@@ -45,6 +48,12 @@ The model is `CLYDE_EXECUTOR_PROVIDER` (`openai` or `anthropic`),
 goals can be checked. The judge runs beside the loop when
 `TYPESAFE_API_KEY` is set (`--judge off` disables it). `clyde run` exits 0
 when the goal was reached and 2 otherwise.
+
+Skill tools expose only locally admitted versions. `--skills-dir` selects
+the library (default `skills/`); `--skills-dir ''` disables both tools for
+controlled comparisons. The gym agent reads the equivalent `CLYDE_SKILLS_DIR`
+(including an explicitly empty value). Outcomes include `skill_calls`, a
+per-name count of actual attempted invocations, including failures.
 
 To use it from Amp, add an MCP server whose command is
 `go run ./cmd/clyde mcp` with `harness/` as its working directory.

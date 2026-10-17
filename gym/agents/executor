@@ -34,8 +34,13 @@ done
 until [ -e "$GYM_READY" ]; do sleep 0.2; done
 
 status=0
-"$clyde" run --goal "$GYM_TASK" --body "$base" --rcon "$GYM_RCON_ADDR" \
-  --judge-log "$run_dir/judge.jsonl" >"${GYM_OUTCOME:-$run_dir/outcome.json}" || status=$?
+if [ -n "${GYM_SKILL_SNAPSHOT:-}" ]; then
+  "$clyde" skill candidate --snapshot "$GYM_SKILL_SNAPSHOT" --body "$base" || status=$?
+else
+  "$clyde" run --goal "$GYM_TASK" --body "$base" --rcon "$GYM_RCON_ADDR" \
+    --skills-dir "${CLYDE_SKILLS_DIR-$root/skills}" \
+    --judge-log "$run_dir/judge.jsonl" >"${GYM_OUTCOME:-$run_dir/outcome.json}" || status=$?
+fi
 echo "clyde run exited $status"
 if [ "$status" -eq 0 ]; then
   wait "$body"

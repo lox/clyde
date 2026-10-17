@@ -43,6 +43,12 @@ goal:                      # api/goal.schema.json
   task with result `error`. Chunks are only loaded near players, so start
   with `forceload add` for any area you touch. Setup runs after the player
   joins because `tp`, `give`, and `clear` need them online.
+- `settle`: optional duration (at most 10s, default 500ms) between setup and
+  readiness, excluded from task time. This lets the bot receive RCON block
+  and inventory updates; the eating skill's test uses 4s for a hunger effect.
+- `skill: {args: {...}, timeoutMs: 30000}` is used only by candidate gates
+  in `skills/<name>/test.yaml` (whose task name is `test`). Ordinary model
+  tasks do not prescribe a skill or sequence of tool calls.
 - `goal.until` has exactly one predicate:
   - `items: {item, count}`: the player holds at least `count` (`item` may be
     a `#tag`).
@@ -80,3 +86,14 @@ goal over RCON once `GYM_READY` exists, so every task passes. `executor`
 starts the body, waits for `GYM_READY`, and runs `clyde run` on the goal
 with the model from `CLYDE_EXECUTOR_MODEL` (see `harness/README.md`); its
 judge log and outcome land in the task's run directory.
+
+`logs-to-table` starts empty-handed and checks table placement after wood
+gathering/crafting. `logs-to-chest` starts empty-handed and checks twelve
+crafted planks delivered to a chest. Both run from the same reset fixtures
+with or without skills; one general eval may legitimately solve either.
+The scoreboard also reports total attempted skill calls; per-name counts
+live in each outcome/result JSON.
+
+For candidate gates, admission and isolated world configuration, see
+[skills/README.md](../../skills/README.md). `gym/bin/gate-skills` runs all
+five deterministic gates without any model or API key and is a CI gate.

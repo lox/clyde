@@ -44,14 +44,16 @@ const exitNotSucceeded = 2
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if len(os.Args) < 2 || (os.Args[1] != "run" && os.Args[1] != "mcp") {
-		fmt.Fprintln(os.Stderr, "usage: clyde run --goal goal.json [flags] | clyde mcp [flags]")
+	if len(os.Args) < 2 || (os.Args[1] != "run" && os.Args[1] != "mcp" && os.Args[1] != "skill") {
+		fmt.Fprintln(os.Stderr, "usage: clyde run --goal goal.json [flags] | clyde mcp [flags] | clyde skill gate|promote [flags] name...")
 		os.Exit(2)
 	}
 	cmd, args := os.Args[1], os.Args[2:]
 	var err error
 	if cmd == "run" {
 		err = runCmd(ctx, args)
+	} else if cmd == "skill" {
+		err = skillCmd(ctx, args)
 	} else {
 		err = mcpCmd(ctx, args)
 	}
@@ -63,13 +65,14 @@ func main() {
 
 // common holds what both subcommands need to run goals.
 type common struct {
-	root     string
-	bodyURL  string
-	rconAddr string
-	judge    string
-	judgeLog string
-	maxSteps int
-	maxTime  time.Duration
+	root      string
+	bodyURL   string
+	rconAddr  string
+	judge     string
+	judgeLog  string
+	maxSteps  int
+	maxTime   time.Duration
+	skillsDir string
 }
 
 func (c *common) flags(fs *flag.FlagSet) {
@@ -84,6 +87,7 @@ func (c *common) flags(fs *flag.FlagSet) {
 	fs.StringVar(&c.judgeLog, "judge-log", filepath.Join(c.root, "memory", "judge.jsonl"), "JSONL judge tick log to append to")
 	fs.IntVar(&c.maxSteps, "max-steps", 40, "model turns per goal")
 	fs.DurationVar(&c.maxTime, "max-time", 5*time.Minute, "wall time per goal")
+	fs.StringVar(&c.skillsDir, "skills-dir", filepath.Join(c.root, "skills"), "admitted library root; empty disables skill tools")
 }
 
 // runGoal builds a fresh provider, observer, and judge, and runs g once.
@@ -104,7 +108,7 @@ func (c *common) runGoal(ctx context.Context, g goal.Goal, log io.Writer) (execu
 	}
 	o := executor.Options{
 		Provider: provider, Model: cfg.Model, Effort: cfg.Effort, System: string(system),
-		Body: client, SkillsDir: filepath.Join(c.root, "skills"), Player: card.Bot.Name,
+		Body: client, SkillsDir: c.skillsDir, Player: card.Bot.Name,
 		Observer: body.Observer{Client: client}, MaxSteps: c.maxSteps, MaxDuration: c.maxTime, Log: log,
 	}
 	if c.rconAddr != "" {
@@ -196,7 +200,7 @@ func mcpCmd(ctx context.Context, args []string) error {
 	fs.Parse(args)
 
 	client := &body.Client{URL: c.bodyURL}
-	tb := &executor.Toolbox{Body: client, SkillsDir: filepath.Join(c.root, "skills")}
+	tb := &executor.Toolbox{Body: client, SkillsDir: c.skillsDir}
 	tools := append(tb.Tools(),
 		mcp.StopTool(client),
 		mcp.RunGoalTool(func(ctx context.Context, g goal.Goal) (executor.Outcome, error) {

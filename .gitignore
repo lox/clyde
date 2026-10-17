@@ -9,3 +9,5 @@ gym/runs/
 gym/server/
 .amp/
 gym/.bin/
+.admission.json
+memory/skill-candidates/

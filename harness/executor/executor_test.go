@@ -242,6 +242,7 @@ func TestBadToolArgumentsAreToolErrors(t *testing.T) {
 		{"act", `{"type":"collect","block":"oak_log","count":99}`, "count"},
 		{"act", `not json`, "bad arguments"},
 		{"eval_js", `{}`, "code is required"},
+		{"run_skill", `{"name":"missing","args":{}}`, "no such file"},
 		{"teleport", `{}`, "Unknown tool"},
 	}
 	p := &scripted{next: func(n int, _ harness.ChatParams) *harness.ChatResult {
@@ -277,5 +278,8 @@ func TestBadToolArgumentsAreToolErrors(t *testing.T) {
 	}
 	if actions, _ := fb.snapshot(); len(actions) != 0 {
 		t.Fatalf("invalid actions reached the body: %v", actions)
+	}
+	if out.SkillCalls["missing"] != 1 {
+		t.Fatalf("attempted skill usage not reported: %+v", out.SkillCalls)
 	}
 }

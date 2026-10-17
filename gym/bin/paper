@@ -14,7 +14,9 @@ TEMPLATES="${GYM_TEMPLATES:-$HOME/paper-templates}"
 TEMPLATE=mcbot
 JAVA="${JAVA:-$HOME/tools/jdk/bin/java}"
 command -v "$JAVA" >/dev/null || JAVA=java
-NAME=paper
+NAME="${GYM_PAPER_NAME:-paper}"
+MC_PORT="${GYM_MC_PORT:-25565}"
+RCON_PORT="${GYM_RCON_PORT:-25575}"
 READY_TIMEOUT="${GYM_READY_TIMEOUT:-300}"
 
 mode() {
@@ -37,6 +39,7 @@ render_properties() {
   else
     cp "$GYM/server.properties" "$PAPER/server.properties"
   fi
+  sed -i -e "s/^server-port=.*/server-port=$MC_PORT/" -e "s/^rcon.port=.*/rcon.port=$RCON_PORT/" "$PAPER/server.properties"
 }
 
 install() {
@@ -69,7 +72,7 @@ start() {
   rm -f "$PAPER/logs/latest.log"
   local cmd="$JAVA -Xms768M -Xmx1200M -jar paper.jar nogui"
   if [ "$MODE" = orb ]; then
-    amp orb service start "$NAME" --cwd "$PAPER" --command "cd $PAPER && exec $cmd" >/dev/null
+    amp orb service start "$NAME" --cwd "$PAPER" --command "exec $cmd" >/dev/null
   else
     # --noconsole: with stdin closed, Paper's console would spin on EOF.
     (cd "$PAPER" || exit 1; nohup $cmd --noconsole > "$PAPER/console.log" 2>&1 < /dev/null & echo $! > "$PAPER/paper.pid")
@@ -87,7 +90,7 @@ start() {
     fi
     sleep 0.5
   done
-  echo "Paper is ready (RCON on 127.0.0.1:25575)"
+  echo "Paper $NAME is ready (MC 127.0.0.1:$MC_PORT, RCON 127.0.0.1:$RCON_PORT, world $PAPER/world, templates $TEMPLATES)"
 }
 
 stop() {

@@ -21,11 +21,19 @@ var Templates = []string{"mcbot"}
 
 // Task is one gym/tasks/*.yaml file; see gym/tasks/README.md.
 type Task struct {
-	Name     string    `json:"name"`
-	Template string    `json:"template"`
-	Setup    []string  `json:"setup"`
-	Goal     goal.Goal `json:"goal"`
-	Timeout  Duration  `json:"timeout"`
+	Name     string      `json:"name"`
+	Template string      `json:"template"`
+	Setup    []string    `json:"setup"`
+	Goal     goal.Goal   `json:"goal"`
+	Timeout  Duration    `json:"timeout"`
+	Settle   Duration    `json:"settle,omitempty"` // wait for asynchronous setup effects before readiness
+	Skill    *Invocation `json:"skill,omitempty"`  // deterministic candidate gate only
+}
+
+// Invocation specifies the candidate arguments, not the model's tool sequence.
+type Invocation struct {
+	Args      json.RawMessage `json:"args"`
+	TimeoutMs int             `json:"timeoutMs,omitempty"`
 }
 
 // Duration is a time.Duration written as a Go duration string such as "90s".
@@ -52,6 +60,11 @@ func LoadTask(path string) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
+	return ParseTask(path, b)
+}
+
+// ParseTask validates a captured task snapshot. path supplies its expected name.
+func ParseTask(path string, b []byte) (*Task, error) {
 	// Decode YAML 1.2 (where a key named y stays a string), then go through
 	// JSON so the schema-generated validation runs.
 	var raw any
@@ -87,6 +100,18 @@ func (t *Task) validate(file string) error {
 	}
 	if t.Timeout <= 0 {
 		return fmt.Errorf("timeout must be positive")
+	}
+	if t.Settle < 0 || time.Duration(t.Settle) > 10*time.Second {
+		return fmt.Errorf("settle must be between 0 and 10s")
+	}
+	if t.Skill != nil {
+		var args map[string]json.RawMessage
+		if json.Unmarshal(t.Skill.Args, &args) != nil || args == nil {
+			return fmt.Errorf("skill.args must be an object")
+		}
+		if t.Skill.TimeoutMs < 0 || t.Skill.TimeoutMs > 600000 {
+			return fmt.Errorf("invalid skill timeoutMs")
+		}
 	}
 	kind, err := goal.Kind(t.Goal.Until)
 	if err != nil {
