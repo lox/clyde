@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "action.schema.json",
+  "title": "ActionRequest",
+  "description": "Body of POST /action. A new action aborts the running one.",
+  "oneOf": [
+    { "$ref": "#/definitions/GotoAction" },
+    { "$ref": "#/definitions/FollowAction" },
+    { "$ref": "#/definitions/CollectAction" },
+    { "$ref": "#/definitions/DigAction" },
+    { "$ref": "#/definitions/PlaceAction" },
+    { "$ref": "#/definitions/ChatAction" },
+    { "$ref": "#/definitions/EvalAction" },
+    { "$ref": "#/definitions/StopAction" }
+  ],
+  "definitions": {
+    "GotoAction": {
+      "title": "GotoAction",
+      "description": "Walk until within range blocks of (x, y, z).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "x", "y", "z"],
+      "properties": {
+        "type": { "const": "goto" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" },
+        "range": { "type": "number", "minimum": 0, "default": 1 }
+      }
+    },
+    "FollowAction": {
+      "title": "FollowAction",
+      "description": "Keep within range blocks of a player until aborted.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "player"],
+      "properties": {
+        "type": { "const": "follow" },
+        "player": { "type": "string", "minLength": 1 },
+        "range": { "type": "number", "minimum": 1, "default": 3 }
+      }
+    },
+    "CollectAction": {
+      "title": "CollectAction",
+      "description": "Find up to count blocks of a type within radius, break them, and pick up the drops.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "block"],
+      "properties": {
+        "type": { "const": "collect" },
+        "block": { "type": "string", "minLength": 1 },
+        "count": { "type": "integer", "minimum": 1, "maximum": 64, "default": 1 },
+        "radius": { "type": "number", "minimum": 1, "maximum": 64, "default": 32 }
+      }
+    },
+    "DigAction": {
+      "title": "DigAction",
+      "description": "Break the block at (x, y, z), walking within reach first.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "x", "y", "z"],
+      "properties": {
+        "type": { "const": "dig" },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "z": { "type": "integer" }
+      }
+    },
+    "PlaceAction": {
+      "title": "PlaceAction",
+      "description": "Place a block item from the inventory at (x, y, z), walking within reach first.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "item", "x", "y", "z"],
+      "properties": {
+        "type": { "const": "place" },
+        "item": { "type": "string", "minLength": 1 },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "z": { "type": "integer" }
+      }
+    },
+    "ChatAction": {
+      "title": "ChatAction",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "message"],
+      "properties": {
+        "type": { "const": "chat" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "EvalAction": {
+      "title": "EvalAction",
+      "description": "Run JavaScript as the body of an async function with the bot in scope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "code"],
+      "properties": {
+        "type": { "const": "eval" },
+        "code": { "type": "string", "minLength": 1 },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 600000, "default": 60000 }
+      }
+    },
+    "StopAction": {
+      "title": "StopAction",
+      "description": "Abort the running action and stand still. Same as POST /stop.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "stop" }
+      }
+    }
+  }
+}

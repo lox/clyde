@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "state.schema.json",
+  "title": "StateCard",
+  "description": "GET /state: the one observation the rest of the system sees. Distances are in blocks, times in epoch milliseconds unless named *Ms.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ts", "bot", "world", "action", "lastAction", "inventory", "entities", "blocks", "events"],
+  "properties": {
+    "ts": { "type": "integer", "description": "When the card was built." },
+    "bot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "dimension", "position", "yaw", "pitch", "health", "food", "oxygen", "xpLevel", "gameMode", "onGround", "inWater", "inLava"],
+      "properties": {
+        "name": { "type": "string" },
+        "dimension": { "type": "string", "description": "For example overworld, the_nether, the_end." },
+        "position": { "$ref": "#/definitions/Vec" },
+        "yaw": { "type": "number" },
+        "pitch": { "type": "number" },
+        "health": { "type": "number", "minimum": 0, "maximum": 20 },
+        "food": { "type": "number", "minimum": 0, "maximum": 20 },
+        "oxygen": { "type": "number", "minimum": 0, "maximum": 20 },
+        "xpLevel": { "type": "integer", "minimum": 0 },
+        "gameMode": { "type": "string" },
+        "onGround": { "type": "boolean" },
+        "inWater": { "type": "boolean" },
+        "inLava": { "type": "boolean" }
+      }
+    },
+    "world": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeOfDay", "phase", "raining", "thundering"],
+      "properties": {
+        "timeOfDay": { "type": "integer", "minimum": 0, "maximum": 23999 },
+        "phase": { "type": "string", "enum": ["day", "dusk", "night", "dawn"] },
+        "raining": { "type": "boolean" },
+        "thundering": { "type": "boolean" }
+      }
+    },
+    "action": {
+      "description": "The running action, or null when idle.",
+      "oneOf": [{ "$ref": "#/definitions/ActionStatus" }, { "type": "null" }]
+    },
+    "lastAction": {
+      "description": "The most recently finished action, or null.",
+      "oneOf": [{ "$ref": "#/definitions/ActionStatus" }, { "type": "null" }]
+    },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["used", "total", "held", "items"],
+      "properties": {
+        "used": { "type": "integer", "minimum": 0, "description": "Occupied slots." },
+        "total": { "type": "integer", "minimum": 0 },
+        "held": { "type": ["string", "null"] },
+        "items": {
+          "type": "array",
+          "description": "Item totals across slots, largest count first.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "count"],
+            "properties": {
+              "name": { "type": "string" },
+              "count": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "entities": {
+      "type": "object",
+      "description": "Nearby entities within the scan radius, nearest first, at most eight per group.",
+      "additionalProperties": false,
+      "required": ["players", "hostiles", "passives", "items"],
+      "properties": {
+        "players": { "type": "array", "items": { "$ref": "#/definitions/NearbyEntity" } },
+        "hostiles": { "type": "array", "items": { "$ref": "#/definitions/NearbyEntity" } },
+        "passives": { "type": "array", "items": { "$ref": "#/definitions/NearbyEntity" } },
+        "items": { "type": "array", "items": { "$ref": "#/definitions/NearbyEntity" } }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "description": "Notable blocks within the scan radius, nearest first.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "count", "nearest", "nearestPos"],
+        "properties": {
+          "name": { "type": "string" },
+          "count": { "type": "integer", "minimum": 1 },
+          "nearest": { "type": "number", "minimum": 0 },
+          "nearestPos": { "$ref": "#/definitions/Vec" }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "description": "Recent events, oldest first. GET /events has the full log.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ageMs", "type", "text"],
+        "properties": {
+          "ageMs": { "type": "integer", "minimum": 0 },
+          "type": { "type": "string" },
+          "text": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Vec": {
+      "title": "Vec",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    },
+    "NearbyEntity": {
+      "title": "NearbyEntity",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "distance", "direction", "dy", "position"],
+      "properties": {
+        "name": { "type": "string", "description": "Username for players, entity type otherwise." },
+        "distance": { "type": "number", "minimum": 0 },
+        "direction": { "type": "string", "enum": ["here", "N", "NE", "E", "SE", "S", "SW", "W", "NW"] },
+        "dy": { "type": "integer", "description": "Height difference, positive when above the bot." },
+        "position": { "$ref": "#/definitions/Vec" },
+        "health": { "type": "number" }
+      }
+    },
+    "ActionStatus": {
+      "title": "ActionStatus",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "params", "status", "startedAt", "elapsedMs"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "type": { "type": "string", "enum": ["goto", "follow", "collect", "dig", "place", "chat", "eval"] },
+        "params": { "type": "object", "additionalProperties": true, "description": "The request without its type." },
+        "status": { "type": "string", "enum": ["running", "succeeded", "failed", "aborted"] },
+        "startedAt": { "type": "integer" },
+        "endedAt": { "type": "integer" },
+        "elapsedMs": { "type": "integer", "minimum": 0 },
+        "progress": { "type": "string", "description": "What the action is doing right now, for models." },
+        "distanceRemaining": { "type": "number", "minimum": 0, "description": "goto and follow: blocks to the target." },
+        "lastMovedAt": { "type": "integer", "description": "goto and follow: when the bot last moved at least half a block." },
+        "collected": { "type": "integer", "minimum": 0, "description": "collect: blocks broken so far." },
+        "result": { "type": "object", "additionalProperties": true, "description": "Action-specific result on success." },
+        "error": { "type": "string" }
+      }
+    }
+  }
+}
