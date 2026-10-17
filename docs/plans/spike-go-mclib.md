@@ -5,9 +5,10 @@ mineflayer body and JavaScript skills for now.** The recovered go-mclib stack
 is not a practical drop-in replacement: migrating on that stack means owning
 client repairs, packet/data updates, physics fixes, and a new skill API, not
 translating Clyde's small HTTP wrapper into Go. This is **not a finding that
-all Go clients require the same work**. Supplemental research below identifies
-**mc26-kit as the strongest next candidate**, worth a separate Paper spike
-before closing the Go option; no such prototype has been started here.
+all Go clients require the same work**. Supplemental research identifies
+**mc26-kit as the strongest future candidate**. The follow-on Paper experiment
+below now verifies useful gameplay, but also default-width movement failures
+and an example stop-command gap; it does not justify changing slices 5/6.
 
 The hands-on spike did join Paper 26.2, walk, dig, collect a log and chat.
 That required dependency repair and a registry-decoding patch. Its physics
@@ -279,7 +280,8 @@ checks demonstrate no main-body changes, not parity of the prototype.
 Source inspection and local tests on 2026-10-17 broaden the candidate list.
 They do not supersede the measured go-mclib failures above, but they do limit
 the conclusion: **do not generalize go-mclib's repair/parity estimate to the
-Go ecosystem**. No additional Paper prototype was run for this survey.
+Go ecosystem**. The initial survey used source and offline tests; the separate
+follow-on Paper experiment is recorded after it below.
 
 ### mc26-kit: strongest next candidate
 
@@ -312,8 +314,9 @@ Evidence, with distinct limits:
   describe live **vanilla** server checks of positions, inventory and blocks,
   and rejection of movement complaints/kicks. This is upstream evidence,
   not a reproduction here and not Paper acceptance.
-- **Paper movement remains unverified.** Do not infer freedom from Clyde's
-  wall-boundary rubber-banding, proxy/plugin incompatibility or kicks. The
+- At survey time **Paper movement was unverified**. The follow-on experiment
+  below found wall/stair corrections with upstream's default width and success
+  in those fixtures with a width-only patch, not general Paper acceptance. The
   [physics package](https://github.com/mj41/go-mc26-kit/blob/f742fe252fe301624946de5b5a562ee000c8c9a0/bot/physics/player.go)
   documents gaps including swimming pose, cobwebs/berry bushes, powder snow,
   bubble columns and some effects. The robot docs also acknowledge stuck
@@ -323,10 +326,10 @@ The kit repository was created October 3 and had one listed contributor,
 `mj41`, with activity October 12. It is very young, declares no API compatibility
 promise, and has no independently established long-term maintenance record.
 Nevertheless, its existing high-level client code makes it a stronger next
-candidate than rebuilding the recovered go-mclib stack. The next authorized
-experiment should repeat the Paper walk/wall/dig/log/chat test, then crafting,
-containers and stop/preemption, before estimating a Clyde migration. A new
-skill runtime and Clyde's safety/HTTP contract would still be required.
+candidate than rebuilding the recovered go-mclib stack. The follow-on experiment
+below covers Paper walk/wall/dig/log/chat, crafting, containers and limited
+stop/preemption. A new skill runtime and Clyde's safety/HTTP contract would
+still be required; no mc26-kit migration effort is estimated here.
 
 ### Other candidates and limitations
 
@@ -337,9 +340,105 @@ skill runtime and Clyde's safety/HTTP contract would still be required.
 | [Understudy client](https://github.com/blocktopiaworld/understudy-client/tree/7cd731ddb193a20c1229b0e87f5e5804183c7f6c) | Apache-2.0; current version tables including 26.1/26.2; library and HTTP controls, world/entity/inventory state, digging, placement and crafting. Local `go test -race ./...` passed. Its [movement implementation](https://github.com/blocktopiaworld/understudy-client/blob/7cd731ddb193a20c1229b0e87f5e5804183c7f6c/understudy/move.go) explicitly uses straight-line dead reckoning, **not pathfinding**. Offline-mode only. | Useful for controlled server tests, not a ready autonomous-survival body. Navigation/terrain behavior remains substantial work; no Paper run was performed here. |
 
 Keep mineflayer for now, but distinguish that immediate delivery choice from
-rejecting every Go migration. **mc26-kit warrants the next Paper evaluation**;
+rejecting every Go migration. **mc26-kit remains a credible future option**;
 its migration effort is not yet estimated. None of these clients automatically
 preserves `/eval`, `/query`, or JavaScript skills against mineflayer's `bot`.
+
+## Follow-on: mc26-kit verified on Paper
+
+Lachlan chose mineflayer for slices 5/6; the coordinator recorded that decision
+in the roadmap. This independent experiment does not change runtime contracts
+or block those slices. **Recommendation unchanged: keep mineflayer now, retain
+mc26-kit as a real future option rather than treating go-mclib's repair estimate
+as a verdict on Go.** No further experiments or migration work are planned.
+
+### Pins and retained reproduction
+
+- Kit [`f742fe252fe301624946de5b5a562ee000c8c9a0`](https://github.com/mj41/go-mc26-kit/tree/f742fe252fe301624946de5b5a562ee000c8c9a0),
+  supplied `examples/robot`, built with `-race`.
+- Protocol/data module `github.com/mj41/go-mc26 v0.262.2`. Selecting this
+  published 26.2 dependency was sufficient: **no codec or dependency repair**
+  like the recovered go-mclib stack needed. This is a build-time version pin.
+- Paper **26.2 build 134**, Java **25.0.4.1**, Go **1.27.2**, Linux amd64;
+  offline, survival/peaceful, no plugins or translator, separate disposable
+  `~/paper-spike` on loopback 25566 / RCON 25576. Paper jar SHA-256:
+  `3cce0a4922baf79bd8e1275ee5ff9f073f24675770e09b0d4be9442d513e7a6b`.
+- Two builds: upstream-default **width 0.6**, and a **one-line width 0.6002**
+  patch in `bot/physics/player.go`. Do not attribute patched results to default.
+
+The existing [spike branch's mc26-kit directory](https://github.com/lox/clyde/tree/spike/go-mclib/spike/mc26-kit)
+retains the portable fixture driver, exact build script, MIT notices,
+[width patch](https://github.com/lox/clyde/blob/spike/go-mclib/spike/mc26-kit/width.patch),
+and [sanitized text/JSON evidence](https://github.com/lox/clyde/tree/spike/go-mclib/spike/mc26-kit/results)
+from five actual runs. [README setup and replay](https://github.com/lox/clyde/blob/spike/go-mclib/spike/mc26-kit/README.md)
+includes the pinned Paper download, checksum, private generated RCON password,
+and supervised-service lifecycle. No jar, world or credential is published.
+
+```sh
+git clone --branch spike/go-mclib https://github.com/lox/clyde.git clyde-go-spike
+cd clyde-go-spike/spike/mc26-kit
+./prepare  # builds default and width-patched race-enabled examples
+# Create/start a NEW disposable Paper server using README.md; never the gym.
+python3 run.py baseline-repeat --server-dir "$HOME/paper-mc26-repro" --confirm-disposable
+python3 run.py wide --server-dir "$HOME/paper-mc26-repro" --confirm-disposable
+python3 run.py wide-contained --server-dir "$HOME/paper-mc26-repro" --confirm-disposable
+```
+
+Run those separately: baseline's staircase is expected to fail. The driver
+resets terrain/items/inventory; never use a shared server. Its `ok` means no
+command error, **not** full behavioral acceptance. The portable CLI/path
+packaging was checked and both binaries rebuilt offline; the retained live
+runs used the same scenario commands with fixed orb paths. No new Paper
+replay was run during preservation. All experimental services are stopped.
+
+### Observations, not a parity claim
+
+| Scenario | Upstream default width 0.6 | Width-only patch 0.6002 |
+|----------|----------------------------|------------------------|
+| Join, flat goto, grass/log dig, pickup, chat | Passed twice; RCON confirmed position, removed blocks and one log | Passed in three runs |
+| Five-second wall contact/slide | **3 corrections** in each of two runs | **0 corrections** in each of three runs |
+| Three one-block rises then descent | **71 corrections** on ascent; example's relog watchdog self-exited **3**, not a server kick | Ascent/descent passed three times without additional corrections |
+| Detour around a three-high wall | Passed, no additional corrections | Passed |
+| Recipes/crafting, table placement, chest transfer | Passed: log → 4 planks → table → placed table; seeded planks/sticks → table-crafted pickaxe; chest store/take | Repeated successfully |
+| Ten-block, one-deep contained water trench | Not tested | Reached far bank in **5.24 s**, no additional corrections |
+| Stop walking, then new goto | Passed | Repeated successfully |
+| Stop digging, then new goto | Not tested | **Example `cmdStop` path failed twice**, details below |
+
+Independent RCON checks include position, inventory counts, chest NBT and block
+markers; setup teleports are excluded from correction counts and never satisfy
+a walk. Crafting ingredients for the 3×3 pickaxe were seeded, not gathered in
+survival. An earlier two-deep water fixture leaked and triggered escape
+reflexes: its failure is **inconclusive**, not evidence against water physics.
+Sample timings: login/configuration 1.54–2.53 s; ~14.5 m flat goto 3.75 s;
+grass dig 1.00 s; oak-log dig 3.15 s; nearby pickup 0.55 s; four planks 0.24 s;
+table pickaxe 0.25 s; chest deposit 0.30 s. These exclude compile/fixture time
+and are individual samples, not benchmark distributions.
+
+**Stop-dig is an example `cmdStop` integration failure.** Twice, `stop` answered
+“stopped”, yet the log broke about three seconds after digging began, before
+the queued goto ran. Client air state and Paper's `DIG_CONTINUED_AFTER_STOP`
+marker agree. [`cmdStop`](https://github.com/mj41/go-mc26-kit/blob/f742fe252fe301624946de5b5a562ee000c8c9a0/examples/robot/console.go#L526-L531)
+stops Walker and flags order cancellation, but does not cancel Hands.
+**[`Hands.CancelDig`](https://github.com/mj41/go-mc26-kit/blob/f742fe252fe301624946de5b5a562ee000c8c9a0/bot/act/dig.go#L44-L54)
+exists, but was not integrated or tested in this path**; this is not evidence
+that the library cancellation API fails.
+A Clyde adapter must still enforce full cancellation and mutation-generation
+gates across movement, dig, inventory and model code.
+
+Default-width 26.2 `go test -race ./...` and `go vet ./...` passed; patched
+physics/control/act race tests and vet passed. No Go race warnings appeared
+in five live runs, and no server kicks were observed. Three runs exited 0;
+the default staircase run self-exited 3; the last patched run exited **1** on
+explicit quit with a closed-network-connection error after its operations.
+That shutdown error is neither a kick nor a race report. Paper logged no
+`moved wrongly`/`moved too quickly` warnings despite client-visible corrections;
+absence of server warnings alone is not movement acceptance.
+
+Remaining gaps: Paper **26.1.2** gym version; following; online auth and
+Velocity/proxy/plugins; prolonged natural survival and adverse terrain/effects/
+latency; Clyde's six HTTP endpoints, state/schema and safety limits; complete
+preemption; `/eval`, `/query` and JS skills. No migration estimate follows from
+these fixture successes, and no runtime or gym change belongs on main here.
 
 ## Code-as-action and the slice 5 decision
 
@@ -394,9 +493,9 @@ Do not build a comprehensive portability shim for an unproven migration.
 Five small JS skills are cheaper to rewrite later than a clone of mineflayer's
 API is to build now. If future portability is valuable, record the required
 operations per skill; this is an inventory of actual needs, not a speculative
-abstraction. The coordinator should record the immediate body choice and
-whether mc26-kit's Paper evaluation should precede slice 5 in the roadmap;
-this spike intentionally changes only its doc.
+abstraction. The roadmap now records mineflayer for slices 5/6; mc26-kit's
+separate Paper evidence above does not change that choice. This spike
+intentionally changes only its report on main.
 
 ## Depend, vendor, fork, or reimplement?
 
@@ -423,9 +522,9 @@ future gameplay, and the upper bound is not a guarantee. There is no measured
 CPU/memory/deployment benefit here to offset that work; Go performance is not
 assumed from the language alone.
 
-No immediate move is recommended. Before choosing a Go migration, evaluate
-mc26-kit on Paper; do not begin by assuming it needs go-mclib's repairs or
-missing features. If the recovered go-mclib stack is nevertheless chosen,
+No immediate move is recommended. The mc26-kit Paper evidence above supports
+keeping that option open, not assuming it needs go-mclib's repairs or missing
+features. If the recovered go-mclib stack is nevertheless chosen,
 use these **gated** slices (not a migration plan or estimate for mc26-kit):
 
 1. Recover/license a pinned stack; fix registry/codecs and race ownership;
