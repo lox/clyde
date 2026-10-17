@@ -13,5 +13,6 @@ See docs/plans/roadmap.md for what belongs here.
 Generated code lives with its consumer and is never hand-edited. The body's
 TypeScript types are in `body/src/api/`; regenerate them with
 `cd body && npm run gen` after changing a schema. The harness's goal types
-are in `harness/goal/goal.gen.go`; regenerate them with
-`cd harness && go generate ./goal`.
+are in `harness/goal/goal.gen.go`, and the state card and action types
+(plus an embedded copy of `action.schema.json`) in `harness/body/`;
+regenerate them with `cd harness && go generate ./...`.
