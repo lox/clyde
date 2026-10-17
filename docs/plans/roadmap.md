@@ -178,7 +178,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | # | Slice | Plan | Depends on |
 |---|-------|------|------------|
 | 0 | Bootstrap: repo, docs, setup, CI skeleton | this file | – |
-| 1 | Body v0: HTTP API, actions, eval, events, safety | `01-body.md` | 0 |
+| 1 | Body v0: HTTP API, actions, eval, events, safety (done, `4f50deb`) | `01-body.md` | 0 |
 | 2 | Gym v0: Paper runner, world templates, tasks, scoreboard | `02-gym.md` | 0 |
 | 3 | Judge v0: contract, jev + replay backends, pre-checks, JSONL (done, `53778fc`) | `03-judge.md` | 0 |
 | 4 | Executor + MCP server | `04-executor.md` | 1, 2, 3 |
@@ -217,6 +217,13 @@ choice and can be reversed by saying so.
 - The judge flags new chat only on the first tick that sees it; the executor
   reads chat it must answer from `GET /events`, not from judge interrupts
   (default).
+- No x-ray: the state card lists only blocks exposed to air, so Clyde knows
+  what a player could see (default).
+- The chat kill switch latches until an op resumes it; slice 7 adds the
+  latch and a resume command. Until then a stop lasts only until the next
+  action (default).
+- The body exits on disconnect and its supervisor restarts it; no in-process
+  reconnect (default).
 - Gym observes the server over RCON, not through a second bot, and agents
   plug in as an executable plus environment variables (default).
 
