@@ -2,6 +2,7 @@
 //
 //	clyde run --goal goal.json   run one goal; prints the outcome as JSON
 //	clyde mcp                    serve the body tools over MCP (stdio, or --http)
+//	clyde serve                  run the durable planner and player-first scheduler
 //
 // Both talk to a running body (--body, default $CLYDE_BODY_URL or
 // http://127.0.0.1:7777). The model comes from CLYDE_EXECUTOR_PROVIDER,
@@ -44,8 +45,8 @@ const exitNotSucceeded = 2
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if len(os.Args) < 2 || (os.Args[1] != "run" && os.Args[1] != "mcp" && os.Args[1] != "skill") {
-		fmt.Fprintln(os.Stderr, "usage: clyde run --goal goal.json [flags] | clyde mcp [flags] | clyde skill gate|promote [flags] name...")
+	if len(os.Args) < 2 || (os.Args[1] != "run" && os.Args[1] != "mcp" && os.Args[1] != "skill" && os.Args[1] != "serve") {
+		fmt.Fprintln(os.Stderr, "usage: clyde run --goal goal.json [flags] | clyde mcp [flags] | clyde serve [flags] | clyde skill gate|promote [flags] name...")
 		os.Exit(2)
 	}
 	cmd, args := os.Args[1], os.Args[2:]
@@ -54,6 +55,8 @@ func main() {
 		err = runCmd(ctx, args)
 	} else if cmd == "skill" {
 		err = skillCmd(ctx, args)
+	} else if cmd == "serve" {
+		err = serveCmd(ctx, args)
 	} else {
 		err = mcpCmd(ctx, args)
 	}
@@ -177,6 +180,11 @@ func runCmd(ctx context.Context, args []string) error {
 	if _, err := goal.Kind(g.Until); err != nil {
 		return fmt.Errorf("%s: %w", *goalPath, err)
 	}
+	lease, err := bodyLease(c.bodyURL)
+	if err != nil {
+		return err
+	}
+	defer lease.Close()
 	out, err := c.runGoal(ctx, g, os.Stderr)
 	if err != nil {
 		return err
@@ -198,6 +206,11 @@ func mcpCmd(ctx context.Context, args []string) error {
 	c.flags(fs)
 	httpAddr := fs.String("http", "", "serve streamable HTTP on this address instead of stdio, e.g. 127.0.0.1:7778")
 	fs.Parse(args)
+	lease, err := bodyLease(c.bodyURL)
+	if err != nil {
+		return err
+	}
+	defer lease.Close()
 
 	client := &body.Client{URL: c.bodyURL}
 	tb := &executor.Toolbox{Body: client, SkillsDir: c.skillsDir}
