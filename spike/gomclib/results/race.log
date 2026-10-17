@@ -1,0 +1,687 @@
+2026/10/17 07:46:47 RCON forceload add -32 -32 48 48: No chunks were marked for force loading (<nil>)
+2026/10/17 07:46:52 RCON difficulty peaceful: The difficulty did not change; it is already set to Peaceful (<nil>)
+2026/10/17 07:46:52 RCON time set day: Set minecraft:overworld to time marker minecraft:day (<nil>)
+2026/10/17 07:46:52 RCON kill @e[type=item]: Killed Dirt (<nil>)
+2026/10/17 07:46:52 RCON fill -32 160 -32 48 160 48 grass_block: Successfully filled 12 block(s) (<nil>)
+2026/10/17 07:46:52 RCON fill -32 161 -32 48 164 48 air: Successfully filled 69 block(s) (<nil>)
+2026/10/17 07:46:52 RCON setblock 17 161 8 oak_log: Changed the block at 17, 161, 8 (<nil>)
+2026/10/17 07:46:52 RCON setworldspawn 0 161 0: Set the world spawn point to 0, 161, 0 [0.0, 0.0] in minecraft:overworld (<nil>)
+[mc] 07:46:52.938228 compression enabled: 256
+[mc] 07:46:52.938372 login successful
+[mc] 07:46:52.938523 switched from login -> configuration state
+[mc] 07:46:52.987885 switched from configuration -> play state
+[mc] 07:46:53.088939 spawned; ready
+2026/10/17 07:46:53 server position correction #1 to 19.70 161.00 13.19
+2026/10/17 07:46:53 RCON gamemode survival Clyde:  (<nil>)
+[mc] 07:46:53.091338 [SYSTEM] multiplayer.player.joinedClyde
+2026/10/17 07:46:53 system chat: multiplayer.player.joinedClyde
+2026/10/17 07:46:53 RCON clear Clyde: Removed 1 item(s) from player Clyde (<nil>)
+2026/10/17 07:46:53 RCON tp Clyde 0.5 161 0.5: Teleported Clyde to 0.500000, 161.000000, 0.500000 (<nil>)
+2026/10/17 07:46:53 server position correction #2 to 0.50 161.00 0.50
+2026/10/17 07:46:53 server position correction #3 to 0.50 161.00 0.50
+2026/10/17 07:46:53 add entity id=644 type=35 at 4.03 52.75 9.22 decode=<nil>
+2026/10/17 07:46:53 add entity id=637 type=88 at 13.67 39.00 -8.57 decode=<nil>
+2026/10/17 07:46:53 add entity id=654 type=127 at 42.47 50.26 33.63 decode=<nil>
+2026/10/17 07:46:54 add entity id=651 type=88 at 64.01 53.58 8.52 decode=<nil>
+2026/10/17 07:46:54 add entity id=656 type=127 at -9.38 56.56 67.74 decode=<nil>
+==================
+WARNING: DATA RACE
+Read at 0x00c000132198 by main goroutine:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).IsOnGround()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:130 +0x92
+  main.(*bot).waitForChunks()
+      /home/user/spike/wt/spike/gomclib/main.go:245 +0x204
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:122 +0xb35
+
+Previous write at 0x00c000132198 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:396 +0xf04
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+==================
+2026/10/17 07:46:55 spawned at 0.5 161.0 0.5, 118 chunks
+2026/10/17 07:46:55 step chat ok=true 0.00s sent
+[mc] 07:46:55.103266 [CHAT] Clyde: hello from go-mclib
+2026/10/17 07:46:57 add entity id=658 type=88 at -45.50 52.00 -31.50 decode=<nil>
+2026/10/17 07:46:58 add entity id=659 type=88 at -34.50 47.00 42.50 decode=<nil>
+2026/10/17 07:46:58 add entity id=660 type=35 at 7.50 57.00 50.50 decode=<nil>
+2026/10/17 07:46:58 step goto ok=true 3.69s to 12.5,161.0,8.5; path 13 nodes planned in 19ms; moved 14.5m; 0.03m from goal
+2026/10/17 07:46:59 add entity id=661 type=71 at 13.34 160.15 8.55 decode=<nil>
+2026/10/17 07:46:59 item metadata entity=661 item=&{55 1 0xc0003bba00} decode=<nil>
+2026/10/17 07:46:59 item metadata entity=661 item=&{55 1 0xc0003bbc00} decode=<nil>
+2026/10/17 07:46:59 step dig ok=true 1.15s minecraft:grass_block at 13,160,8 (hardness 0.6, 19 ticks) -> minecraft:air
+2026/10/17 07:47:09 add entity id=662 type=71 at 17.35 161.61 8.61 decode=<nil>
+2026/10/17 07:47:09 item metadata entity=662 item=&{161 1 0xc0003bb400} decode=<nil>
+2026/10/17 07:47:09 item metadata entity=662 item=&{161 1 0xc0003bb600} decode=<nil>
+2026/10/17 07:47:12 pickup walk: to 18.5,161.0,8.5; path 9 nodes planned in 352ms; moved 4.0m; 0.14m from goal error=<nil>
+2026/10/17 07:47:12 add entity id=663 type=88 at -19.50 54.00 37.50 decode=<nil>
+2026/10/17 07:47:12 step collect_log ok=true 12.85s to 14.5,161.0,8.5; path 5 nodes planned in 5ms; moved 1.9m; 0.09m from goal; minecraft:oak_log at 17,161,8 (hardness 2.0, 60 ticks) -> minecraft:air; picked up (walked to drop: true); inventory logs 0 -> 1
+2026/10/17 07:47:12 step chat_done ok=true 0.00s sent
+[mc] 07:47:12.793128 [CHAT] Clyde: spike done: 0 corrections
+2026/10/17 07:47:12 RCON fill 20 161 -2 20 163 20 stone: Successfully filled 69 block(s) (<nil>)
+2026/10/17 07:47:12 server position correction #1 to 17.50 161.00 0.50
+2026/10/17 07:47:12 RCON tp Clyde 17.5 161 0.5: Teleported Clyde to 17.500000, 161.000000, 0.500000 (<nil>)
+==================
+WARNING: DATA RACE
+Read at 0x00c0001321a0 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:322 +0x366
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c0001321a0 by main goroutine:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).SetInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:162 +0x6e
+  main.main.func2()
+      /home/user/spike/wt/spike/gomclib/main.go:133 +0x11e
+  main.(*bot).run()
+      /home/user/spike/wt/spike/gomclib/main.go:296 +0x6d
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:130 +0xd44
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c0001321a8 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:322 +0x385
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c0001321a8 by main goroutine:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).SetInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:163 +0x88
+  main.main.func2()
+      /home/user/spike/wt/spike/gomclib/main.go:133 +0x11e
+  main.(*bot).run()
+      /home/user/spike/wt/spike/gomclib/main.go:296 +0x6d
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:130 +0xd44
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c0001321b0 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:350 +0x6f7
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c0001321b0 by main goroutine:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).SetInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:164 +0xa4
+  main.main.func2()
+      /home/user/spike/wt/spike/gomclib/main.go:133 +0x11e
+  main.(*bot).run()
+      /home/user/spike/wt/spike/gomclib/main.go:296 +0x6d
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:130 +0xd44
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+==================
+2026/10/17 07:47:14 server position correction #1 to 19.62 161.00 0.50
+2026/10/17 07:47:14 server position correction #2 to 19.62 161.00 0.50
+==================
+WARNING: DATA RACE
+Read at 0x00c000132180 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:332 +0x3fc
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c000132180 by goroutine 11:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).handleTeleport()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:240 +0x157
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:179 +0xa5
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 11 (running) created at:
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:105 +0x6dd
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c000132190 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:332 +0x454
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c000132190 by goroutine 11:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).handleTeleport()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:250 +0x2b8
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:179 +0xa5
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 11 (running) created at:
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:105 +0x6dd
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c000132188 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:336 +0x4f3
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c000132188 by goroutine 11:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).handleTeleport()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:245 +0x20b
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:179 +0xa5
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 11 (running) created at:
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:105 +0x6dd
+==================
+2026/10/17 07:47:14 server position correction #3 to 19.67 161.00 0.50
+==================
+WARNING: DATA RACE
+Write at 0x00c000132198 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:396 +0xf04
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous read at 0x00c000132198 by goroutine 11:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func2()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:83 +0xf9
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handlePlayerPosition()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:726 +0x861
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:497 +0x124
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 11 (running) created at:
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:105 +0x6dd
+==================
+2026/10/17 07:47:14 server position correction #4 to 19.67 161.00 0.50
+2026/10/17 07:47:14 server position correction #5 to 19.69 161.00 0.50
+2026/10/17 07:47:14 server position correction #6 to 19.69 161.00 0.50
+2026/10/17 07:47:14 server position correction #7 to 19.69 161.00 0.50
+2026/10/17 07:47:14 server position correction #8 to 19.69 161.00 0.50
+2026/10/17 07:47:14 server position correction #9 to 19.69 161.00 0.50
+2026/10/17 07:47:14 server position correction #10 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #11 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #12 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #13 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #14 to 19.69 161.00 0.50
+==================
+WARNING: DATA RACE
+Read at 0x00c0001321e0 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).sendPosition()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:801 +0x2d3
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:423 +0x1244
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c0001321e0 by goroutine 11:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func2()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:84 +0x126
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handlePlayerPosition()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:726 +0x861
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:497 +0x124
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 11 (running) created at:
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:105 +0x6dd
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c0001321d0 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).sendPosition()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:810 +0x439
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:423 +0x1244
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c0001321d0 by goroutine 11:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func2()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:81 +0xbe
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handlePlayerPosition()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:726 +0x861
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:497 +0x124
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 11 (running) created at:
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:105 +0x6dd
+==================
+==================
+WARNING: DATA RACE
+Write at 0x00c0001321d8 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).sendPosition()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:852 +0xa48
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:423 +0x1244
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Previous write at 0x00c0001321d8 by goroutine 11:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func2()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:83 +0x110
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handlePlayerPosition()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:726 +0x861
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:497 +0x124
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Goroutine 11 (running) created at:
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:105 +0x6dd
+==================
+2026/10/17 07:47:15 server position correction #15 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #16 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #17 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #18 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #19 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #20 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #21 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #22 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #23 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #24 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #25 to 19.69 161.00 0.50
+2026/10/17 07:47:15 server position correction #26 to 19.69 161.00 0.50
+==================
+WARNING: DATA RACE
+Write at 0x00c0001321a0 by main goroutine:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).SetInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:162 +0x6e
+  main.main.func2()
+      /home/user/spike/wt/spike/gomclib/main.go:138 +0x19b
+  main.(*bot).run()
+      /home/user/spike/wt/spike/gomclib/main.go:296 +0x6d
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:130 +0xd44
+
+Previous read at 0x00c0001321a0 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).sendInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:740 +0x3a
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:420 +0x122a
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+==================
+==================
+WARNING: DATA RACE
+Write at 0x00c0001321a8 by main goroutine:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).SetInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:163 +0x88
+  main.main.func2()
+      /home/user/spike/wt/spike/gomclib/main.go:138 +0x19b
+  main.(*bot).run()
+      /home/user/spike/wt/spike/gomclib/main.go:296 +0x6d
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:130 +0xd44
+
+Previous read at 0x00c0001321a8 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).sendInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:746 +0x89
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:420 +0x122a
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+==================
+==================
+WARNING: DATA RACE
+Write at 0x00c0001321b0 by main goroutine:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).SetInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:164 +0xa4
+  main.main.func2()
+      /home/user/spike/wt/spike/gomclib/main.go:138 +0x19b
+  main.(*bot).run()
+      /home/user/spike/wt/spike/gomclib/main.go:296 +0x6d
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:130 +0xd44
+
+Previous read at 0x00c0001321b0 by goroutine 20:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).sendInput()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:752 +0xe8
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).tick()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:420 +0x122a
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:287 +0xd4
+
+Goroutine 20 (running) created at:
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).startTickLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:278 +0x35c
+  github.com/go-mclib/client/pkg/client/modules/physics.(*Module).Init.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/physics/physics.go:71 +0x2e
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).handleLogin()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:570 +0xcdb
+  github.com/go-mclib/client/pkg/client/modules/self.(*Module).HandlePacket()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/self/self.go:491 +0x106
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x7e4
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+==================
+2026/10/17 07:47:18 step wall_slide ok=true 5.00s wall contact 19.69182 161.00 0.50 -> slide 19.69182 161.00 12.89; corrections=26
+[mc] 07:47:18.802807 read packet error: failed to read packet length: read tcp 127.0.0.1:59620->127.0.0.1:25566: use of closed network connection
+==================
+WARNING: DATA RACE
+Write at 0x00c000146078 by goroutine 11:
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:333 +0xa49
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+
+Previous read at 0x00c000146078 by goroutine 12:
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce.func1()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:319 +0x67
+
+Goroutine 11 (running) created at:
+  main.main()
+      /home/user/spike/wt/spike/gomclib/main.go:105 +0x6dd
+
+Goroutine 12 (running) created at:
+  github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:312 +0x74a
+  github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0xb0
+  github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart()
+      /home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x5f1
+  main.main.func1()
+      /home/user/spike/wt/spike/gomclib/main.go:106 +0x50
+==================
+[mc] 07:47:18.803379 connection error: failed to read packet length: read tcp 127.0.0.1:59620->127.0.0.1:25566: use of closed network connection
+[mc] 07:47:18.803413 not reconnecting, exiting...
+Found 15 data race(s)

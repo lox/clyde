@@ -1,0 +1,24 @@
+?   	github.com/go-mclib/data/pkg/data	[no test files]
+--- FAIL: TestAllBlockStates (0.00s)
+    block_states_test.go:25: failed to read blocks.json: open ../generate/blocks.json: no such file or directory
+--- FAIL: TestDefaultStates (0.00s)
+    block_states_test.go:25: failed to read blocks.json: open ../generate/blocks.json: no such file or directory
+--- FAIL: TestStateProperties (0.00s)
+    block_states_test.go:25: failed to read blocks.json: open ../generate/blocks.json: no such file or directory
+FAIL
+coverage: 2.3% of statements
+FAIL	github.com/go-mclib/data/pkg/data/blocks	0.008s
+ok  	github.com/go-mclib/data/pkg/data/chunks	0.020s	coverage: 73.2% of statements
+ok  	github.com/go-mclib/data/pkg/data/entities	0.014s	coverage: 4.9% of statements
+	github.com/go-mclib/data/pkg/data/generate		coverage: 0.0% of statements
+?   	github.com/go-mclib/data/pkg/data/hitboxes	[no test files]
+	github.com/go-mclib/data/pkg/data/hitboxes/blocks		coverage: 0.0% of statements
+	github.com/go-mclib/data/pkg/data/hitboxes/entities		coverage: 0.0% of statements
+ok  	github.com/go-mclib/data/pkg/data/items	0.012s	coverage: 5.6% of statements
+ok  	github.com/go-mclib/data/pkg/data/lang	0.008s	coverage: 100.0% of statements
+	github.com/go-mclib/data/pkg/data/misc		coverage: 0.0% of statements
+ok  	github.com/go-mclib/data/pkg/data/packet_ids	0.015s	coverage: [no statements]
+ok  	github.com/go-mclib/data/pkg/data/registries	0.027s	coverage: 81.6% of statements
+ok  	github.com/go-mclib/data/pkg/data/storage	0.043s	coverage: 76.1% of statements
+	github.com/go-mclib/data/pkg/packets		coverage: 0.0% of statements
+FAIL

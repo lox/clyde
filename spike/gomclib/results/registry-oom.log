@@ -1,0 +1,52 @@
+[mc] 06:51:00.101452 compression enabled: 256
+[mc] 06:51:00.102171 login successful
+[mc] 06:51:00.102267 switched from login -> configuration state
+heap 4964 MiB over limit; goroutines:
+goroutine 8 [running]:
+main.memoryWatchdog(0x20000000)
+	/home/user/spike/wt/spike/gomclib/main.go:506 +0xe5
+created by main.main in goroutine 1
+	/home/user/spike/wt/spike/gomclib/main.go:87 +0x1c5
+
+goroutine 1 [select]:
+main.main()
+	/home/user/spike/wt/spike/gomclib/main.go:96 +0x2fe
+
+goroutine 9 [runnable]:
+github.com/go-mclib/protocol/nbt.(*Reader).readTagPayload(0x1b894df9aa80?, 0x0?)
+	/home/user/go/pkg/mod/github.com/go-mclib/protocol@v0.0.0-20260627053125-6905af045007/nbt/reader.go:107 +0x3a5
+github.com/go-mclib/protocol/nbt.(*Reader).readList(0x1b894df9aa80)
+	/home/user/go/pkg/mod/github.com/go-mclib/protocol@v0.0.0-20260627053125-6905af045007/nbt/reader.go:197 +0x2e5
+github.com/go-mclib/protocol/nbt.(*Reader).readTagPayload(0x1b894df9aa80?, 0x80?)
+	/home/user/go/pkg/mod/github.com/go-mclib/protocol@v0.0.0-20260627053125-6905af045007/nbt/reader.go:144 +0x218
+github.com/go-mclib/protocol/nbt.(*Reader).ReadTag(0x1b894df9aa80, 0x1)
+	/home/user/go/pkg/mod/github.com/go-mclib/protocol@v0.0.0-20260627053125-6905af045007/nbt/reader.go:98 +0x18a
+github.com/go-mclib/protocol/nbt.Decode({0x1b894ded34f6?, 0x100000?, 0x1b894def21e0?}, 0x1, {0x0?, 0x7f01bc982cc8?, 0x95f2fd?})
+	/home/user/go/pkg/mod/github.com/go-mclib/protocol@v0.0.0-20260627053125-6905af045007/nbt/reader.go:400 +0x35
+github.com/go-mclib/protocol/nbt.DecodeNetwork(...)
+	/home/user/go/pkg/mod/github.com/go-mclib/protocol@v0.0.0-20260627053125-6905af045007/nbt/reader.go:405
+github.com/go-mclib/data/pkg/packets.(*S2CRegistryData).Read(0x1b894df9a9f0, 0x1b894df9aa50)
+	/home/user/go/pkg/mod/github.com/go-mclib/data@v0.0.0-20260626135928-f4a527b8705b/pkg/packets/s2c_configuration.go:172 +0x1dc
+github.com/go-mclib/protocol/java_protocol.(*WirePacket).ReadInto(0x1b894df9e1e0, {0xebc500, 0x1b894df9a9f0})
+	/home/user/go/pkg/mod/github.com/go-mclib/protocol@v0.0.0-20260627053125-6905af045007/java_protocol/packet.go:206 +0x1ea
+github.com/go-mclib/client/pkg/client/modules/protocol.(*Module).handleConfiguration(0x1b894e142300, 0x1b894df9e1e0)
+	/home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/protocol/protocol.go:184 +0x11d
+github.com/go-mclib/client/pkg/client/modules/protocol.(*Module).HandlePacket(0x1b894e20e840?, 0xe65520?)
+	/home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/modules/protocol/protocol.go:90 +0x36
+github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce(0x1b894e0fa1c0, {0xebb478, 0xf8ff20})
+	/home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:339 +0x3bb
+github.com/go-mclib/client/pkg/client.(*Client).runConnectionLoop(0x1b894e0fa1c0, {0xebb478, 0xf8ff20})
+	/home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:243 +0x6d
+github.com/go-mclib/client/pkg/client.(*Client).ConnectAndStart(0x0?, {0xebb478?, 0xf8ff20?})
+	/home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:234 +0x35a
+main.main.func1()
+	/home/user/spike/wt/spike/gomclib/main.go:90 +0x72
+created by main.main in goroutine 1
+	/home/user/spike/wt/spike/gomclib/main.go:89 +0x28e
+
+goroutine 10 [select]:
+github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce.func1()
+	/home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:314 +0x7e
+created by github.com/go-mclib/client/pkg/client.(*Client).connectAndStartOnce in goroutine 9
+	/home/user/go/pkg/mod/github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3/pkg/client/client.go:312 +0x365
+

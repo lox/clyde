@@ -1,0 +1,6 @@
+=== RUN   TestRegistryNBTFraming
+    main_test.go:28: failed to read string data: unexpected EOF
+--- FAIL: TestRegistryNBTFraming (0.00s)
+FAIL
+FAIL	github.com/lox/clyde/spike/gomclib	0.009s
+FAIL

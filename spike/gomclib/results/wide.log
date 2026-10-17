@@ -1,0 +1,52 @@
+2026/10/17 07:45:44 RCON forceload add -32 -32 48 48: No chunks were marked for force loading (<nil>)
+2026/10/17 07:45:49 RCON difficulty peaceful: The difficulty did not change; it is already set to Peaceful (<nil>)
+2026/10/17 07:45:49 RCON time set day: Set minecraft:overworld to time marker minecraft:day (<nil>)
+2026/10/17 07:45:49 RCON kill @e[type=item]: Killed Dirt (<nil>)
+2026/10/17 07:45:49 RCON fill -32 160 -32 48 160 48 grass_block: Successfully filled 19 block(s) (<nil>)
+2026/10/17 07:45:49 RCON fill -32 161 -32 48 164 48 air: Successfully filled 69 block(s) (<nil>)
+2026/10/17 07:45:49 RCON setblock 17 161 8 oak_log: Changed the block at 17, 161, 8 (<nil>)
+2026/10/17 07:45:49 RCON setworldspawn 0 161 0: Set the world spawn point to 0, 161, 0 [0.0, 0.0] in minecraft:overworld (<nil>)
+[mc] 07:45:49.240270 compression enabled: 256
+[mc] 07:45:49.240758 login successful
+[mc] 07:45:49.240815 switched from login -> configuration state
+[mc] 07:45:49.288666 switched from configuration -> play state
+[mc] 07:45:49.389536 spawned; ready
+2026/10/17 07:45:49 server position correction #1 to 19.69 161.00 12.89
+[mc] 07:45:49.390098 [SYSTEM] multiplayer.player.joinedClyde
+2026/10/17 07:45:49 system chat: multiplayer.player.joinedClyde
+2026/10/17 07:45:49 RCON gamemode survival Clyde:  (<nil>)
+2026/10/17 07:45:49 RCON clear Clyde: Removed 1 item(s) from player Clyde (<nil>)
+2026/10/17 07:45:49 server position correction #2 to 0.50 161.00 0.50
+2026/10/17 07:45:49 RCON tp Clyde 0.5 161 0.5: Teleported Clyde to 0.500000, 161.000000, 0.500000 (<nil>)
+2026/10/17 07:45:49 server position correction #3 to 0.50 161.00 0.50
+2026/10/17 07:45:49 add entity id=644 type=35 at 4.03 52.75 9.22 decode=<nil>
+2026/10/17 07:45:49 add entity id=637 type=88 at 3.44 41.79 -1.31 decode=<nil>
+2026/10/17 07:45:49 add entity id=626 type=88 at 44.45 49.00 4.41 decode=<nil>
+2026/10/17 07:45:50 add entity id=650 type=88 at -35.50 51.00 -9.50 decode=<nil>
+2026/10/17 07:45:50 add entity id=648 type=88 at -20.98 45.90 -32.01 decode=<nil>
+2026/10/17 07:45:51 add entity id=651 type=88 at 29.50 56.00 9.50 decode=<nil>
+2026/10/17 07:45:51 spawned at 0.5 161.0 0.5, 119 chunks
+2026/10/17 07:45:51 step chat ok=true 0.00s sent
+[mc] 07:45:51.396425 [CHAT] Clyde: hello from go-mclib
+2026/10/17 07:45:53 add entity id=652 type=88 at 0.50 51.00 -38.50 decode=<nil>
+2026/10/17 07:45:55 step goto ok=true 3.65s to 12.5,161.0,8.5; path 13 nodes planned in 2ms; moved 14.5m; 0.03m from goal
+2026/10/17 07:45:56 add entity id=653 type=71 at 13.59 160.34 8.69 decode=<nil>
+2026/10/17 07:45:56 item metadata entity=653 item=&{55 1 0x38320b4cb800} decode=<nil>
+2026/10/17 07:45:56 item metadata entity=653 item=&{55 1 0x38320b4cba00} decode=<nil>
+2026/10/17 07:45:56 step dig ok=true 1.15s minecraft:grass_block at 13,160,8 (hardness 0.6, 19 ticks) -> minecraft:air
+2026/10/17 07:45:58 add entity id=654 type=127 at 40.50 50.00 35.50 decode=<nil>
+2026/10/17 07:46:01 add entity id=655 type=71 at 17.57 161.51 8.28 decode=<nil>
+2026/10/17 07:46:01 item metadata entity=655 item=&{161 1 0x38320b4cb400} decode=<nil>
+2026/10/17 07:46:01 item metadata entity=655 item=&{161 1 0x38320b4cb600} decode=<nil>
+2026/10/17 07:46:04 pickup walk: to 18.5,161.0,7.5; path 6 nodes planned in 20ms; moved 4.0m; 0.18m from goal error=<nil>
+2026/10/17 07:46:04 step collect_log ok=true 8.35s to 14.5,161.0,8.5; path 5 nodes planned in 0ms; moved 1.9m; 0.09m from goal; minecraft:oak_log at 17,161,8 (hardness 2.0, 60 ticks) -> minecraft:air; picked up (walked to drop: true); inventory logs 0 -> 1
+2026/10/17 07:46:04 step chat_done ok=true 0.00s sent
+2026/10/17 07:46:04 RCON fill 20 161 -2 20 163 20 stone: Successfully filled 69 block(s) (<nil>)
+2026/10/17 07:46:04 server position correction #1 to 17.50 161.00 0.50
+2026/10/17 07:46:04 RCON tp Clyde 17.5 161 0.5: Teleported Clyde to 17.500000, 161.000000, 0.500000 (<nil>)
+[mc] 07:46:04.542596 [CHAT] Clyde: spike done: 0 corrections
+2026/10/17 07:46:08 add entity id=656 type=127 at -3.50 60.00 63.50 decode=<nil>
+2026/10/17 07:46:10 step wall_slide ok=true 5.00s wall contact 19.69990 161.00 0.50 -> slide 19.69990 161.00 13.19; corrections=0
+[mc] 07:46:10.548051 read packet error: failed to read packet length: read tcp 127.0.0.1:55770->127.0.0.1:25566: use of closed network connection
+[mc] 07:46:10.548060 connection error: failed to read packet length: read tcp 127.0.0.1:55770->127.0.0.1:25566: use of closed network connection
+[mc] 07:46:10.548062 not reconnecting, exiting...

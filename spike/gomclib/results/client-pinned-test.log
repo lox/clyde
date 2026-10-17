@@ -1,0 +1,20 @@
+	github.com/go-mclib/client/examples/afkbot		coverage: 0.0% of statements
+	github.com/go-mclib/client/examples/combat		coverage: 0.0% of statements
+	github.com/go-mclib/client/examples/dropbot		coverage: 0.0% of statements
+	github.com/go-mclib/client/examples/item_sorter		coverage: 0.0% of statements
+	github.com/go-mclib/client/examples/pathfinding		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/chat		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/chat		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/collisions		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/combat		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/entities		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/inventory		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/pathfinding		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/physics		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/playerlist		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/protocol		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/client/modules/self		coverage: 0.0% of statements
+ok  	github.com/go-mclib/client/pkg/client/modules/world	0.015s	coverage: 10.0% of statements
+	github.com/go-mclib/client/pkg/helpers		coverage: 0.0% of statements
+	github.com/go-mclib/client/pkg/tui		coverage: 0.0% of statements

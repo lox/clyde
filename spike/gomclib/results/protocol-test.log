@@ -1,0 +1,6 @@
+	github.com/go-mclib/protocol/auth		coverage: 0.0% of statements
+ok  	github.com/go-mclib/protocol/crypto	0.037s	coverage: 33.6% of statements
+	github.com/go-mclib/protocol/java_protocol		coverage: 0.0% of statements
+ok  	github.com/go-mclib/protocol/java_protocol/net_structures	0.015s	coverage: 61.0% of statements
+ok  	github.com/go-mclib/protocol/java_protocol/session_server	0.006s	coverage: 9.5% of statements
+ok  	github.com/go-mclib/protocol/nbt	0.014s	coverage: 52.8% of statements
