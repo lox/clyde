@@ -7,12 +7,14 @@ a machine-checkable `until` predicate, and a timeout.
 gym/bin/run collect-logs                 # one task, default agent (idle)
 gym/bin/run --all --agent cheat          # every task
 gym/bin/run goto-marker --agent ./my-agent --timeout 30s
+gym/bin/run --all --agent executor --runs 3   # the executor; needs OPENAI_API_KEY
 ```
 
-The runner prints a Markdown scoreboard and writes `results.json`,
-`scoreboard.md`, and per-task `goal.json` and `agent.log` under
-`gym/runs/<timestamp>/` (gitignored). It exits non-zero unless every task
-passes.
+The runner prints a Markdown scoreboard (per task: pass rate, median time
+to pass, and tokens and cost per run when the agent reports them; then one
+row per run) and writes `results.json`, `scoreboard.md`, and per-task
+`goal.json` and `agent.log` under `gym/runs/<timestamp>/` (gitignored;
+`<task>.<n>/` with `--runs`). It exits non-zero unless every task passes.
 
 ## Format
 
@@ -65,7 +67,8 @@ root. The runner starts it in its own process group with:
 | `GYM_READY` | path that exists once setup has finished; start acting then |
 | `MC_HOST`, `MC_PORT` | the gym server, `127.0.0.1:25565` |
 | `MC_USERNAME` | the player to join as (`clyde`) |
-| `GYM_RCON_ADDR`, `GYM_RCON_PASSWORD` | the console, for test agents such as `cheat` |
+| `GYM_RCON_ADDR`, `GYM_RCON_PASSWORD` | the console, for test agents such as `cheat` and for checking goals |
+| `GYM_OUTCOME` | optional: write `{"model", "tokens": {"total"}, "cost_usd"}` JSON here for the scoreboard |
 
 The agent must join as `MC_USERNAME` within 60 s. The runner polls the goal
 about once a second; when it holds, the task times out, or the agent exits,
@@ -73,4 +76,7 @@ the runner sends SIGTERM to the group (SIGKILL after 5 s).
 
 Built-in agents prove the checkers without the body: `idle` joins and stands
 still, so every task fails at its timeout; `cheat` joins and satisfies the
-goal over RCON once `GYM_READY` exists, so every task passes.
+goal over RCON once `GYM_READY` exists, so every task passes. `executor`
+starts the body, waits for `GYM_READY`, and runs `clyde run` on the goal
+with the model from `CLYDE_EXECUTOR_MODEL` (see `harness/README.md`); its
+judge log and outcome land in the task's run directory.

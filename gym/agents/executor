@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Starts the body as MC_USERNAME, waits for GYM_READY, and runs `clyde run`
+# on GYM_TASK with RCON checking the goal. The outcome JSON goes to
+# GYM_OUTCOME so the scoreboard shows tokens and cost. On success the body
+# stays online until the runner stops it, because the runner's item and
+# position checks need the player online.
+#
+# Model: CLYDE_EXECUTOR_MODEL / _EFFORT / _PROVIDER (see harness/llm).
+# Needs OPENAI_API_KEY; the judge runs when TYPESAFE_API_KEY is set.
+set -euo pipefail
+root=$(cd "$(dirname "$0")/../.." && pwd)
+clyde="$root/gym/.bin/clyde"
+[ -x "$clyde" ] || (cd "$root/harness" && go build -o "$clyde" ./cmd/clyde)
+[ -d "$root/body/node_modules" ] || (cd "$root/body" && npm ci --no-audit --no-fund)
+
+export BODY_LISTEN_HOST=127.0.0.1
+export BODY_LISTEN_PORT=${BODY_LISTEN_PORT:-7787}
+base="http://$BODY_LISTEN_HOST:$BODY_LISTEN_PORT"
+run_dir=$(dirname "$GYM_TASK")
+
+(cd "$root/body" && exec node --import tsx src/index.ts) &
+body=$!
+trap 'kill $body 2>/dev/null || true' EXIT
+# The runner SIGTERMs the whole group and SIGKILLs it once this script
+# exits. With a trap, bash waits for the foreground clyde to write its
+# outcome before exiting.
+trap 'exit 143' TERM
+
+for _ in $(seq 1 60); do
+  curl -fsS -o /dev/null "$base/state" 2>/dev/null && break
+  kill -0 "$body" 2>/dev/null || { echo "body exited" >&2; exit 1; }
+  sleep 1
+done
+until [ -e "$GYM_READY" ]; do sleep 0.2; done
+
+status=0
+"$clyde" run --goal "$GYM_TASK" --body "$base" --rcon "$GYM_RCON_ADDR" \
+  --judge-log "$run_dir/judge.jsonl" >"${GYM_OUTCOME:-$run_dir/outcome.json}" || status=$?
+echo "clyde run exited $status"
+if [ "$status" -eq 0 ]; then
+  wait "$body"
+fi
+exit "$status"

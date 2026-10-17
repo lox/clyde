@@ -51,31 +51,60 @@ type Runner struct {
 // Result is the outcome of one task.
 type Result struct {
 	Task      string    `json:"task"`
-	Result    string    `json:"result"` // pass, fail, or error
+	Rep       int       `json:"rep,omitempty"` // 1-based repeat, 0 when the task runs once
+	Result    string    `json:"result"`        // pass, fail, or error
 	Seconds   float64   `json:"seconds"`
 	Timeout   Duration  `json:"timeout"`
 	AgentExit string    `json:"agent_exit"`
 	Detail    string    `json:"detail"`
 	StartedAt time.Time `json:"started_at"`
+	// From the agent's GYM_OUTCOME file, when it writes one.
+	Model   string  `json:"model,omitempty"`
+	Tokens  int     `json:"tokens,omitempty"`
+	CostUSD float64 `json:"cost_usd,omitempty"`
 }
 
 // Run plays one task and always returns a result; setup problems are
-// reported as result "error".
-func (r *Runner) Run(ctx context.Context, t *Task) Result {
+// reported as result "error". rep numbers repeats of the same task (0 for
+// a single run) and names the task's run directory.
+func (r *Runner) Run(ctx context.Context, t *Task, rep int) Result {
 	timeout := time.Duration(t.Timeout)
 	if r.Timeout > 0 {
 		timeout = r.Timeout
 	}
-	res := Result{Task: t.Name, Timeout: Duration(timeout), StartedAt: time.Now().UTC(), AgentExit: "not started"}
-	if err := r.run(ctx, t, timeout, &res); err != nil {
+	dir := filepath.Join(r.RunDir, t.Name)
+	if rep > 0 {
+		dir = filepath.Join(r.RunDir, fmt.Sprintf("%s.%d", t.Name, rep))
+	}
+	res := Result{Task: t.Name, Rep: rep, Timeout: Duration(timeout), StartedAt: time.Now().UTC(), AgentExit: "not started"}
+	if err := r.run(ctx, t, dir, timeout, &res); err != nil {
 		res.Result = "error"
 		res.Detail = err.Error()
 	}
+	readOutcome(filepath.Join(dir, "outcome.json"), &res)
 	return res
 }
 
-func (r *Runner) run(ctx context.Context, t *Task, timeout time.Duration, res *Result) error {
-	dir := filepath.Join(r.RunDir, t.Name)
+// readOutcome copies usage from an agent's outcome file, if it wrote one:
+// {"model": "...", "tokens": {"total": N}, "cost_usd": X}.
+func readOutcome(path string, res *Result) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	var o struct {
+		Model  string `json:"model"`
+		Tokens struct {
+			Total int `json:"total"`
+		} `json:"tokens"`
+		CostUSD float64 `json:"cost_usd"`
+	}
+	if json.Unmarshal(b, &o) == nil {
+		res.Model, res.Tokens, res.CostUSD = o.Model, o.Tokens.Total, o.CostUSD
+	}
+}
+
+func (r *Runner) run(ctx context.Context, t *Task, dir string, timeout time.Duration, res *Result) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
@@ -236,6 +265,7 @@ func (r *Runner) startAgent(dir, goalPath, readyPath string) (*agentProc, error)
 	cmd.Env = append(os.Environ(),
 		"GYM_TASK="+goalPath,
 		"GYM_READY="+readyPath,
+		"GYM_OUTCOME="+filepath.Join(dir, "outcome.json"),
 		"MC_HOST="+MCHost,
 		"MC_PORT="+MCPort,
 		"MC_USERNAME="+r.Username,

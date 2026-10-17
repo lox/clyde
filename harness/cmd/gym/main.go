@@ -44,8 +44,9 @@ func run(ctx context.Context, args []string) error {
 	all := fs.Bool("all", false, "run every task in gym/tasks/")
 	timeout := fs.Duration("timeout", 0, "override every task's timeout")
 	username := fs.String("username", "clyde", "MC_USERNAME for the agent")
+	runs := fs.Int("runs", 1, "run each task this many times")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "usage: gym/bin/run <task>...|--all [--agent <cmd>] [--timeout <duration>]")
+		fmt.Fprintln(fs.Output(), "usage: gym/bin/run <task>...|--all [--agent <cmd>] [--timeout <duration>] [--runs <n>]")
 		fs.PrintDefaults()
 	}
 	// Allow flags before and after task names.
@@ -97,12 +98,19 @@ func run(ctx context.Context, args []string) error {
 	r := &gym.Runner{Root: *root, Agent: agentCmd, Username: *username, Timeout: *timeout, RunDir: runDir, Log: os.Stderr}
 
 	var results []gym.Result
+tasks:
 	for _, t := range tasks {
-		res := r.Run(ctx, t)
-		fmt.Fprintf(os.Stderr, "== %s: %s (%s)\n", t.Name, res.Result, res.Detail)
-		results = append(results, res)
-		if ctx.Err() != nil {
-			break
+		for i := 1; i <= *runs; i++ {
+			rep := i
+			if *runs == 1 {
+				rep = 0 // a single run keeps the plain task directory name
+			}
+			res := r.Run(ctx, t, rep)
+			fmt.Fprintf(os.Stderr, "== %s: %s (%s)\n", t.Name, res.Result, res.Detail)
+			results = append(results, res)
+			if ctx.Err() != nil {
+				break tasks
+			}
 		}
 	}
 

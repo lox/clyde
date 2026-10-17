@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Run gym tasks and print a scoreboard.
-# Usage: gym/bin/run <task>...|--all [--agent <cmd>] [--timeout <duration>]
+# Usage: gym/bin/run <task>...|--all [--agent <cmd>] [--timeout <duration>] [--runs <n>]
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 command -v go >/dev/null || export PATH="$HOME/tools/go/bin:$PATH"
-(cd "$ROOT/harness" && go build -o "$ROOT/gym/.bin/gym" ./cmd/gym)
+(cd "$ROOT/harness" && go build -o "$ROOT/gym/.bin/gym" ./cmd/gym && go build -o "$ROOT/gym/.bin/clyde" ./cmd/clyde)
 if [ ! -d "$ROOT/gym/agents/node_modules" ]; then
   (cd "$ROOT/gym/agents" && npm ci --no-audit --no-fund >&2)
 fi
