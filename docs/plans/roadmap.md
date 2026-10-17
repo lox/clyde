@@ -184,8 +184,8 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 2 | Gym v0: Paper runner, world templates, tasks, scoreboard (done, `1a33297`) | `02-gym.md` | 0 |
 | 3 | Judge v0: contract, jev + replay backends, pre-checks, JSONL (done, `53778fc`) | `03-judge.md` | 0 |
 | 4 | Executor + MCP server (done) | `04-executor.md` | 1, 2, 3 |
-| 5 | Skills: format, loader, gym gate, first five skills, multi-step gym tasks | `05-skills.md` | 4 |
-| 6 | Planner + memory | `06-planner.md` | 4, 5 |
+| 5 | Skills: loader, admission, five skills, multi-step gym tasks (done, `4c94e9a`) | `05-skills.md` | 4 |
+| 6 | Planner + memory (foundations shipped; integration/live demo in progress) | `06-planner.md` | 4, 5 |
 | 7 | Production: proxy join, regions, kill switch, compose profile | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
 
