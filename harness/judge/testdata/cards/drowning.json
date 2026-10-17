@@ -9,7 +9,7 @@
       "z": -77.5
     },
     "yaw": 1.6,
-    "pitch": 0.0,
+    "pitch": 0,
     "health": 14,
     "food": 18,
     "oxygen": 2,
@@ -37,7 +37,9 @@
     "status": "running",
     "startedAt": 1792002386000,
     "elapsedMs": 14000,
-    "progress": "31.6 blocks remaining"
+    "progress": "31.6 blocks remaining",
+    "distanceRemaining": 31.6,
+    "lastMovedAt": 1792002399700
   },
   "lastAction": null,
   "inventory": {
@@ -69,7 +71,7 @@
     {
       "name": "water",
       "count": 256,
-      "nearest": 0.0,
+      "nearest": 0,
       "nearestPos": {
         "x": 301,
         "y": 52,

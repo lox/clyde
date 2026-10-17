@@ -9,7 +9,7 @@
       "z": -30.5
     },
     "yaw": 1.6,
-    "pitch": 0.0,
+    "pitch": 0,
     "health": 20,
     "food": 18,
     "oxygen": 20,
@@ -35,7 +35,8 @@
     "status": "running",
     "startedAt": 1792004791000,
     "elapsedMs": 9000,
-    "progress": "collected 2/10 oak_log"
+    "progress": "collected 2/10 oak_log",
+    "collected": 2
   },
   "lastAction": null,
   "inventory": {
@@ -68,7 +69,7 @@
         "position": {
           "x": 12.8,
           "y": 64,
-          "z": -37.0
+          "z": -37
         },
         "health": 20
       }

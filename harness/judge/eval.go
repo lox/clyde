@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/lox/clyde/harness/body"
 )
 
 // Label is the expected judgement for a fixture card. Nil fields are not
@@ -100,7 +102,7 @@ func Eval(ctx context.Context, backend Backend, questions map[string]Question, c
 	}
 	for rep := 1; rep <= reps; rep++ {
 		for _, c := range cases {
-			var card Card
+			var card body.Card
 			if err := json.Unmarshal(c.Card, &card); err != nil {
 				return r, fmt.Errorf("%s: %w", c.Name, err)
 			}
@@ -155,7 +157,7 @@ func Eval(ctx context.Context, backend Backend, questions map[string]Question, c
 			if !ok {
 				verdict = Decide(a, cfg.Decision)
 			}
-			verdict.CardTS = card.TS
+			verdict.CardTS = int64(card.Ts)
 			score("judge", verdict.Reason == c.Label.Interrupt,
 				fmt.Sprintf("%s: judge verdict %q via %s (%s), want %q", tag, verdict.Reason, verdict.Source, verdict.Detail, c.Label.Interrupt))
 

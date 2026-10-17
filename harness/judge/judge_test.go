@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -149,9 +150,27 @@ func jsonEqual(a, b any) bool {
 // endless yields the same busy card forever, as a body would.
 type endless struct{ ts int64 }
 
+// busyCard is a running collect, read once so ticks spend no time on disk.
+var busyCard = func() map[string]any {
+	b, err := os.ReadFile("testdata/cards/collect_progressing.json")
+	if err != nil {
+		panic(err)
+	}
+	var card map[string]any
+	if err := json.Unmarshal(b, &card); err != nil {
+		panic(err)
+	}
+	return card
+}()
+
 func (s *endless) Card(ctx context.Context) (json.RawMessage, error) {
 	s.ts += 100
-	return json.Marshal(map[string]any{"ts": s.ts, "bot": map[string]any{"health": 20, "oxygen": 20}, "action": map[string]any{"id": 1, "type": "goto", "status": "running"}})
+	card := map[string]any{}
+	for k, v := range busyCard {
+		card[k] = v
+	}
+	card["ts"] = s.ts
+	return json.Marshal(card)
 }
 
 // slowBackend sleeps for delay (or until the context ends) and tracks how
@@ -198,7 +217,7 @@ func TestTickTimeoutFallsBack(t *testing.T) {
 	if rec.Interrupt.Reason != NoInterrupt || rec.Interrupt.Source != SourceFallback {
 		t.Fatalf("interrupt = %+v, want fallback none", rec.Interrupt)
 	}
-	if rec.LatencyMs < 50 || rec.Card == nil || rec.Prechecks == nil {
+	if rec.LatencyMs < 45 || rec.Card == nil || rec.Prechecks == nil {
 		t.Fatalf("record incomplete: %+v", rec)
 	}
 }

@@ -12,6 +12,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"github.com/lox/clyde/harness/body"
 )
 
 // Interrupt sources.
@@ -94,7 +96,7 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 		return finish()
 	}
 	rec.Card = raw
-	var card Card
+	var card body.Card
 	if err := json.Unmarshal(raw, &card); err != nil {
 		rec.Error = "decode card: " + err.Error()
 		rec.Interrupt = Interrupt{Reason: NoInterrupt, Source: SourceFallback, Detail: "undecodable state card"}
@@ -103,7 +105,7 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 	pre := j.pre.Check(card)
 	rec.Prechecks = &pre
 	if it, ok := FromPrechecks(pre); ok {
-		it.CardTS = card.TS
+		it.CardTS = int64(card.Ts)
 		rec.Interrupt = it
 		return finish()
 	}
@@ -114,7 +116,7 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 	if err != nil {
 		rec.Error = "backend: " + err.Error()
 		rec.Timeout = errors.Is(err, context.DeadlineExceeded)
-		rec.Interrupt = Interrupt{CardTS: card.TS, Reason: NoInterrupt, Source: SourceFallback, Detail: "backend failed; pre-checks did not fire"}
+		rec.Interrupt = Interrupt{CardTS: int64(card.Ts), Reason: NoInterrupt, Source: SourceFallback, Detail: "backend failed; pre-checks did not fire"}
 		return finish()
 	}
 	rec.Model = res.Model
@@ -122,7 +124,7 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 	rec.Usage = &res.Usage
 	rec.CostUSD = float64(res.Usage.InputTokens) * j.cfg.CostPerMTok / 1e6
 	rec.Interrupt = Decide(res.Answers, j.cfg.Decision)
-	rec.Interrupt.CardTS = card.TS
+	rec.Interrupt.CardTS = int64(card.Ts)
 	return finish()
 }
 

@@ -9,7 +9,7 @@
       "z": -30.5
     },
     "yaw": 1.6,
-    "pitch": 0.0,
+    "pitch": 0,
     "health": 18,
     "food": 18,
     "oxygen": 20,
@@ -37,7 +37,9 @@
     "status": "running",
     "startedAt": 1792000593800,
     "elapsedMs": 6200,
-    "progress": "28.1 blocks remaining"
+    "progress": "28.1 blocks remaining",
+    "distanceRemaining": 28.1,
+    "lastMovedAt": 1792000599800
   },
   "lastAction": null,
   "inventory": {

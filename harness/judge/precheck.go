@@ -6,55 +6,9 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/lox/clyde/harness/body"
 )
-
-// Card is the subset of the body's state card that pre-checks read. The full
-// card always travels as raw JSON; this struct only decodes what code needs.
-// Field names follow body/src/state.ts until api/state.schema.json lands.
-type Card struct {
-	TS  int64 `json:"ts"`
-	Bot struct {
-		Health   float64 `json:"health"`
-		Food     float64 `json:"food"`
-		Oxygen   float64 `json:"oxygen"`
-		Position Vec     `json:"position"`
-		InWater  bool    `json:"inWater"`
-		InLava   bool    `json:"inLava"`
-	} `json:"bot"`
-	Action   *CardAction `json:"action"`
-	Entities struct {
-		Hostiles []CardEntity `json:"hostiles"`
-	} `json:"entities"`
-	Events []CardEvent `json:"events"`
-}
-
-// CardAction is the body's current action, or nil when idle.
-type CardAction struct {
-	ID       int    `json:"id"`
-	Type     string `json:"type"`
-	Status   string `json:"status"`
-	Progress string `json:"progress"`
-}
-
-// CardEntity is a nearby entity.
-type CardEntity struct {
-	Name     string  `json:"name"`
-	Distance float64 `json:"distance"`
-}
-
-// CardEvent is a recent body event; AgeMs is relative to the card's TS.
-type CardEvent struct {
-	AgeMs int64  `json:"ageMs"`
-	Type  string `json:"type"`
-	Text  string `json:"text"`
-}
-
-// Vec is a block position.
-type Vec struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
-}
 
 // PrecheckConfig holds the thresholds code uses to decide without the model.
 type PrecheckConfig struct {
@@ -64,8 +18,11 @@ type PrecheckConfig struct {
 	LowOxygen float64 `yaml:"low_oxygen"`
 	// HostileRange: a hostile at or within this many blocks is danger.
 	HostileRange float64 `yaml:"hostile_range"`
-	// StuckAfter: a running action whose position and progress have not
-	// changed for at least this long is stuck.
+	// StuckAfter: a running action that has made no progress for at least
+	// this long is stuck. Progress is a new closest distanceRemaining for
+	// goto, and movement, a progress text change, or a higher collected
+	// count for everything else. goto and follow also stall when their
+	// lastMovedAt is this old, except a follow within range of its player.
 	StuckAfter time.Duration `yaml:"stuck_after"`
 	// MoveEpsilon: position changes smaller than this (blocks) do not count.
 	MoveEpsilon float64 `yaml:"move_epsilon"`
@@ -104,13 +61,16 @@ type Prechecks struct {
 type Prechecker struct {
 	cfg PrecheckConfig
 
-	seen        bool
-	lastTS      int64
-	actionID    int
-	lastPos     Vec
-	lastProg    string
-	lastChange  int64
-	actionKnown bool
+	seen   bool
+	lastTS int64
+
+	// Stall tracking for the running action; actionID is 0 when idle.
+	actionID      int
+	lastPos       body.Vec
+	lastProg      string
+	lastCollected int
+	bestDist      float64
+	lastChange    int64
 }
 
 // NewPrechecker returns a pre-checker with the given thresholds.
@@ -118,16 +78,17 @@ func NewPrechecker(cfg PrecheckConfig) *Prechecker {
 	return &Prechecker{cfg: cfg}
 }
 
-// Check runs every pre-check against card. Times come from card.TS (ms), so
+// Check runs every pre-check against card. Times come from card.Ts (ms), so
 // fixture streams are deterministic. A card older than the previous one
 // resets the stream state.
-func (p *Prechecker) Check(card Card) Prechecks {
-	if p.seen && card.TS < p.lastTS {
+func (p *Prechecker) Check(card body.Card) Prechecks {
+	ts := int64(card.Ts)
+	if p.seen && ts < p.lastTS {
 		*p = Prechecker{cfg: p.cfg}
 	}
 	first := !p.seen
 	prevTS := p.lastTS
-	p.seen, p.lastTS = true, card.TS
+	p.seen, p.lastTS = true, ts
 	c := p.cfg
 
 	var out Prechecks
@@ -178,7 +139,7 @@ func (p *Prechecker) Check(card Card) Prechecks {
 	for _, e := range card.Events {
 		// An event is new if it happened after the previous card; on the first
 		// card of a stream every event is new.
-		if slices.Contains(c.AttentionEvents, e.Type) && (first || card.TS-e.AgeMs > prevTS) {
+		if slices.Contains(c.AttentionEvents, e.Type) && (first || ts-int64(e.AgeMs) > prevTS) {
 			busy = append(busy, "new "+e.Type+" event")
 			break
 		}
@@ -198,23 +159,69 @@ func (p *Prechecker) Check(card Card) Prechecks {
 	return out
 }
 
-func (p *Prechecker) stalled(card Card) Check {
+func (p *Prechecker) stalled(card body.Card) Check {
 	ch := Check{Name: "stalled", Threshold: p.cfg.StuckAfter.Seconds()}
 	a := card.Action
-	if a == nil || a.Status != "running" {
-		p.actionKnown = false
+	if a == nil || a.Status != body.ActionStatusStatusRunning {
+		p.actionID = 0
 		ch.Detail = "no running action"
 		return ch
 	}
+	ts := int64(card.Ts)
 	pos := card.Bot.Position
-	moved := math.Sqrt(sq(pos.X-p.lastPos.X)+sq(pos.Y-p.lastPos.Y)+sq(pos.Z-p.lastPos.Z)) >= p.cfg.MoveEpsilon
-	if !p.actionKnown || a.ID != p.actionID || moved || a.Progress != p.lastProg {
-		p.actionKnown, p.actionID, p.lastPos, p.lastProg, p.lastChange = true, a.ID, pos, a.Progress, card.TS
+	prog := orZero(a.Progress)
+	collected := orZero(a.Collected)
+	dist := math.Inf(1)
+	if a.DistanceRemaining != nil {
+		dist = *a.DistanceRemaining
 	}
-	ch.Value = float64(card.TS-p.lastChange) / 1000
+	eps := p.cfg.MoveEpsilon
+
+	if a.ID != p.actionID {
+		p.actionID, p.lastPos, p.lastProg, p.lastCollected, p.bestDist, p.lastChange = a.ID, pos, prog, collected, dist, ts
+	}
+	var progressed bool
+	if a.Type == body.ActionStatusTypeGoto && a.DistanceRemaining != nil {
+		// Walking back and forth is not progress; getting closer is.
+		progressed = dist <= p.bestDist-eps
+	} else {
+		moved := math.Sqrt(sq(pos.X-p.lastPos.X)+sq(pos.Y-p.lastPos.Y)+sq(pos.Z-p.lastPos.Z)) >= eps
+		progressed = moved || prog != p.lastProg || collected > p.lastCollected
+	}
+	if progressed {
+		p.lastPos, p.lastProg, p.lastCollected, p.bestDist, p.lastChange = pos, prog, collected, min(dist, p.bestDist), ts
+	}
+	ch.Value = float64(ts-p.lastChange) / 1000
+	ch.Detail = fmt.Sprintf("%s #%d no progress for %.1fs", a.Type, a.ID, ch.Value)
+	// The body tracks movement itself, so one card can show a stall.
+	if a.LastMovedAt != nil {
+		if still := float64(ts-int64(*a.LastMovedAt)) / 1000; still > ch.Value {
+			ch.Value = still
+			ch.Detail = fmt.Sprintf("%s #%d has not moved for %.1fs", a.Type, a.ID, still)
+		}
+	}
+	// A follow that is keeping up with a player who stands still is fine.
+	if a.Type == body.ActionStatusTypeFollow && dist <= followRange(a)+1 {
+		p.lastChange = ts
+		ch.Value, ch.Detail = 0, fmt.Sprintf("follow #%d within range", a.ID)
+	}
 	ch.Fired = ch.Value >= ch.Threshold
-	ch.Detail = fmt.Sprintf("%s #%d unchanged for %.1fs", a.Type, a.ID, ch.Value)
 	return ch
+}
+
+func followRange(a *body.ActionStatus) float64 {
+	if r, ok := a.Params["range"].(float64); ok {
+		return r
+	}
+	return 3 // the body's default
+}
+
+func orZero[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 func sq(f float64) float64 { return f * f }
