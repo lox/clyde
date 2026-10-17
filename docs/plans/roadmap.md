@@ -202,6 +202,8 @@ choice and can be reversed by saying so.
 - Executor tool loop: `github.com/lox/agent-harness` (ours, MIT), behind
   `harness/llm` and `harness/executor`. Changes to it are delegated to a
   thread in that repo and pinned here; no fork or vendoring.
+- Executor model: `gpt-6.1-sol` (OpenAI Responses), chosen by Lachlan after
+  the first gym runs.
 - Issue tracking: GitHub issues on this repo (default).
 - Delivery: commit to `main` (Amp merge-to-main), no pull requests; Auto-review
   runs locally before every ship; no Codex.
@@ -234,6 +236,5 @@ choice and can be reversed by saying so.
 
 ## Open questions
 
-- Which mid-tier model for the executor loop once gym numbers exist.
 - Whether to run a GPU box for a distilled judge (OVH has none in Sydney; AWS
   g6 in ap-southeast-2 or a home GPU on the Tailnet are the candidates).
