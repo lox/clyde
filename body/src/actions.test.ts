@@ -133,3 +133,16 @@ test('code that outlives its eval timeout stops at its next sleep', async () => 
   await new Promise((r) => setTimeout(r, 100))
   assert.equal(types().filter((t) => t.startsWith('action.log')).length, ticks)
 })
+
+test('a query runs beside the running action without aborting it', async () => {
+  const { runner, types } = setup()
+  runner.start({ type: 'eval', code: 'await sleep(60000)' })
+
+  const q = await within(500, runner.query('log("looking"); return 6 * 7', 1000))
+
+  assert.deepEqual(q, { status: 'succeeded', result: { value: 42, logs: ['looking'] } })
+  assert.equal(runner.currentStatus?.status, 'running')
+  assert.deepEqual(types(), ['action.start #1'])
+  assert.deepEqual(await runner.query('throw new Error("no such item")', 1000), { status: 'failed', error: 'no such item' })
+  runner.stop()
+})

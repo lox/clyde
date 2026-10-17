@@ -26,8 +26,9 @@ class HttpError extends Error {
 }
 
 /**
- * GET /state[?format=text], POST /action, POST /eval, GET /events?since=N,
- * POST /stop. Requests are validated against api/action.schema.json.
+ * GET /state[?format=text], POST /action, POST /eval, POST /query,
+ * GET /events?since=N, POST /stop. Requests are validated against
+ * api/action.schema.json.
  */
 export function createServer({ runner, events, card }: ServerDeps): http.Server {
   const validate = actionValidator()
@@ -55,6 +56,13 @@ export function createServer({ runner, events, card }: ServerDeps): http.Server 
       // Runs as the current action, like POST /action, but answers with the final status.
       const action = validate({ ...(isObject(body) ? body : {}), type: 'eval' }) as EvalAction
       return runner.start(action).done
+    },
+    'POST /query': async (req) => {
+      ready()
+      const body = await readJson(req)
+      // Same request as POST /eval, but runs beside the current action instead of replacing it.
+      const action = validate({ ...(isObject(body) ? body : {}), type: 'eval' }) as EvalAction
+      return runner.query(action.code, action.timeoutMs ?? 10_000)
     },
     'GET /events': async (_req, url) => {
       const raw = url.searchParams.get('since') ?? '0'

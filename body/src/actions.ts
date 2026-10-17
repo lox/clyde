@@ -92,6 +92,26 @@ export class ActionRunner {
     return { status: { ...status }, done }
   }
 
+  /**
+   * Runs eval code beside the running action instead of replacing it, for
+   * read-only lookups such as recipes. Nothing stops the code from acting,
+   * so callers keep it read-only; it ends only by finishing or timing out.
+   */
+  async query(code: string, timeoutMs: number): Promise<Pick<ActionStatus, 'status' | 'result' | 'error'>> {
+    const ctx: ActionContext = {
+      bot: this.bot,
+      safety: this.safety,
+      signal: new AbortController().signal,
+      update: () => {},
+      log: () => {},
+    }
+    try {
+      return { status: 'succeeded', result: await runCode(ctx, code, timeoutMs) }
+    } catch (err) {
+      return { status: 'failed', error: err instanceof Error ? err.message : String(err) }
+    }
+  }
+
   private abortCurrent(reason: string): ActionStatus | null {
     if (!this.current) return null
     const { status, controller } = this.current
