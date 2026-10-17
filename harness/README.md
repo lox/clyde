@@ -25,7 +25,9 @@ what belongs here.
   the `until` check, and the judge beside it. The prompt lives in
   `prompts/executor.md`.
 - `mcp/`: the same tools plus `run_goal` and `stop` over MCP.
-- `cmd/clyde/`: `clyde run` and `clyde mcp`.
+- `cmd/clyde/`: `clyde run`, `clyde mcp`, `clyde serve`, and skill gate/promotion.
+- `planner/`, `memory/`: event-triggered planning, player-first scheduling,
+  SQLite episodes/checkpoints/observations and bounded Markdown notes.
 - `skills/`: shared content-bound skill loading/admission; see
   [skill format, gate, promotion, and isolation](../skills/README.md).
 
@@ -57,6 +59,70 @@ per-name count of actual attempted invocations, including failures.
 
 To use it from Amp, add an MCP server whose command is
 `go run ./cmd/clyde mcp` with `harness/` as its working directory.
+
+## Local planner runbook
+
+Use only a throwaway local server for this slice. From the repository root,
+build once and attach to an already running body (the example uses the
+separate live instance described in `skills/README.md`):
+
+```sh
+(cd harness && go build -o ../gym/.bin/clyde ./cmd/clyde)
+amp orb service start clyde-planner --command 'gym/.bin/clyde serve --body http://127.0.0.1:7788 --rcon 127.0.0.1:25576 --max-autonomous 3 --max-steps 12 --max-time 90s --planner-time 30s'
+amp orb service logs clyde-planner --lines 100
+amp orb service stop clyde-planner
+amp orb service restart clyde-planner
+```
+
+SIGINT/SIGTERM cancels and joins the worker, stops the body and retains its
+queue. Stop the planner **before** stopping/restarting its body or Paper.
+Stopping only a body action is not a latched kill switch: the scheduler can
+start another action. Production latching belongs to slice 7.
+
+`CLYDE_PLANNER_PROVIDER`, `CLYDE_PLANNER_MODEL`, `CLYDE_PLANNER_EFFORT` are
+independent of the executor variables above; both default to Sol 6.1, low.
+The planner has at most two schema-validation attempts within
+`--planner-time` per event. `--max-steps`/`--max-time` bound each fresh
+executor. `--max-autonomous` is a durable completed-goal cap (default ten),
+not reset by restart; explicitly raise it to continue. Player requests are
+not charged to that cap. These are work/time budgets, not a hard dollar cap;
+new player requests and post-mortems can incur further calls. No repeated
+idle observation invokes a model. Usage/cost is stored in SQLite, including
+returned usage for cancelled calls; unreturned provider billing is unknown.
+
+Whispers and public chat starting with `Clyde`, `Clyde:` or `Clyde,` enqueue
+player work. A player request cancels autonomous planning/execution, waits
+for cleanup and a confirmed body stop, then runs first. Suspended goals keep
+their original predicate and resume with a fresh executor, not the old
+conversation. Unsupported requests receive a bounded idle/refusal reply.
+Death/failure triggers one post-mortem without dispatching its proposed retry;
+failure pauses autonomy until a new player event. Code-detected danger blocks
+execution until live prechecks clear.
+
+Defaults: `--memory memory/episodes.db`, `--semantic-dir memory/semantic`,
+`--candidates-dir memory/skill-candidates`, and `--planner-prompt
+prompts/planner.md`. Keep custom runtime paths under gitignored `memory/`.
+SQLite records the queue, accepted event identities, outcomes and observed
+places; semantic notes are limited to 4 KiB each/16 KiB total and require
+supporting episode IDs. Requests and retrieved notes remain untrusted data.
+One local CLI controller owns each body URL and database via advisory locks;
+remote controllers/host aliases are still the operator's responsibility.
+
+Restart stops stale actions and checks running predicates against live state.
+Satisfied work is recorded; unsatisfied work is requeued. This cannot make
+arbitrary side effects idempotent. Reply intent is committed before sending:
+restart does not resend, but a crash before send can lose the reply. This is
+at-most-once send attempt, **not exactly-once delivery**. The bounded body
+event ring can lose events evicted during downtime; gaps are recorded.
+
+Candidate proposals are immutable separate roots:
+`memory/skill-candidates/proposal-*/<name>/{skill.md,index.js,test.yaml}`.
+Play never executes, gates, admits or promotes them. Inspect the files, then
+explicitly gate that proposal root on the **separate candidate world** using
+the full isolation environment in `skills/README.md`; explicitly promote
+only after passing. Never gate/reset the planner's live world. A failed
+revision cannot replace the installed skill or its receipt. Local receipts
+are intentionally untracked; rerun the existing gates after a fresh checkout.
 
 ## Judge
 

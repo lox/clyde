@@ -95,10 +95,14 @@ keep SQL/schema ownership in the memory package.
 - Production safety/kill-switch latching belongs to slice 7. Never run the
   live demo against Bonnie's server.
 
-## As built (in progress)
+## As built
 
-- Isolated packages are implemented; CLI/skill integration and the live demo
-  still wait for slice 5 to ship. This slice is not complete yet.
+- `clyde serve` integrates the planner, durable scheduler, a fresh executor
+  per goal, and slice 5's actual skill Store. `run` and `mcp` remain available.
+  Local advisory locks reject competing CLI owners for the same body URL or
+  database; this is not a distributed lease and does not cover remote aliases.
+  Memory paths, prompts and budgets are configurable. The local stop/start
+  runbook is in `harness/README.md`; SIGTERM joins cleanup and retains work.
 - `harness/planner` uses the existing `llm` provider and agent-harness with
   independent `CLYDE_PLANNER_PROVIDER`, `CLYDE_PLANNER_MODEL` and
   `CLYDE_PLANNER_EFFORT` (Sol 6.1, low by default). A decision has one
@@ -141,12 +145,49 @@ keep SQL/schema ownership in the memory package.
   can lose a reply. Without chat acknowledgements this is at-most-once send
   attempt, not exactly-once delivery. Costs cover provider-reported usage;
   a provider may bill cancelled/crashed calls whose usage was not returned.
-- Offline validation so far: harness build/vet/test; ten repeated race-test
+- Skill proposals are immutable `proposal-*` roots under the configured
+  candidate directory, outside the live library (including symlink aliases).
+  The real `skills.Store.LoadCandidate` and `gym.ParseTask` validate the three
+  files. No duplicate loader/receipts, automatic gate or promotion was added.
+  Operators inspect, gate on a separate instance, then explicitly promote
+  through slice 5's CLI. Failed gates/promotions leave live files untouched.
+- Offline validation: harness build/vet/test; ten repeated race-test
   runs for memory/planner. Tests cover cleanup-before-preemption, autonomous
   resumption, slow planning cancellation, chat deduplication through a SQLite
   close/reopen and body sequence reuse, restart predicate reconciliation,
   invalid-goal retry bounds, idle quiescence, sustained danger and post-mortem
-  retry suppression, persistence and semantic path/citation limits.
+  retry suppression, persistence, semantic path/citation limits, isolated
+  candidate revisions, rejected ungated promotion and local owner exclusion.
+- Live controlled demo used real Sol 6.1 low for both roles, a separate
+  mineflayer player Alex, Paper `paper-live` 25566/25576 and body 7788.
+  A test-only curriculum selected ordinary goals (no executor scripts):
+  craft four planks, craft one table, travel to a marker. RCON confirmed
+  both inventory goals; Alex's chat interrupted travel at 37.2 blocks away,
+  received acknowledgement in 3637 ms, and got four sticks before the
+  original goal resumed. RCON confirmed arrival 1.00 blocks from the target
+  (radius 1.5). The first restart retained home/Alex and left four successes,
+  five planning results, one reply and usage unchanged: 48,506 tokens,
+  $0.0443759. It made no duplicate reply or new model call.
+- A server-issued death produced an episode-backed Markdown post-mortem:
+  cause unknown, empty respawn inventory, no automatic retry. A player then
+  requested a planks skill; the planner authored all three files, staged
+  them without admission, and answered in 12,625 ms. Its explicit model-free
+  gate on `paper-candidates` 25567/25577, body 7789, passed in 1.007 seconds
+  with RCON reporting 4/4 planks. After explicit promotion, a deliberately
+  lying derivative returned success without crafting: its independent gate
+  failed 0/4 at 3 seconds, promotion was rejected, and all three installed
+  hashes plus receipt stayed unchanged. Live position/inventory/marker
+  remained unchanged across both candidate-world resets.
+- A final player request crafted four planks (2839 ms acknowledgement);
+  executor discovery found the promoted candidate but chose ordinary eval
+  rather than `run_skill`. This is discovery evidence, not an invocation
+  claim. A second restart retained five successes, nine planning results,
+  three replies, home/Alex and identical usage. Full demo including death,
+  authorship and this final request: 78,280 provider-reported tokens,
+  $0.0774355; gates use no model. Episode/event JSON, authored candidate,
+  curriculum and service transcript were exported as thread artifacts.
+  No production deployment occurred. These fixtures prove scheduling and
+  persistence integration, not general autonomous planning or survival.
 
 ## Not in this slice
 
