@@ -81,3 +81,79 @@ you ship. Avoid changes to the planner or memory packages.
 
 Autonomous skill authoring or promotion by the planner, priority lanes,
 persistent planner memory, production deployment, and replacing mineflayer.
+
+## As built
+
+`harness/skills.Store{Dir}` owns captured three-file snapshots, ranked
+discovery, content-bound receipts, invocation and explicit promotion. Both
+executor and MCP expose the same `find_skill`/`run_skill` tools. An empty
+`--skills-dir` (gym: `CLYDE_SKILLS_DIR=''`) removes both tools. Invocation
+uses the existing body eval API, with JSON object arguments and its normal
+safety, timeout and abort handling. Strategy stays in JS; gates call no model.
+
+`gym.Gate(ctx, store, name, Runner)` revokes only that store's receipt,
+executes a frozen candidate through the existing executor gym agent, checks
+the ordinary independent RCON goal, then admits only unchanged contents.
+Receipts are `<root>/<name>/.admission.json`, ignored at arbitrary roots.
+Stage replacements in a separate candidate `Store`, gate there, then call
+`live.Promote(candidate, name)` or `clyde skill promote --from ... --dir ...`.
+Failed gating and stale/failed promotion preserve the working installed
+files and receipt; offline tests and a live deliberately lying candidate
+confirmed this. See `skills/README.md` for the exact format, digest and CLI.
+
+The five JS bodies and descriptions are verbatim Sol 6.1 low-effort outputs
+from four author/refinement calls through `harness/llm`. Live feedback found
+findBlock palette predicates without positions, craft output left on the
+cursor, and single-block collect/drop handling on vertical trunks. Final
+model revisions use numeric block searches, bounded cursor stowing and batch
+collectblock targets. Initial gate rounds passed 1/5, 3/5 and 2/5; the final
+five gates pass without provider keys: collect logs 19s, craft item 2s,
+craft/place table 2s, deposit 1s, eat 2s. Eating stew is witnessed by the
+server-side empty bowl, unavailable in setup; no new goal predicate was
+needed. The model-authorship prompts/responses and scoreboards are retained
+in commit messages, not admission receipts checked into Git.
+
+Final comparisons use identical fixtures, 180s task budgets, the same
+executor prompt, `gpt-6.1-sol`, low effort, three runs per cell. Tokens/cost
+are means per run (including failures); times are medians of passes:
+
+| task | skills | pass | time | tokens/run | cost/run | skill calls |
+|------|--------|------|------|------------|----------|-------------|
+| logs-to-table | off | 3/3 | 20s | 9583 | $0.0060 | 0 |
+| logs-to-table | on | 3/3 | 18s | 6188 | $0.0052 | 5 |
+| logs-to-chest | off | 2/3 | 47.5s | 14528 | $0.0086 | 0 |
+| logs-to-chest | on | 3/3 | 35s | 11502 | $0.0055 | 9 |
+
+These small samples suggest lower token use, not general reliability proof.
+The disabled chest run failed to find crafted planks for its deposit, then
+the judge ended its retry as stuck; that run did not inspect the cursor.
+An earlier comparison with the old prompt had zero skill calls:
+off passed 6/6, enabled 4/6 (table 1/3, chest 3/3); it did **not** show a
+benefit. A general prompt preference to search/use fitting admitted skills
+was then added, and **both** final arms were rerun. No checker or fixture was
+relaxed. Normal shutdown can log a failed `/stop` when the gym has already
+terminated the body's process group; this did not determine goal outcomes.
+
+The existing Paper lifecycle now accepts `GYM_PAPER_NAME`, `GYM_MC_PORT`,
+`GYM_RCON_PORT`, `PAPER_DIR`, `GYM_TEMPLATES` and `BODY_LISTEN_PORT`;
+`gym.Runner.Env` passes consistent per-instance overrides without global
+environment mutation. A second live server (`paper-live`, 25566/25576,
+body 7788) retained its Java/body PIDs, online player, exact position,
+seven diamonds and diamond marker through five candidate resets/gates
+(`paper-candidates`, 25567/25577, body 7789), with distinct template roots.
+The working environment example is in `skills/README.md`. `PAPER_DIR` alone
+is explicitly insufficient isolation.
+
+A live admitted collect skill confirmed timeout, context cancellation,
+protected-region refusal and the one-block break cap; a diagnostic candidate
+confirmed the cap's explicit body refusal (collectblock itself reports
+generic no-progress). The body now expires completed/timed-out eval ownership
+as well as preempted ownership, preventing detached pathfinder work from
+overriding the next action; its regression test failed before the fix.
+Offline loader/tool/promotion/failure tests, body tests/build and harness
+build/vet/test/race pass. CI adds all five deterministic model-free gates.
+The six task checkers pass with cheat and fail with idle at a 2s timeout
+(including all four primitive controls), as expected.
+This is still trusted local code and serialized local promotion, not a
+hostile-code sandbox or concurrent registry. Mineflayer remains the runtime;
+there was no production deployment or planner implementation in this slice.
