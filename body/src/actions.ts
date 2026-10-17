@@ -169,7 +169,16 @@ export class ActionRunner {
     status.elapsedMs = status.endedAt - status.startedAt
     if (extra.result !== undefined) status.result = extra.result as ActionStatus['result']
     if (extra.error !== undefined) status.error = extra.error
-    if (this.current?.status.id === status.id) this.current = null
+    if (this.current?.status.id === status.id) {
+      const { controller } = this.current
+      this.current = null
+      // Eval can start detached plugin/timer work. Its ownership expires on
+      // completion and timeout too, not only on explicit preemption.
+      if (status.type === 'eval' && state !== 'aborted') {
+        controller.abort(new Error(`eval ${state}`))
+        this.halt()
+      }
+    }
     this.last = status
     this.events.push(`action.${state}`, `#${status.id} ${status.type} ${state}${status.error ? `: ${status.error}` : ''}`, {
       id: status.id,

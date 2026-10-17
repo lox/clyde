@@ -162,3 +162,19 @@ test('code that outlives its aborted action cannot replace the next action\'s go
   await assert.doesNotReject(() => runner.start({ type: 'eval', code: 'bot.pathfinder.setGoal(null)' }).done)
   runner.stop()
 })
+
+test('code that outlives a finished or timed-out eval cannot replace the next goal', async () => {
+  for (const ending of ['success', 'timeout']) {
+    const { runner, calls } = setup()
+    runner.guardStaleCode()
+    const code = 'setTimeout(() => bot.pathfinder.setGoal({ stale: true }), 80);' +
+      (ending === 'timeout' ? 'await new Promise(() => {})' : 'return 1')
+    const done = await runner.start({ type: 'eval', code, timeoutMs: 20 }).done
+    assert.equal(done.status, ending === 'success' ? 'succeeded' : 'failed')
+    const next = runner.start({ type: 'goto', x: 10, y: 64, z: 0 })
+    await new Promise((r) => setTimeout(r, 130))
+    assert.ok(!calls.includes('setGoal(Object)'), `stale ${ending} eval set a goal: ${calls}`)
+    assert.equal(runner.currentStatus?.id, next.status.id)
+    runner.stop()
+  }
+})

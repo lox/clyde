@@ -95,6 +95,7 @@ export async function runCode(ctx: ActionContext, code: string, timeoutMs: numbe
   } finally {
     clearTimeout(timer)
     ctx.signal.removeEventListener('abort', onOuterAbort)
+    controller.abort(new Error('eval finished'))
   }
 }
 
