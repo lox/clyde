@@ -198,9 +198,12 @@ choice and can be reversed by saying so.
 
 - Name: Clyde. Repo: `lox/clyde`, public, MIT.
 - Harness in Go.
-- Body in TypeScript on mineflayer (default: proposed in the spec thread,
-  never explicitly approved). Revisit before slice 5, because skills are
-  written as JavaScript against mineflayer's `bot` API and lock it in.
+- Body stays TypeScript on mineflayer for slices 5 and 6 (chosen by Lachlan).
+  JavaScript skills use its bot API. The mc26-kit Paper spike continues
+  separately; it does not block skills or planner/memory delivery.
+- Slices 5 and 6 start together: slice 6 prepares planner/memory in separate
+  files, then integrates after slice 5 ships its skill contract. No competing
+  skill loader or concurrent edits to executor/CLI wiring (default).
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
