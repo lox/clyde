@@ -146,3 +146,19 @@ test('a query runs beside the running action without aborting it', async () => {
   assert.deepEqual(await runner.query('throw new Error("no such item")', 1000), { status: 'failed', error: 'no such item' })
   runner.stop()
 })
+
+test('code that outlives its aborted action cannot replace the next action\'s goal', async () => {
+  const { runner, calls } = setup()
+  runner.guardStaleCode()
+  // Ignores the abort and paths somewhere later, like collectblock chasing a late drop (issue #2).
+  runner.start({ type: 'eval', code: 'setTimeout(() => bot.pathfinder.setGoal({ stale: true }), 20); await new Promise(() => {})' })
+  const goto = runner.start({ type: 'goto', x: 10, y: 64, z: 0 })
+  await new Promise((r) => setTimeout(r, 60))
+
+  assert.ok(!calls.includes('setGoal(Object)'), `stale code set a goal: ${calls}`)
+  assert.equal(runner.currentStatus?.id, goto.status.id)
+  assert.equal(runner.currentStatus?.status, 'running')
+  // The running action's own code is unaffected.
+  await assert.doesNotReject(() => runner.start({ type: 'eval', code: 'bot.pathfinder.setGoal(null)' }).done)
+  runner.stop()
+})

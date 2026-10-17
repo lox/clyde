@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import type { Bot } from 'mineflayer'
 import type { Block } from 'prismarine-block'
 import pathfinderPkg from 'mineflayer-pathfinder'
@@ -31,6 +32,13 @@ export interface ActionContext {
 const PROGRESS_INTERVAL_MS = 250
 
 /**
+ * The abort signal of the action whose code is running. Async work started
+ * by an action (its awaits, timers, and plugin loops) carries it, so code
+ * that outlives its action can be refused; see guardStaleCode.
+ */
+const actionSignal = new AsyncLocalStorage<AbortSignal>()
+
+/**
  * Runs at most one action at a time. Starting a new action aborts the current
  * one synchronously, so the abort is in /events before the new action starts;
  * that is the harness's interrupt channel.
@@ -53,6 +61,28 @@ export class ActionRunner {
 
   get lastStatus(): ActionStatus | null {
     return this.last
+  }
+
+  /**
+   * Ignores pathfinder goals and refuses gotos and digs from code whose
+   * action was aborted. Without this, mineflayer-collectblock's loop could
+   * pick up a drop that landed after its collect was preempted and path to
+   * it, replacing the next action's goal (issue #2). Call once plugins are
+   * injected.
+   */
+  guardStaleCode(): void {
+    const stale = () => actionSignal.getStore()?.aborted ?? false
+    const reason = () => new Error(`refused: ${actionSignal.getStore()?.reason?.message ?? 'its action was aborted'}`)
+    const pf = this.bot.pathfinder
+    const { setGoal, goto } = pf
+    // Ignored rather than thrown: a throw from a stale timer callback would
+    // be an uncaught exception.
+    pf.setGoal = (goal, dynamic) => {
+      if (!stale()) setGoal.call(pf, goal, dynamic)
+    }
+    pf.goto = (goal) => (stale() ? Promise.reject(reason()) : goto.call(pf, goal))
+    const dig = this.bot.dig
+    this.bot.dig = ((...args: Parameters<Bot['dig']>) => (stale() ? Promise.reject(reason()) : dig.apply(this.bot, args))) as Bot['dig']
   }
 
   /** Aborts the running action, if any, and stops all movement and digging. */
@@ -85,7 +115,7 @@ export class ActionRunner {
       log: (text) => this.events.push('action.log', text, { id }),
     }
 
-    const done = this.run(request, ctx).then(
+    const done = actionSignal.run(controller.signal, () => this.run(request, ctx)).then(
       (result) => this.finish(status, 'succeeded', { result }),
       (err: unknown) => this.finish(status, 'failed', { error: err instanceof Error ? err.message : String(err) }),
     )

@@ -32,6 +32,7 @@ let spawned = false
 bot.once('spawn', () => {
   // Plugins are injected by now; wrap before any action can run.
   safety.install(bot)
+  runner.guardStaleCode()
   // Paper 26.1 rubber-bands any move that leaves the player exactly touching a
   // wall, which prismarine-physics does every time it walks into one; the bot
   // then never gets out of a trench. A 0.1 mm gap avoids the contact.
