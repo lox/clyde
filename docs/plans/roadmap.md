@@ -199,6 +199,9 @@ choice and can be reversed by saying so.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
+- Executor tool loop: `github.com/lox/agent-harness` (ours, MIT), behind
+  `harness/llm` and `harness/executor`. Changes to it are delegated to a
+  thread in that repo and pinned here; no fork or vendoring.
 - Issue tracking: GitHub issues on this repo (default).
 - Delivery: commit to `main` (Amp merge-to-main), no pull requests; Auto-review
   runs locally before every ship; no Codex.
