@@ -9,7 +9,7 @@ import { buildStateCard, renderCard } from './state.js'
 
 const NOW = 1_800_000_000_000
 
-/** A bot at (0.5, 64, 0.5) at dusk in the rain, with a player, a zombie, a dropped sapling, and some logs and coal nearby. */
+/** A bot at (0.5, 64, 0.5) at dusk in the rain, with a player, a zombie, a dropped sapling, and logs and ores nearby. */
 function fixtureBot(): Bot {
   const me = {
     position: new Vec3(0.5, 64, 0.5),
@@ -20,7 +20,25 @@ function fixtureBot(): Bot {
     isInLava: false,
     metadata: [0, 150], // air_supply 150 of 300 ticks
   }
-  const blocks: Record<string, string> = { '3,64,0': 'oak_log', '3,65,0': 'oak_log', '-5,60,2': 'coal_ore' }
+  // Solid stone at y <= 55, air above, plus these blocks. The diamond is buried
+  // in stone; the iron touches a one-block air pocket at (-3,51,4). Of the two
+  // water blocks only the top one has a visible face.
+  const blocks: Record<string, string> = {
+    '3,64,0': 'oak_log',
+    '3,65,0': 'oak_log',
+    '-5,60,2': 'coal_ore',
+    '-2,50,0': 'diamond_ore',
+    '-3,50,4': 'iron_ore',
+    '-3,51,4': 'air',
+    '10,55,0': 'water',
+    '10,54,0': 'water',
+  }
+  const blockAt = (p: Vec3) => {
+    const name = blocks[`${p.x},${p.y},${p.z}`] ?? (p.y <= 55 ? 'stone' : 'air')
+    const empty = name === 'air' || name === 'water'
+    return { name, type: name, position: p, boundingBox: empty ? 'empty' : 'block', transparent: empty }
+  }
+  const candidates = [new Vec3(3, 64, 0), new Vec3(3, 65, 0), new Vec3(-5, 60, 2), new Vec3(-2, 50, 0), new Vec3(-3, 50, 4), new Vec3(10, 55, 0), new Vec3(10, 54, 0)]
   return {
     username: 'Clyde',
     entity: me,
@@ -33,11 +51,13 @@ function fixtureBot(): Bot {
       6: { type: 'object', name: 'arrow', position: new Vec3(2, 64, 2) }, // not a group the card shows
     },
     registry: {
-      blocksByName: { oak_log: { id: 1 }, coal_ore: { id: 2 } },
+      blocksByName: { oak_log: { id: 1 }, coal_ore: { id: 2 }, iron_ore: { id: 3 }, diamond_ore: { id: 4 }, water: { id: 5 } },
       entitiesByName: { player: { metadataKeys: ['shared_flags', 'air_supply'] } },
     },
-    findBlocks: () => [new Vec3(3, 64, 0), new Vec3(3, 65, 0), new Vec3(-5, 60, 2)],
-    blockAt: (p: Vec3) => ({ name: blocks[`${p.x},${p.y},${p.z}`] }),
+    // Like mineflayer, a useExtraInfo function filters the matching blocks.
+    findBlocks: ({ useExtraInfo }: { useExtraInfo?: (block: unknown) => boolean }) =>
+      candidates.filter((p) => !useExtraInfo || useExtraInfo(blockAt(p))),
+    blockAt,
     inventory: {
       items: () => [
         { name: 'oak_log', count: 3 },
@@ -104,6 +124,12 @@ test('the state card built from a bot validates against api/state.schema.json', 
   const ok = validate(JSON.parse(JSON.stringify(card)))
   assert.ok(ok, JSON.stringify(validate.errors, null, 2))
   assert.equal(card.bot.oxygen, 10, 'oxygen comes from the bot\'s own air_supply metadata')
+  assert.deepEqual(
+    card.blocks.map((b) => b.name),
+    ['oak_log', 'coal_ore', 'water', 'iron_ore'],
+    'the buried diamond_ore is not on the card; the iron_ore beside an air pocket is',
+  )
+  assert.equal(card.blocks.find((b) => b.name === 'water')?.count, 1, 'water under water is not a visible face')
   assert.deepEqual(card.inventory.items, [
     { name: 'dirt', count: 12 },
     { name: 'oak_log', count: 5 },
@@ -122,7 +148,7 @@ test('renderCard renders the fixture card', () => {
       'players: Bonnie 10m S +1y hp20',
       'hostiles: zombie 5m NE hp20',
       'dropped items: oak_sapling 0.7m SE',
-      'blocks nearby: oak_log x2 (nearest 2.5m at 3,64,0), coal_ore (nearest 7m at -5,60,2)',
+      'blocks nearby: oak_log x2 (nearest 2.5m at 3,64,0), coal_ore (nearest 7m at -5,60,2), water (nearest 13.1m at 10,55,0), iron_ore (nearest 14.8m at -3,50,4)',
       'recent events:',
       '  -2.5s chat: <Bonnie> hi clyde',
       '  -1.0s action.start: #4 goto x=10 y=64 z=-20 range=1',

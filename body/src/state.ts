@@ -1,5 +1,7 @@
 import type { Bot } from 'mineflayer'
+import type { Block } from 'prismarine-block'
 import type { Entity } from 'prismarine-entity'
+import { Vec3 } from 'vec3'
 import type { ActionStatus, NearbyEntity, StateCard, Vec } from './api/state.js'
 import type { BodyEvent } from './events.js'
 
@@ -57,7 +59,21 @@ export function buildStateCard({ bot, action, lastAction, events, scanRadius, no
   }
 
   const blockIds = NOTABLE_BLOCKS.map((n) => bot.registry.blocksByName[n]?.id).filter((id): id is number => id !== undefined)
-  const found = bot.findBlocks({ matching: blockIds, maxDistance: scanRadius, count: 256 })
+  // Only blocks a player could see: at least one face against air or a
+  // transparent block of another type. Filtering inside findBlocks keeps buried ores from
+  // using up the count.
+  const found = bot.findBlocks({
+    matching: blockIds,
+    maxDistance: scanRadius,
+    count: 256,
+    useExtraInfo: (block: Block) =>
+      FACES.some((f) => {
+        // Unloaded neighbours count as opaque. Water next to water is the
+        // inside of a lake, not a visible face.
+        const next = bot.blockAt(block.position.plus(f))
+        return next !== null && next.type !== block.type && seeThrough(next)
+      }),
+  })
   const byName = new Map<string, StateCard['blocks'][number]>()
   for (const p of found) {
     const block = bot.blockAt(p)
@@ -117,6 +133,13 @@ export function buildStateCard({ bot, action, lastAction, events, scanRadius, no
     blocks,
     events: events.map((e) => ({ ageMs: now - e.ts, type: e.type, text: e.text })),
   }
+}
+
+const FACES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 1, 0), new Vec3(0, -1, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)]
+
+/** Air, water, grass, glass, leaves, and the like. */
+function seeThrough(block: Block): boolean {
+  return block.boundingBox === 'empty' || block.transparent
 }
 
 /**

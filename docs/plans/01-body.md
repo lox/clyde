@@ -52,6 +52,8 @@ Where the implementation differs from or adds to the plan above:
   `lastAction` carry `distanceRemaining` and `lastMovedAt` (goto, follow) and
   `collected` (collect, blocks broken so far) beside the `progress` text.
   Dropped item entities are named by item (`oak_sapling`), not `item`.
+  `blocks` lists only blocks with a face against air or a transparent block
+  of another type, so buried ores and the inside of lakes are not on it.
 - `POST /eval` runs as the current action, like `POST /action {type: eval}`,
   but answers with the final status. `{type: stop}` is the same as
   `POST /stop` and does not become an action.
