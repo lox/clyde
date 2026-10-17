@@ -1,0 +1,206 @@
+RCON difficulty peaceful => The difficulty did not change; it is already set to Peaceful
+RCON time set day => Set minecraft:overworld to time marker minecraft:day
+RCON forceload add -32 -32 48 48 => No chunks were marked for force loading
+RCON kill @e[type=item] => Killed Dirt
+RCON fill -32 160 -32 48 160 48 grass_block => Successfully filled 1 block(s)
+RCON fill -32 161 -32 48 164 48 air => Successfully filled 2 block(s)
+RCON setblock 17 161 8 oak_log => Changed the block at 17, 161, 8
+RCON setworldspawn 0 161 0 => Set the world spawn point to 0, 161, 0 [0.0, 0.0] in minecraft:overworld
+22:08:42.824220 Login success
+JOIN_SECONDS 2.529
+22:08:42.899716 Game start
+22:08:42.900578 robot: the server moved it to 12.42 161.00 12.50 (flags 0, teleport 1)
+22:08:42.901045 System: KitSpike joined the game
+22:08:42.914583 robot: advancement minecraft:story/root (Minecraft), done before
+22:08:43.184380 robot: loaded
+RCON clear KitSpike => Removed 1 item(s) from player KitSpike
+RCON gamemode survival KitSpike => 
+RCON tp KitSpike 0.5 161 0.5 => Teleported KitSpike to 0.500000, 161.000000, 0.500000
+22:08:45.962882 robot: the server moved it to 0.50 161.00 0.50 (flags 24, teleport 2)
+SEND state
+22:08:46.916053 robot: state loaded=true onGround=true sprinting=false ticks=60 teleports=2 dim=minecraft:overworld riding=- corrections=0
+SEND goto 12 161 8
+22:08:50.626192 robot: goto 12.4372 161.0000 8.5695 arrived
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [12.403452133477643d, 161.0d, 8.570666999557071d]
+SEND dig 13 160 8
+22:08:51.626702 robot: dig ticks=18 was=minecraft:grass_block[snowy=false] airborne=0
+RCON execute if block 13 160 8 air run say DIG_CONFIRMED => 
+SEND goto 16 161 8
+22:08:53.177047 robot: goto 16.5701 161.0000 8.4600 arrived
+SEND dig 17 161 8
+22:08:56.326750 robot: dig ticks=61 was=minecraft:oak_log[axis=y] airborne=0
+SEND collect 8
+22:08:56.826948 robot: collect 1
+SEND inv
+22:08:56.827523 robot: inv held=8 0=minecraft:oak_log*1
+RCON clear KitSpike minecraft:oak_log 0 => Found 1 matching item(s) on player KitSpike
+SEND say mc26-kit Paper smoke: walked, dug and collected
+22:08:56.845218 Player: <KitSpike> mc26-kit Paper smoke: walked, dug and collected
+SEND goto 0 161 8
+22:09:01.826722 robot: goto 0.4451 161.0000 8.4638 arrived
+SEND goto 0 161 -12
+22:09:06.826433 robot: goto 0.5000 161.0000 -11.6109 arrived
+SEND goto 20 161 -12
+22:09:11.826982 robot: goto 20.5609 161.0000 -11.5000 arrived
+SEND goto 20 161 8
+22:09:16.826261 robot: goto 20.5000 161.0000 8.5658 arrived
+SEND state
+22:09:16.827444 robot: state loaded=true onGround=true sprinting=false ticks=659 teleports=2 dim=minecraft:overworld riding=- corrections=0
+RCON fill 20 161 -4 20 163 20 stone => Successfully filled 75 block(s)
+22:09:16.868012 robot: hurt 20.0 → 19.0 at 20.50 161.00 8.57
+22:09:16.868299 robot: the server moved it to 17.50 161.00 0.50 (flags 24, teleport 3)
+RCON tp KitSpike 17.5 161 0.5 => Teleported KitSpike to 17.500000, 161.000000, 0.500000
+22:09:17.076077 robot: reflex: hurt
+SEND look -90 0
+22:09:17.870641 robot: look -90.00 0.00
+SEND state
+22:09:17.871534 robot: state loaded=true onGround=true sprinting=false ticks=679 teleports=3 dim=minecraft:overworld riding=- corrections=0
+SEND keys forward 40
+22:09:18.427222 robot: the server moved it to 19.62 161.00 0.50 (flags 0, teleport 4)
+22:09:19.427504 robot: the server moved it to 19.62 161.00 0.50 (flags 0, teleport 5)
+22:09:19.826995 robot: keys 19.7000 161.0000 0.5000 onGround=true
+SEND look 0 0
+22:09:19.828238 robot: look 0.00 0.00
+SEND keys forward 60
+22:09:19.876990 robot: the server moved it to 19.62 161.00 0.50 (flags 0, teleport 6)
+22:09:22.826878 robot: keys 19.6152 161.0000 12.8620 onGround=true
+SEND state
+22:09:22.827652 robot: state loaded=true onGround=true sprinting=false ticks=779 teleports=6 dim=minecraft:overworld riding=- corrections=0
+WALL_CORRECTIONS 3
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [19.615182005643895d, 161.0d, 12.862011511915862d]
+RCON fill 20 161 -4 20 163 20 air => Successfully filled 75 block(s)
+SEND recipe oak_planks
+22:09:22.897532 robot: recipe book=23 894 minecraft:crafting_shapeless 0x0 makes 4: [][minecraft:oak_logs]=[minecraft:oak_log minecraft:stripped_oak_log minecraft:stripped_oak_wood …]
+SEND craft oak_planks 4
+22:09:23.126499 robot: craft 4
+RCON clear KitSpike minecraft:oak_planks 0 => Found 4 matching item(s) on player KitSpike
+SEND craft crafting_table 1
+22:09:23.375952 robot: craft 1
+SEND inv
+22:09:23.376502 robot: inv held=8 8=minecraft:crafting_table*1
+SEND hold 8
+22:09:23.377115 robot: hold 8
+SEND goto 17 161 8
+22:09:24.876593 robot: goto 17.4626 161.0000 8.4478 arrived
+SEND place 18 161 8
+22:09:25.026978 robot: place minecraft:crafting_table
+RCON execute if block 18 161 8 crafting_table run say TABLE_CONFIRMED => 
+RCON give KitSpike oak_planks 3 => Gave 3 [Oak Planks] to KitSpike
+RCON give KitSpike stick 2 => Gave 2 [Stick] to KitSpike
+SEND open 18 161 8
+22:09:25.726511 robot: open 1 minecraft:crafting 46
+SEND craft wooden_pickaxe 1
+22:09:25.976409 robot: craft 1
+SEND close
+22:09:25.977301 robot: close minecraft:crafting
+RCON clear KitSpike minecraft:wooden_pickaxe 0 => Found 1 matching item(s) on player KitSpike
+RCON setblock 17 161 11 chest => Changed the block at 17, 161, 11
+SEND goto 17 161 10
+22:09:26.727039 robot: goto 17.5017 161.0000 10.5450 arrived
+SEND open 17 161 11
+22:09:26.878591 robot: open 2 minecraft:generic_9x3 63
+SEND store wooden_pickaxe
+22:09:27.176835 robot: store 1
+RCON data get block 17 161 11 Items => 17, 161, 11 has the following block data: [{Slot: 0b, id: "minecraft:wooden_pickaxe", count: 1}]
+SEND take wooden_pickaxe
+22:09:27.476855 robot: take 1
+SEND close
+22:09:27.477751 robot: close minecraft:generic_9x3
+RCON clear KitSpike minecraft:wooden_pickaxe 0 => Found 1 matching item(s) on player KitSpike
+SEND goto 45 161 40
+SEND stop
+22:09:28.086024 robot: stop stopped
+22:09:28.226502 robot: error goto: stopped
+SEND goto 12 161 12
+22:09:30.227005 robot: goto 12.4426 161.0000 12.5000 arrived
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [12.442553733462967d, 161.0d, 12.500030028193926d]
+SEND state
+22:09:31.233390 robot: state loaded=true onGround=true sprinting=false ticks=947 teleports=6 dim=minecraft:overworld riding=- corrections=0
+RCON fill 4 161 20 4 163 30 stone => Successfully filled 33 block(s)
+22:09:31.252774 robot: the server moved it to 0.50 161.00 25.50 (flags 24, teleport 7)
+RCON tp KitSpike 0.5 161 25.5 => Teleported KitSpike to 0.500000, 161.000000, 25.500000
+SEND goto 9 161 25
+22:09:36.476956 robot: goto 9.5720 161.0000 25.4179 arrived
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [9.572003133512865d, 161.0d, 25.417881744358077d]
+SEND state
+22:09:36.496554 robot: state loaded=true onGround=true sprinting=false ticks=1052 teleports=7 dim=minecraft:overworld riding=- corrections=0
+RCON fill 0 161 35 0 161 37 stone => Successfully filled 3 block(s)
+RCON fill 1 161 35 1 162 37 stone => Successfully filled 6 block(s)
+RCON fill 2 161 35 3 163 37 stone => Successfully filled 18 block(s)
+22:09:36.572802 robot: the server moved it to -0.50 161.00 36.50 (flags 24, teleport 8)
+RCON tp KitSpike -0.5 161 36.5 => Teleported KitSpike to -0.500000, 161.000000, 36.500000
+SEND goto 3 164 36
+22:09:38.078171 robot: the server moved it to 0.49 162.00 36.50 (flags 0, teleport 9)
+22:09:38.277038 robot: the server moved it to 0.55 162.00 36.50 (flags 0, teleport 10)
+22:09:38.431078 robot: the server moved it to 0.60 162.00 36.50 (flags 0, teleport 11)
+22:09:38.583435 robot: the server moved it to 0.66 162.00 36.50 (flags 0, teleport 12)
+22:09:38.680165 robot: the server moved it to 0.68 162.00 36.50 (flags 0, teleport 13)
+22:09:38.729084 robot: the server moved it to 0.68 162.00 36.50 (flags 0, teleport 14)
+22:09:38.827120 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 15)
+22:09:38.876749 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 16)
+22:09:38.927019 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 17)
+22:09:39.076790 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 18)
+22:09:39.127595 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 19)
+22:09:39.277643 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 20)
+22:09:39.327548 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 21)
+22:09:39.477724 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 22)
+22:09:39.532807 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 23)
+22:09:39.740398 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 24)
+22:09:39.777003 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 25)
+22:09:39.927710 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 26)
+22:09:39.977160 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 27)
+22:09:40.127131 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 28)
+22:09:40.177278 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 29)
+22:09:40.426870 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 30)
+22:09:40.477123 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 31)
+22:09:40.627869 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 32)
+22:09:40.676808 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 33)
+22:09:40.832627 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 34)
+22:09:40.882839 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 35)
+22:09:41.035260 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 36)
+22:09:41.076822 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 37)
+22:09:41.226819 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 38)
+22:09:41.276964 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 39)
+22:09:41.427719 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 40)
+22:09:41.476603 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 41)
+22:09:41.628762 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 42)
+22:09:41.676923 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 43)
+22:09:41.826853 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 44)
+22:09:41.877410 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 45)
+22:09:42.027380 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 46)
+22:09:42.077218 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 47)
+22:09:42.226964 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 48)
+22:09:42.277039 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 49)
+22:09:42.427130 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 50)
+22:09:42.476989 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 51)
+22:09:42.577276 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 52)
+22:09:42.627119 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 53)
+22:09:42.684920 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 54)
+22:09:42.827256 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 55)
+22:09:42.877623 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 56)
+22:09:43.027403 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 57)
+22:09:43.077028 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 58)
+22:09:43.227876 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 59)
+22:09:43.276649 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 60)
+22:09:43.426706 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 61)
+22:09:43.476609 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 62)
+22:09:43.627562 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 63)
+22:09:43.677173 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 64)
+22:09:43.826886 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 65)
+22:09:43.877693 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 66)
+22:09:44.027532 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 67)
+22:09:44.076798 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 68)
+22:09:44.227010 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 69)
+22:09:44.283654 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 70)
+22:09:44.428855 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 71)
+22:09:44.477235 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 72)
+22:09:44.727714 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 73)
+22:09:44.777574 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 74)
+22:09:44.926782 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 75)
+22:09:44.982062 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 76)
+22:09:45.127209 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 77)
+22:09:45.186773 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 78)
+22:09:45.327491 robot: the server moved it to 0.70 162.00 36.50 (flags 0, teleport 79)
+22:09:45.327526 robot: relog: put back 41 times in 4s at 0.70 162.00 36.50
+RUN_ERROR RuntimeError('robot exited 3')
+EXIT_CODE 3

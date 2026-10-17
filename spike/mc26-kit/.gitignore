@@ -1,0 +1,4 @@
+.work/
+bin/
+runs/
+__pycache__/

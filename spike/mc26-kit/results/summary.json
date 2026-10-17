@@ -1,0 +1,78 @@
+{
+  "recommendation": "Keep mineflayer for slices 5 and 6. mc26-kit remains a credible future Go candidate, but not a drop-in replacement or ready for production.",
+  "scope": "Local disposable Paper experiment only. Reproduction and sanitized evidence retained under spike/mc26-kit on spike/go-mclib; only the report doc belongs on main. No runtime contracts, gym configuration or production deployment changed.",
+  "source": {
+    "kit": "https://github.com/mj41/go-mc26-kit/tree/f742fe252fe301624946de5b5a562ee000c8c9a0",
+    "protocol_library": "github.com/mj41/go-mc26 v0.262.2",
+    "server": "Paper 26.2 build 134, offline-mode, no plugins",
+    "execution": "Upstream examples/robot compiled with go build -race; scripted stdin commands; independent server RCON checks",
+    "local_width_experiment": "Only bot/physics/player.go playerWidth changed from 0.6 to 0.6002; see width.patch"
+  },
+  "results": [
+    {
+      "case": "Login, world synchronization, flat navigation, dig, log pickup and chat",
+      "result": "Passed in unmodified and width-patched builds. RCON confirmed position, grass removal and one oak log; Paper logged chat. No upstream codec or dependency repair was needed, only selecting the published 26.2 protocol module."
+    },
+    {
+      "case": "Recipes, 2x2 and 3x3 crafting, placement, containers",
+      "result": "Passed repeatedly in both builds: collected log -> four planks -> crafting table -> placed table; separately seeded three planks and two sticks -> wooden pickaxe at the table; stored and retrieved one pickaxe in a chest. RCON independently confirmed item counts, table placement and chest NBT. This is not an unseeded resource-acquisition test."
+    },
+    {
+      "case": "Five-second wall contact and slide",
+      "result": "Unmodified width 0.6: three corrections in each of two runs. Width 0.6002: zero corrections in each of three runs. Setup teleports excluded."
+    },
+    {
+      "case": "Three one-block rises, then descent",
+      "result": "Unmodified build: 71 corrective teleports on the ascent before the example's relog watchdog exited locally with code 3. Width-only patch: ascent and descent passed in three runs with no corrections between the setup teleport and completion. This demonstrates the same boundary workaround for these fixtures, not general physics fidelity."
+    },
+    {
+      "case": "Navigation around a three-high wall",
+      "result": "Passed with unmodified and patched builds; no additional corrections during the detour."
+    },
+    {
+      "case": "Contained ten-block, one-deep water trench",
+      "result": "Width-patched build reached the far bank in 5.24 seconds, with RCON confirming the destination and no additional corrections. An earlier two-deep fixture leaked onto the surrounding platform and triggered escape reflexes; that failure is inconclusive about client water movement."
+    },
+    {
+      "case": "Stop and next action",
+      "result": "Stopping a walk passed repeatedly: prior goto returned stopped and next goto completed. The example cmdStop path FAILED to stop a dig twice: stop answered stopped, but the log was still broken about three seconds after dig began, before the queued goto ran. Both client air state and server DIG_CONTINUED_AFTER_STOP marker confirmed it. cmdStop stops Walker and flags order cancellation, but does not call Hands.CancelDig; that API exists but integration and testing were not done. This does not establish a failure of the library cancellation API. A Clyde adapter needs its own complete preemption contract."
+    },
+    {
+      "case": "Race detection and vet",
+      "result": "go test -race ./... and go vet ./... passed against the default-width 26.2 stack. With the width patch, targeted physics/control/act race tests and go vet passed. No Go race-detector warnings appeared in any of the five live runs. This does not prove absence of races on unexercised paths."
+    },
+    {
+      "case": "Disconnect and shutdown",
+      "result": "No server kicks observed. Three live runs exited 0; the unmodified staircase run self-exited 3. The final successful-operation run exited 1 on explicit quit with use of closed network connection; this is an example CLI shutdown error, not a race-detector report or a server kick. Raw exit codes are preserved."
+    }
+  ],
+  "sample_timings_seconds": {
+    "login_configuration_range_across_five_runs": [1.535, 2.529],
+    "flat_goto_about_14_5_metres": 3.746,
+    "bare_hand_grass_dig": 0.996,
+    "bare_hand_oak_log_dig": 3.15,
+    "nearby_log_pickup_after_dig": 0.55,
+    "craft_four_planks": 0.244,
+    "craft_wooden_pickaxe_at_table": 0.25,
+    "chest_deposit_one_pickaxe": 0.301,
+    "note": "Individual samples, not a throughput benchmark or distribution; exclude compilation and fixture setup. Login success precedes loaded-world readiness."
+  },
+  "remaining_acceptance": [
+    "Clyde HTTP/schema/state/safety and complete action cancellation adapter",
+    "Eval/query/JavaScript skill-runtime design",
+    "Paper 26.1.2 gym-version run",
+    "Player following, online auth, Velocity/proxy/plugin route",
+    "Long natural-terrain survival and adverse movement/effects/latency matrix"
+  ],
+  "evidence": {
+    "initial_unmodified_smoke": "initial.log",
+    "unmodified_staircase_failure": "baseline-repeat.log",
+    "first_width_patch_success": "wide.log",
+    "leaking_water_fixture_and_first_stop_dig_failure": "wide-extended.log",
+    "contained_water_and_repeated_stop_dig_failure": "wide-contained.log",
+    "independent_server_observations": "server.log",
+    "driver": "../run.py",
+    "width_only_patch": "../width.patch",
+    "preservation_note": "ANSI colors and local filesystem roots removed; timestamps, outcomes and exit codes retained. The portable wrapper was syntax/help checked and prepare rebuilt both binaries offline; no new Paper replay was run during preservation."
+  }
+}

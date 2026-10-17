@@ -1,0 +1,172 @@
+RCON difficulty peaceful => The difficulty did not change; it is already set to Peaceful
+RCON time set day => Set minecraft:overworld to time marker minecraft:day
+RCON forceload add -32 -32 48 48 => No chunks were marked for force loading
+RCON kill @e[type=item] => No entity was found
+RCON fill -32 160 -32 48 160 48 grass_block => Successfully filled 22 block(s)
+RCON fill -32 161 -32 48 164 48 air => Successfully filled 62 block(s)
+RCON setblock 17 161 8 oak_log => Changed the block at 17, 161, 8
+RCON setworldspawn 0 161 0 => Set the world spawn point to 0, 161, 0 [0.0, 0.0] in minecraft:overworld
+22:13:47.580841 Login success
+JOIN_SECONDS 1.720
+22:13:47.630880 Game start
+22:13:47.633106 robot: the server moved it to -0.73 161.00 36.50 (flags 0, teleport 1)
+22:13:47.633665 System: KitSpike joined the game
+22:13:47.645620 robot: advancement minecraft:story/root (Minecraft), done before
+22:13:47.834824 robot: loaded
+RCON clear KitSpike => Removed 2 item(s) from player KitSpike
+RCON gamemode survival KitSpike => 
+22:13:50.597695 robot: the server moved it to 0.50 161.00 0.50 (flags 24, teleport 2)
+RCON tp KitSpike 0.5 161 0.5 => Teleported KitSpike to 0.500000, 161.000000, 0.500000
+SEND state
+22:13:51.600285 robot: state loaded=true onGround=true sprinting=false ticks=80 teleports=2 dim=minecraft:overworld riding=- corrections=0
+SEND goto 12 161 8
+22:13:55.333143 robot: goto 12.4372 161.0000 8.5695 arrived
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [12.403452133477643d, 161.0d, 8.570666999557071d]
+SEND dig 13 160 8
+22:13:56.334101 robot: dig ticks=18 was=minecraft:grass_block[snowy=false] airborne=0
+RCON execute if block 13 160 8 air run say DIG_CONFIRMED => 
+SEND goto 16 161 8
+22:13:57.833102 robot: goto 16.5701 161.0000 8.4600 arrived
+SEND dig 17 161 8
+22:14:00.982493 robot: dig ticks=61 was=minecraft:oak_log[axis=y] airborne=0
+SEND collect 8
+22:14:01.483994 robot: collect 1
+SEND inv
+22:14:01.484550 robot: inv held=8 0=minecraft:oak_log*1
+RCON clear KitSpike minecraft:oak_log 0 => Found 1 matching item(s) on player KitSpike
+SEND say mc26-kit Paper smoke: walked, dug and collected
+22:14:01.495632 Player: <KitSpike> mc26-kit Paper smoke: walked, dug and collected
+SEND goto 0 161 8
+22:14:06.482776 robot: goto 0.4451 161.0000 8.4638 arrived
+SEND goto 0 161 -12
+22:14:11.482570 robot: goto 0.5000 161.0000 -11.6109 arrived
+SEND goto 20 161 -12
+22:14:16.483104 robot: goto 20.5609 161.0000 -11.5000 arrived
+SEND goto 20 161 8
+22:14:21.482866 robot: goto 20.5000 161.0000 8.5658 arrived
+SEND state
+22:14:21.483320 robot: state loaded=true onGround=true sprinting=false ticks=678 teleports=2 dim=minecraft:overworld riding=- corrections=0
+RCON fill 20 161 -4 20 163 20 stone => Successfully filled 75 block(s)
+RCON tp KitSpike 17.5 161 0.5 => Teleported KitSpike to 17.500000, 161.000000, 0.500000
+22:14:21.487974 robot: the server moved it to 17.50 161.00 0.50 (flags 24, teleport 3)
+SEND look -90 0
+22:14:22.488839 robot: look -90.00 0.00
+SEND state
+22:14:22.489193 robot: state loaded=true onGround=true sprinting=false ticks=698 teleports=3 dim=minecraft:overworld riding=- corrections=0
+SEND keys forward 40
+22:14:24.483016 robot: keys 19.6999 161.0000 0.5000 onGround=true
+SEND look 0 0
+22:14:24.483690 robot: look 0.00 0.00
+SEND keys forward 60
+22:14:27.482726 robot: keys 19.6999 161.0000 13.1919 onGround=true
+SEND state
+22:14:27.483206 robot: state loaded=true onGround=true sprinting=false ticks=798 teleports=3 dim=minecraft:overworld riding=- corrections=0
+WALL_CORRECTIONS 0
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [19.6999d, 161.0d, 13.191942603378642d]
+RCON fill 20 161 -4 20 163 20 air => Successfully filled 75 block(s)
+SEND recipe oak_planks
+22:14:27.487822 robot: recipe book=23 894 minecraft:crafting_shapeless 0x0 makes 4: [][minecraft:oak_logs]=[minecraft:oak_log minecraft:stripped_oak_log minecraft:stripped_oak_wood …]
+SEND craft oak_planks 4
+22:14:27.732570 robot: craft 4
+RCON clear KitSpike minecraft:oak_planks 0 => Found 4 matching item(s) on player KitSpike
+SEND craft crafting_table 1
+22:14:27.982513 robot: craft 1
+SEND inv
+22:14:27.982923 robot: inv held=8 8=minecraft:crafting_table*1
+SEND hold 8
+22:14:27.983346 robot: hold 8
+SEND goto 17 161 8
+22:14:29.482631 robot: goto 17.4288 161.0000 8.5944 arrived
+SEND place 18 161 8
+22:14:29.632466 robot: place minecraft:crafting_table
+RCON execute if block 18 161 8 crafting_table run say TABLE_CONFIRMED => 
+RCON give KitSpike oak_planks 3 => Gave 3 [Oak Planks] to KitSpike
+RCON give KitSpike stick 2 => Gave 2 [Stick] to KitSpike
+SEND open 18 161 8
+22:14:30.282707 robot: open 1 minecraft:crafting 46
+SEND craft wooden_pickaxe 1
+22:14:30.532640 robot: craft 1
+SEND close
+22:14:30.533158 robot: close minecraft:crafting
+RCON clear KitSpike minecraft:wooden_pickaxe 0 => Found 1 matching item(s) on player KitSpike
+RCON setblock 17 161 11 chest => Changed the block at 17, 161, 11
+SEND goto 17 161 10
+22:14:31.282557 robot: goto 17.5059 161.0000 10.4512 arrived
+SEND open 17 161 11
+22:14:31.432338 robot: open 2 minecraft:generic_9x3 63
+SEND store wooden_pickaxe
+22:14:31.732324 robot: store 1
+RCON data get block 17 161 11 Items => 17, 161, 11 has the following block data: [{Slot: 0b, id: "minecraft:wooden_pickaxe", count: 1}]
+SEND take wooden_pickaxe
+22:14:32.032851 robot: take 1
+SEND close
+22:14:32.033419 robot: close minecraft:generic_9x3
+RCON clear KitSpike minecraft:wooden_pickaxe 0 => Found 1 matching item(s) on player KitSpike
+SEND goto 45 161 40
+SEND stop
+22:14:32.635654 robot: stop stopped
+22:14:32.782587 robot: error goto: stopped
+SEND goto 12 161 12
+22:14:34.782756 robot: goto 12.4397 161.0000 12.5000 arrived
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [12.439701782621157d, 161.0d, 12.500027527639471d]
+SEND state
+22:14:35.786134 robot: state loaded=true onGround=true sprinting=false ticks=964 teleports=3 dim=minecraft:overworld riding=- corrections=0
+RCON fill 4 161 20 4 163 30 stone => Successfully filled 33 block(s)
+RCON tp KitSpike 0.5 161 25.5 => Teleported KitSpike to 0.500000, 161.000000, 25.500000
+22:14:35.790316 robot: the server moved it to 0.50 161.00 25.50 (flags 24, teleport 4)
+SEND goto 9 161 25
+22:14:41.032943 robot: goto 9.5720 161.0000 25.4179 arrived
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [9.572003133512865d, 161.0d, 25.417881744358077d]
+SEND state
+22:14:41.035931 robot: state loaded=true onGround=true sprinting=false ticks=1069 teleports=4 dim=minecraft:overworld riding=- corrections=0
+RCON fill 0 161 35 0 161 37 stone => Successfully filled 3 block(s)
+RCON fill 1 161 35 1 162 37 stone => Successfully filled 6 block(s)
+RCON fill 2 161 35 3 163 37 stone => Successfully filled 18 block(s)
+RCON tp KitSpike -0.5 161 36.5 => Teleported KitSpike to -0.500000, 161.000000, 36.500000
+22:14:41.042700 robot: the server moved it to -0.50 161.00 36.50 (flags 24, teleport 5)
+SEND goto 3 164 36
+22:14:43.782304 robot: goto 3.5414 164.0000 36.5000 arrived
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [3.541366243197096d, 164.0d, 36.5d]
+SEND goto -1 161 36
+22:14:45.532753 robot: goto -0.7306 161.0000 36.5000 arrived
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [-0.7305510698095885d, 161.0d, 36.5d]
+SEND state
+22:14:45.535242 robot: state loaded=true onGround=true sprinting=false ticks=1159 teleports=5 dim=minecraft:overworld riding=- corrections=0
+RCON fill 25 161 24 36 163 24 stone => Successfully filled 36 block(s)
+RCON fill 25 161 26 36 163 26 stone => Successfully filled 36 block(s)
+RCON fill 26 159 25 35 159 25 stone => Successfully filled 10 block(s)
+RCON fill 26 160 25 35 161 25 water => Successfully filled 20 block(s)
+RCON tp KitSpike 25.5 161 25.5 => Teleported KitSpike to 25.500000, 161.000000, 25.500000
+22:14:45.546535 robot: the server moved it to 25.50 161.00 25.50 (flags 24, teleport 6)
+22:14:46.082681 robot: reflex: in a stream
+22:14:46.082854 plan: in a stream at 25 161 25: out to 24 161 24
+SEND goto 36 161 25
+22:14:48.083035 plan: in a stream at 24 161 24: out to 21 161 21
+22:15:01.044283 plan: climb out: to 36 162 25, the nearest it gets to 36 161 25
+22:15:02.032787 plan: in a stream at 22 161 23: out to 21 161 22
+22:15:03.288916 plan: climb out: flowing_water toward [1 0]
+22:15:03.294983 plan: climb out: flowing_water toward [0 1]
+22:15:03.295045 plan: goto: climb out: no step from 21 161 22 toward 36 161 25
+22:15:03.295107 robot: error goto: 21.1844 161.0000 22.3264 failed: path: no way to the goal: every place reachable searched (7151) from 21 161 21
+RCON data get entity KitSpike Pos => KitSpike has the following entity data: [21.184407035575965d, 161.0d, 22.326402135763185d]
+SEND state
+22:15:03.297504 robot: state loaded=true onGround=true sprinting=false ticks=1514 teleports=6 dim=minecraft:overworld riding=- corrections=0
+RCON setblock 12 161 13 oak_log => Changed the block at 12, 161, 13
+RCON tp KitSpike 12.5 161 12.5 => Teleported KitSpike to 12.500000, 161.000000, 12.500000
+22:15:03.300176 robot: the server moved it to 12.50 161.00 12.50 (flags 24, teleport 7)
+SEND hold 7
+22:15:04.300719 robot: hold 7
+SEND dig 12 161 13
+SEND stop
+22:15:04.551246 robot: stop stopped
+SEND goto 12 161 14
+22:15:07.432412 robot: dig ticks=61 was=minecraft:oak_log[axis=y] airborne=0
+DIG_AFTER_STOP 22:15:07.432412 robot: dig ticks=61 was=minecraft:oak_log[axis=y] airborne=0
+SEND block 12 161 13
+22:15:07.433072 robot: block minecraft:air
+RCON execute if block 12 161 13 air run say DIG_CONTINUED_AFTER_STOP => 
+22:15:08.182632 robot: goto 12.5000 161.0000 14.6356 arrived
+SEND state
+22:15:08.183248 robot: state loaded=true onGround=true sprinting=false ticks=1612 teleports=7 dim=minecraft:overworld riding=- corrections=0
+SEND quit
+EXIT_CODE 0

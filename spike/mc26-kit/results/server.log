@@ -1,0 +1,400 @@
+[22:06:57] [User Authenticator #0/INFO]: UUID of player KitSpike is 32295b24-be4a-321a-863f-f2cda44cd034
+[22:06:58] [Server thread/INFO]: KitSpike joined the game
+[22:06:58] [Server thread/INFO]: KitSpike[/127.0.0.1:59566] logged in with entity id 9 at ([minecraft:overworld]5.5, 161.0, 4.5)
+[22:07:00] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:00] [RCON Client /127.0.0.1 #10/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:00] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:00] [RCON Client /127.0.0.1 #11/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:00] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:00] [RCON Client /127.0.0.1 #12/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:05] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:05] [RCON Client /127.0.0.1 #13/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:06] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:06] [RCON Client /127.0.0.1 #14/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:06] [Server thread/INFO]: [Not Secure] [Rcon] DIG_CONFIRMED
+[22:07:11] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:11] [RCON Client /127.0.0.1 #15/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:11] [Async Chat Thread - #1/INFO]: [Not Secure] <KitSpike> mc26-kit Paper smoke: walked, dug and collected
+[22:07:31] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:31] [RCON Client /127.0.0.1 #16/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:31] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:31] [RCON Client /127.0.0.1 #17/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:37] [RCON Client /127.0.0.1 #18/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:37] [RCON Client /127.0.0.1 #19/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:38] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:38] [RCON Client /127.0.0.1 #20/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:39] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:39] [RCON Client /127.0.0.1 #21/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:39] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:39] [Server thread/INFO]: [Not Secure] [Rcon] TABLE_CONFIRMED
+[22:07:39] [RCON Client /127.0.0.1 #22/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:39] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:39] [RCON Client /127.0.0.1 #23/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:40] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:40] [RCON Client /127.0.0.1 #24/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:40] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:40] [RCON Client /127.0.0.1 #25/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:42] [RCON Client /127.0.0.1 #26/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:42] [RCON Client /127.0.0.1 #27/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:07:45] [RCON Client /127.0.0.1 #28/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:07:46] [Server thread/INFO]: KitSpike lost connection: Disconnected
+[22:07:46] [Server thread/INFO]: KitSpike left the game
+[22:08:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:37] [RCON Client /127.0.0.1 #29/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:37] [RCON Client /127.0.0.1 #30/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:37] [RCON Client /127.0.0.1 #31/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:40] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:40] [RCON Client /127.0.0.1 #32/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:40] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:40] [RCON Client /127.0.0.1 #33/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:40] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:40] [RCON Client /127.0.0.1 #34/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:40] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:40] [RCON Client /127.0.0.1 #35/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:40] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:40] [RCON Client /127.0.0.1 #36/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:42] [User Authenticator #1/INFO]: UUID of player KitSpike is 32295b24-be4a-321a-863f-f2cda44cd034
+[22:08:42] [Server thread/INFO]: KitSpike joined the game
+[22:08:42] [Server thread/INFO]: KitSpike[/127.0.0.1:42976] logged in with entity id 27 at ([minecraft:overworld]12.423237519152822, 161.0, 12.500026768400435)
+[22:08:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:45] [RCON Client /127.0.0.1 #37/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:45] [RCON Client /127.0.0.1 #38/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:45] [RCON Client /127.0.0.1 #39/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:50] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:50] [RCON Client /127.0.0.1 #40/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:51] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:51] [RCON Client /127.0.0.1 #41/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:51] [Server thread/INFO]: [Not Secure] [Rcon] DIG_CONFIRMED
+[22:08:56] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:08:56] [RCON Client /127.0.0.1 #42/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:08:56] [Async Chat Thread - #2/INFO]: [Not Secure] <KitSpike> mc26-kit Paper smoke: walked, dug and collected
+[22:09:16] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:16] [RCON Client /127.0.0.1 #43/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:16] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:16] [RCON Client /127.0.0.1 #44/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:22] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:22] [RCON Client /127.0.0.1 #45/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:22] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:22] [RCON Client /127.0.0.1 #46/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:23] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:23] [RCON Client /127.0.0.1 #47/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:25] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:25] [RCON Client /127.0.0.1 #48/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:25] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:25] [Server thread/INFO]: [Not Secure] [Rcon] TABLE_CONFIRMED
+[22:09:25] [RCON Client /127.0.0.1 #49/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:25] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:25] [RCON Client /127.0.0.1 #50/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:25] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:25] [RCON Client /127.0.0.1 #51/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:25] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:25] [RCON Client /127.0.0.1 #52/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:27] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:27] [RCON Client /127.0.0.1 #53/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:27] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:27] [RCON Client /127.0.0.1 #54/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:30] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:30] [RCON Client /127.0.0.1 #55/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:31] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:31] [RCON Client /127.0.0.1 #56/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:31] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:31] [RCON Client /127.0.0.1 #57/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:36] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:36] [RCON Client /127.0.0.1 #58/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:36] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:36] [RCON Client /127.0.0.1 #59/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:36] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:36] [RCON Client /127.0.0.1 #60/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:36] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:36] [RCON Client /127.0.0.1 #61/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:36] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:09:36] [RCON Client /127.0.0.1 #62/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:09:45] [Server thread/INFO]: KitSpike lost connection: Disconnected
+[22:09:45] [Server thread/INFO]: KitSpike left the game
+[22:11:39] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:39] [RCON Client /127.0.0.1 #63/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:39] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:39] [RCON Client /127.0.0.1 #64/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:39] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:39] [RCON Client /127.0.0.1 #65/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:42] [RCON Client /127.0.0.1 #66/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:42] [RCON Client /127.0.0.1 #67/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:42] [RCON Client /127.0.0.1 #68/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:42] [RCON Client /127.0.0.1 #69/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:42] [RCON Client /127.0.0.1 #70/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:43] [User Authenticator #2/INFO]: UUID of player KitSpike is 32295b24-be4a-321a-863f-f2cda44cd034
+[22:11:43] [Server thread/INFO]: KitSpike joined the game
+[22:11:43] [Server thread/INFO]: KitSpike[/127.0.0.1:39568] logged in with entity id 46 at ([minecraft:overworld]0.6989920091333823, 162.0, 36.5)
+[22:11:46] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:46] [RCON Client /127.0.0.1 #71/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:46] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:46] [RCON Client /127.0.0.1 #72/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:46] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:46] [RCON Client /127.0.0.1 #73/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:51] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:51] [RCON Client /127.0.0.1 #74/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:52] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:52] [RCON Client /127.0.0.1 #75/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:52] [Server thread/INFO]: [Not Secure] [Rcon] DIG_CONFIRMED
+[22:11:57] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:11:57] [RCON Client /127.0.0.1 #76/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:11:57] [Async Chat Thread - #4/INFO]: [Not Secure] <KitSpike> mc26-kit Paper smoke: walked, dug and collected
+[22:12:17] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:17] [RCON Client /127.0.0.1 #77/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:17] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:17] [RCON Client /127.0.0.1 #78/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:23] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:23] [RCON Client /127.0.0.1 #79/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:23] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:23] [RCON Client /127.0.0.1 #80/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:24] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:24] [RCON Client /127.0.0.1 #81/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:26] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:26] [RCON Client /127.0.0.1 #82/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:26] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:26] [Server thread/INFO]: [Not Secure] [Rcon] TABLE_CONFIRMED
+[22:12:26] [RCON Client /127.0.0.1 #83/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:26] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:26] [RCON Client /127.0.0.1 #84/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:26] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:26] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:26] [RCON Client /127.0.0.1 #85/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:26] [RCON Client /127.0.0.1 #86/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:28] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:28] [RCON Client /127.0.0.1 #87/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:28] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:28] [RCON Client /127.0.0.1 #88/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:31] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:31] [RCON Client /127.0.0.1 #89/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:32] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:32] [RCON Client /127.0.0.1 #90/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:32] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:32] [RCON Client /127.0.0.1 #91/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:37] [RCON Client /127.0.0.1 #92/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:37] [RCON Client /127.0.0.1 #93/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:37] [RCON Client /127.0.0.1 #94/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:37] [RCON Client /127.0.0.1 #95/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:37] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:37] [RCON Client /127.0.0.1 #96/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:40] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:40] [RCON Client /127.0.0.1 #97/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:41] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:12:41] [RCON Client /127.0.0.1 #98/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:12:41] [Server thread/INFO]: KitSpike lost connection: Disconnected
+[22:12:41] [Server thread/INFO]: KitSpike left the game
+[22:13:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:42] [RCON Client /127.0.0.1 #99/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:42] [RCON Client /127.0.0.1 #100/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:42] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:42] [RCON Client /127.0.0.1 #101/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:45] [RCON Client /127.0.0.1 #102/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:45] [RCON Client /127.0.0.1 #103/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:45] [RCON Client /127.0.0.1 #104/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:45] [RCON Client /127.0.0.1 #105/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:45] [RCON Client /127.0.0.1 #106/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:47] [User Authenticator #3/INFO]: UUID of player KitSpike is 32295b24-be4a-321a-863f-f2cda44cd034
+[22:13:47] [Server thread/INFO]: KitSpike joined the game
+[22:13:47] [Server thread/INFO]: KitSpike[/127.0.0.1:38442] logged in with entity id 65 at ([minecraft:overworld]-0.7305510698095885, 161.0, 36.5)
+[22:13:50] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:50] [RCON Client /127.0.0.1 #107/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:50] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:50] [RCON Client /127.0.0.1 #108/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:50] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:50] [RCON Client /127.0.0.1 #109/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:55] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:55] [RCON Client /127.0.0.1 #110/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:56] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:13:56] [RCON Client /127.0.0.1 #111/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:13:56] [Server thread/INFO]: [Not Secure] [Rcon] DIG_CONFIRMED
+[22:14:01] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:01] [RCON Client /127.0.0.1 #112/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:01] [Async Chat Thread - #6/INFO]: [Not Secure] <KitSpike> mc26-kit Paper smoke: walked, dug and collected
+[22:14:21] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:21] [RCON Client /127.0.0.1 #113/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:21] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:21] [RCON Client /127.0.0.1 #114/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:27] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:27] [RCON Client /127.0.0.1 #115/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:27] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:27] [RCON Client /127.0.0.1 #116/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:27] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:27] [RCON Client /127.0.0.1 #117/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:29] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:29] [RCON Client /127.0.0.1 #118/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:29] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:29] [Server thread/INFO]: [Not Secure] [Rcon] TABLE_CONFIRMED
+[22:14:29] [RCON Client /127.0.0.1 #119/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:29] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:29] [RCON Client /127.0.0.1 #120/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:30] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:30] [RCON Client /127.0.0.1 #121/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:30] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:30] [RCON Client /127.0.0.1 #122/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:31] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:31] [RCON Client /127.0.0.1 #123/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:32] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:32] [RCON Client /127.0.0.1 #124/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:34] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:34] [RCON Client /127.0.0.1 #125/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:35] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:35] [RCON Client /127.0.0.1 #126/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:35] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:35] [RCON Client /127.0.0.1 #127/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:41] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:41] [RCON Client /127.0.0.1 #128/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:41] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:41] [RCON Client /127.0.0.1 #129/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:41] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:41] [RCON Client /127.0.0.1 #130/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:41] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:41] [RCON Client /127.0.0.1 #131/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:41] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:41] [RCON Client /127.0.0.1 #132/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:43] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:43] [RCON Client /127.0.0.1 #133/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:45] [RCON Client /127.0.0.1 #134/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:45] [RCON Client /127.0.0.1 #135/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:45] [RCON Client /127.0.0.1 #136/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:45] [RCON Client /127.0.0.1 #137/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:45] [RCON Client /127.0.0.1 #138/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:14:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:14:45] [RCON Client /127.0.0.1 #139/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:15:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:15:03] [RCON Client /127.0.0.1 #140/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:15:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:15:03] [RCON Client /127.0.0.1 #141/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:15:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:15:03] [RCON Client /127.0.0.1 #142/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:15:07] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:15:07] [RCON Client /127.0.0.1 #143/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:15:07] [Server thread/INFO]: [Not Secure] [Rcon] DIG_CONTINUED_AFTER_STOP
+[22:15:08] [Server thread/INFO]: KitSpike lost connection: Disconnected
+[22:15:08] [Server thread/INFO]: KitSpike left the game
+[22:16:00] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:00] [RCON Client /127.0.0.1 #144/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:00] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:00] [RCON Client /127.0.0.1 #145/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:00] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:00] [RCON Client /127.0.0.1 #146/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:03] [RCON Client /127.0.0.1 #147/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:03] [RCON Client /127.0.0.1 #148/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:03] [RCON Client /127.0.0.1 #149/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:03] [RCON Client /127.0.0.1 #150/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:03] [RCON Client /127.0.0.1 #151/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:05] [User Authenticator #4/INFO]: UUID of player KitSpike is 32295b24-be4a-321a-863f-f2cda44cd034
+[22:16:05] [Server thread/INFO]: KitSpike joined the game
+[22:16:05] [Server thread/INFO]: KitSpike[/127.0.0.1:53376] logged in with entity id 84 at ([minecraft:overworld]12.5, 161.0, 14.635573396001549)
+[22:16:08] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:08] [RCON Client /127.0.0.1 #152/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:08] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:08] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:08] [RCON Client /127.0.0.1 #153/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:08] [RCON Client /127.0.0.1 #154/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:13] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:13] [RCON Client /127.0.0.1 #155/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:14] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:14] [RCON Client /127.0.0.1 #156/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:14] [Server thread/INFO]: [Not Secure] [Rcon] DIG_CONFIRMED
+[22:16:19] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:19] [RCON Client /127.0.0.1 #157/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:19] [Async Chat Thread - #8/INFO]: [Not Secure] <KitSpike> mc26-kit Paper smoke: walked, dug and collected
+[22:16:39] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:39] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:39] [RCON Client /127.0.0.1 #158/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:39] [RCON Client /127.0.0.1 #159/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:45] [RCON Client /127.0.0.1 #160/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:45] [RCON Client /127.0.0.1 #161/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:45] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:45] [RCON Client /127.0.0.1 #162/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:47] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:47] [RCON Client /127.0.0.1 #163/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:47] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:47] [Server thread/INFO]: [Not Secure] [Rcon] TABLE_CONFIRMED
+[22:16:47] [RCON Client /127.0.0.1 #164/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:47] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:47] [RCON Client /127.0.0.1 #165/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:48] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:48] [RCON Client /127.0.0.1 #166/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:48] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:48] [RCON Client /127.0.0.1 #167/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:49] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:49] [RCON Client /127.0.0.1 #168/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:49] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:49] [RCON Client /127.0.0.1 #169/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:52] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:52] [RCON Client /127.0.0.1 #170/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:53] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:53] [RCON Client /127.0.0.1 #171/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:53] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:53] [RCON Client /127.0.0.1 #172/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:58] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:58] [RCON Client /127.0.0.1 #173/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:58] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:58] [RCON Client /127.0.0.1 #174/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:58] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:58] [RCON Client /127.0.0.1 #175/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:58] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:58] [RCON Client /127.0.0.1 #176/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:16:58] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:16:58] [RCON Client /127.0.0.1 #177/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:01] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:01] [RCON Client /127.0.0.1 #178/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:03] [RCON Client /127.0.0.1 #179/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:03] [RCON Client /127.0.0.1 #180/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:03] [RCON Client /127.0.0.1 #181/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:03] [RCON Client /127.0.0.1 #182/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:03] [RCON Client /127.0.0.1 #183/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:03] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:03] [RCON Client /127.0.0.1 #184/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:09] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:09] [RCON Client /127.0.0.1 #185/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:09] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:09] [RCON Client /127.0.0.1 #186/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:09] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:09] [RCON Client /127.0.0.1 #187/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:13] [RCON Listener #1/INFO]: Thread RCON Client /127.0.0.1 started
+[22:17:13] [RCON Client /127.0.0.1 #188/INFO]: Thread RCON Client /127.0.0.1 shutting down
+[22:17:13] [Server thread/INFO]: [Not Secure] [Rcon] DIG_CONTINUED_AFTER_STOP
+[22:17:14] [Server thread/INFO]: KitSpike lost connection: Disconnected
+[22:17:14] [Server thread/INFO]: KitSpike left the game

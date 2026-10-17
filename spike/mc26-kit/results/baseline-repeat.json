@@ -1,0 +1,244 @@
+{
+  "server": "Paper 26.2 build 134, offline, no plugins",
+  "kit": "f742fe252fe301624946de5b5a562ee000c8c9a0",
+  "protocol_library": "v0.262.2",
+  "race_enabled": true,
+  "label": "baseline-repeat",
+  "binary": "<SPIKE>/bin/robot-default",
+  "exit_code": 3,
+  "steps": [
+    {
+      "command": "state",
+      "seconds": 0.004,
+      "answer": "22:08:46.916053 robot: state loaded=true onGround=true sprinting=false ticks=60 teleports=2 dim=minecraft:overworld riding=- corrections=0",
+      "ok": true
+    },
+    {
+      "command": "goto 12 161 8",
+      "seconds": 3.71,
+      "answer": "22:08:50.626192 robot: goto 12.4372 161.0000 8.5695 arrived",
+      "ok": true
+    },
+    {
+      "command": "dig 13 160 8",
+      "seconds": 0.997,
+      "answer": "22:08:51.626702 robot: dig ticks=18 was=minecraft:grass_block[snowy=false] airborne=0",
+      "ok": true
+    },
+    {
+      "command": "goto 16 161 8",
+      "seconds": 1.483,
+      "answer": "22:08:53.177047 robot: goto 16.5701 161.0000 8.4600 arrived",
+      "ok": true
+    },
+    {
+      "command": "dig 17 161 8",
+      "seconds": 3.149,
+      "answer": "22:08:56.326750 robot: dig ticks=61 was=minecraft:oak_log[axis=y] airborne=0",
+      "ok": true
+    },
+    {
+      "command": "collect 8",
+      "seconds": 0.5,
+      "answer": "22:08:56.826948 robot: collect 1",
+      "ok": true
+    },
+    {
+      "command": "inv",
+      "seconds": 0.0,
+      "answer": "22:08:56.827523 robot: inv held=8 0=minecraft:oak_log*1",
+      "ok": true
+    },
+    {
+      "command": "goto 0 161 8",
+      "seconds": 4.488,
+      "answer": "22:09:01.826722 robot: goto 0.4451 161.0000 8.4638 arrived",
+      "ok": true
+    },
+    {
+      "command": "goto 0 161 -12",
+      "seconds": 5.0,
+      "answer": "22:09:06.826433 robot: goto 0.5000 161.0000 -11.6109 arrived",
+      "ok": true
+    },
+    {
+      "command": "goto 20 161 -12",
+      "seconds": 5.0,
+      "answer": "22:09:11.826982 robot: goto 20.5609 161.0000 -11.5000 arrived",
+      "ok": true
+    },
+    {
+      "command": "goto 20 161 8",
+      "seconds": 5.0,
+      "answer": "22:09:16.826261 robot: goto 20.5000 161.0000 8.5658 arrived",
+      "ok": true
+    },
+    {
+      "command": "state",
+      "seconds": 0.0,
+      "answer": "22:09:16.827444 robot: state loaded=true onGround=true sprinting=false ticks=659 teleports=2 dim=minecraft:overworld riding=- corrections=0",
+      "ok": true
+    },
+    {
+      "command": "look -90 0",
+      "seconds": 0.002,
+      "answer": "22:09:17.870641 robot: look -90.00 0.00",
+      "ok": true
+    },
+    {
+      "command": "state",
+      "seconds": 0.0,
+      "answer": "22:09:17.871534 robot: state loaded=true onGround=true sprinting=false ticks=679 teleports=3 dim=minecraft:overworld riding=- corrections=0",
+      "ok": true
+    },
+    {
+      "command": "keys forward 40",
+      "seconds": 1.956,
+      "answer": "22:09:19.826995 robot: keys 19.7000 161.0000 0.5000 onGround=true",
+      "ok": true
+    },
+    {
+      "command": "look 0 0",
+      "seconds": 0.001,
+      "answer": "22:09:19.828238 robot: look 0.00 0.00",
+      "ok": true
+    },
+    {
+      "command": "keys forward 60",
+      "seconds": 2.999,
+      "answer": "22:09:22.826878 robot: keys 19.6152 161.0000 12.8620 onGround=true",
+      "ok": true
+    },
+    {
+      "command": "state",
+      "seconds": 0.0,
+      "answer": "22:09:22.827652 robot: state loaded=true onGround=true sprinting=false ticks=779 teleports=6 dim=minecraft:overworld riding=- corrections=0",
+      "ok": true
+    },
+    {
+      "command": "recipe oak_planks",
+      "seconds": 0.001,
+      "answer": "22:09:22.897532 robot: recipe book=23 894 minecraft:crafting_shapeless 0x0 makes 4: [][minecraft:oak_logs]=[minecraft:oak_log minecraft:stripped_oak_log minecraft:stripped_oak_wood \u2026]",
+      "ok": true
+    },
+    {
+      "command": "craft oak_planks 4",
+      "seconds": 0.229,
+      "answer": "22:09:23.126499 robot: craft 4",
+      "ok": true
+    },
+    {
+      "command": "craft crafting_table 1",
+      "seconds": 0.227,
+      "answer": "22:09:23.375952 robot: craft 1",
+      "ok": true
+    },
+    {
+      "command": "inv",
+      "seconds": 0.0,
+      "answer": "22:09:23.376502 robot: inv held=8 8=minecraft:crafting_table*1",
+      "ok": true
+    },
+    {
+      "command": "hold 8",
+      "seconds": 0.001,
+      "answer": "22:09:23.377115 robot: hold 8",
+      "ok": true
+    },
+    {
+      "command": "goto 17 161 8",
+      "seconds": 1.5,
+      "answer": "22:09:24.876593 robot: goto 17.4626 161.0000 8.4478 arrived",
+      "ok": true
+    },
+    {
+      "command": "place 18 161 8",
+      "seconds": 0.15,
+      "answer": "22:09:25.026978 robot: place minecraft:crafting_table",
+      "ok": true
+    },
+    {
+      "command": "open 18 161 8",
+      "seconds": 0.138,
+      "answer": "22:09:25.726511 robot: open 1 minecraft:crafting 46",
+      "ok": true
+    },
+    {
+      "command": "craft wooden_pickaxe 1",
+      "seconds": 0.246,
+      "answer": "22:09:25.976409 robot: craft 1",
+      "ok": true
+    },
+    {
+      "command": "close",
+      "seconds": 0.001,
+      "answer": "22:09:25.977301 robot: close minecraft:crafting",
+      "ok": true
+    },
+    {
+      "command": "goto 17 161 10",
+      "seconds": 0.738,
+      "answer": "22:09:26.727039 robot: goto 17.5017 161.0000 10.5450 arrived",
+      "ok": true
+    },
+    {
+      "command": "open 17 161 11",
+      "seconds": 0.152,
+      "answer": "22:09:26.878591 robot: open 2 minecraft:generic_9x3 63",
+      "ok": true
+    },
+    {
+      "command": "store wooden_pickaxe",
+      "seconds": 0.297,
+      "answer": "22:09:27.176835 robot: store 1",
+      "ok": true
+    },
+    {
+      "command": "take wooden_pickaxe",
+      "seconds": 0.282,
+      "answer": "22:09:27.476855 robot: take 1",
+      "ok": true
+    },
+    {
+      "command": "close",
+      "seconds": 0.001,
+      "answer": "22:09:27.477751 robot: close minecraft:generic_9x3",
+      "ok": true
+    },
+    {
+      "command": "stop",
+      "seconds": 0.001,
+      "answer": "22:09:28.086024 robot: stop stopped",
+      "ok": true
+    },
+    {
+      "command": "goto 12 161 12",
+      "seconds": 2.0,
+      "answer": "22:09:30.227005 robot: goto 12.4426 161.0000 12.5000 arrived",
+      "ok": true
+    },
+    {
+      "command": "state",
+      "seconds": 0.001,
+      "answer": "22:09:31.233390 robot: state loaded=true onGround=true sprinting=false ticks=947 teleports=6 dim=minecraft:overworld riding=- corrections=0",
+      "ok": true
+    },
+    {
+      "command": "goto 9 161 25",
+      "seconds": 4.224,
+      "answer": "22:09:36.476956 robot: goto 9.5720 161.0000 25.4179 arrived",
+      "ok": true
+    },
+    {
+      "command": "state",
+      "seconds": 0.0,
+      "answer": "22:09:36.496554 robot: state loaded=true onGround=true sprinting=false ticks=1052 teleports=7 dim=minecraft:overworld riding=- corrections=0",
+      "ok": true
+    },
+    {
+      "ok": false,
+      "error": "RuntimeError('robot exited 3')"
+    }
+  ],
+  "total_seconds": 66.033
+}

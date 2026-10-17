@@ -1,0 +1,13 @@
+diff --git a/bot/physics/player.go b/bot/physics/player.go
+index 7d57930..d4ec85c 100644
+--- a/bot/physics/player.go
++++ b/bot/physics/player.go
+@@ -79,7 +79,7 @@ func NewPlayer(pos Vec3) *Player {
+ 	return &Player{Pos: pos, FoodLevel: 20, speed: float32(DefaultAttributes.MovementSpeed)}
+ }
+ 
+-const playerWidth = 0.6
++const playerWidth = 0.6002
+ 
+ func (p *Player) height() float64 {
+ 	if p.Crouching {

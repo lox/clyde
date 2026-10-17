@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Build the exact upstream example twice; no Paper process is started here.
+set -euo pipefail
+root=$(dirname "$(realpath "$0")")
+revision=f742fe252fe301624946de5b5a562ee000c8c9a0
+if [ -e "$root/.work" ]; then
+  echo 'Generated .work already exists; use a fresh spike checkout to rebuild.' >&2
+  exit 1
+fi
+mkdir -p "$root/.work/kit" "$root/bin"
+curl -fLsS "https://codeload.github.com/mj41/go-mc26-kit/tar.gz/$revision" \
+  -o "$root/.work/kit.tar.gz"
+tar -xzf "$root/.work/kit.tar.gz" --strip-components=1 -C "$root/.work/kit"
+cd "$root/.work/kit"
+go get github.com/mj41/go-mc26@v0.262.2
+go build -race -o "$root/bin/robot-default" ./examples/robot
+patch -p1 < "$root/width.patch"
+go build -race -o "$root/bin/robot-wide" ./examples/robot
+printf 'kit=%s\nprotocol=github.com/mj41/go-mc26@v0.262.2\n' "$revision"
+go version
