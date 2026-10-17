@@ -179,7 +179,9 @@ func (s *Store) Observe(ctx context.Context, p Place) error {
 
 // Places returns bounded recent spatial observations.
 func (s *Store) Places(ctx context.Context) ([]Place, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT data FROM places ORDER BY rowid DESC LIMIT 64`)
+	rows, err := s.db.QueryContext(ctx, `SELECT data FROM places
+ORDER BY (json_extract(data,'$.kind')='home') DESC,
+  julianday(json_extract(data,'$.at')) DESC, name LIMIT 64`)
 	if err != nil {
 		return nil, err
 	}

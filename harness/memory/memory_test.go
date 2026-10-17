@@ -2,6 +2,7 @@ package memory_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,43 @@ import (
 
 	"github.com/lox/clyde/harness/memory"
 )
+
+func TestRecentPlacesKeepHomeAndUpdatedPlayers(t *testing.T) {
+	ctx, dir := context.Background(), t.TempDir()
+	s, err := memory.Open(filepath.Join(dir, "episodes.db"), filepath.Join(dir, "notes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	at := time.Date(2026, 10, 17, 12, 0, 0, 0, time.UTC)
+	home := memory.Place{Name: "home:first-observed", Kind: "home", Dimension: "overworld", X: 17, Y: 73, Z: -6, At: at}
+	player := memory.Place{Name: "player:Alex", Kind: "player", Dimension: "the_nether", X: 31, Y: 72, Z: -4, At: at}
+	for _, p := range []memory.Place{home, player} {
+		if err := s.Observe(ctx, p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i := range 65 {
+		if err := s.Observe(ctx, memory.Place{Name: fmt.Sprintf("resource:%d", i), Kind: "resource", Dimension: "overworld", X: float64(i), Y: 64, At: at.Add(time.Duration(i+1) * time.Second)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	player.X, player.At = 42, at.Add(time.Hour)
+	if err := s.Observe(ctx, player); err != nil {
+		t.Fatal(err)
+	}
+	home.X = 99
+	if err := s.Observe(ctx, home); err != nil {
+		t.Fatal(err)
+	}
+	places, err := s.Places(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(places) != 64 || places[0].Name != "home:first-observed" || places[0].X != 17 || places[1] != player {
+		t.Fatalf("bounded context omitted home/recently updated player: %+v", places)
+	}
+}
 
 func TestPersistenceAndSemanticBoundary(t *testing.T) {
 	ctx := context.Background()
