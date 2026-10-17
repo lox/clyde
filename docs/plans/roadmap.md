@@ -63,6 +63,8 @@ combat reflexes, and hard safety limits.
   stuck; the judge decides that.
 - `POST /eval`: run JavaScript against the bot with a timeout. This is
   code-as-action for anything without a primitive, and the mechanism skills use.
+- `POST /query`: the same, but beside the running action instead of
+  replacing it, for read-only lookups such as recipes.
 - `GET /events`: ring buffer of chat, damage, deaths, item pickups, action
   start/finish, with `since` cursor.
 - Hard safety lives here, not in prompts: never break blocks inside protected
@@ -181,7 +183,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 1 | Body v0: HTTP API, actions, eval, events, safety (done, `4f50deb`) | `01-body.md` | 0 |
 | 2 | Gym v0: Paper runner, world templates, tasks, scoreboard (done, `1a33297`) | `02-gym.md` | 0 |
 | 3 | Judge v0: contract, jev + replay backends, pre-checks, JSONL (done, `53778fc`) | `03-judge.md` | 0 |
-| 4 | Executor + MCP server | `04-executor.md` | 1, 2, 3 |
+| 4 | Executor + MCP server (done) | `04-executor.md` | 1, 2, 3 |
 | 5 | Skills: format, loader, gym gate, first five skills | `05-skills.md` | 4 |
 | 6 | Planner + memory | `06-planner.md` | 4, 5 |
 | 7 | Production: proxy join, regions, kill switch, compose profile | `07-production.md` | 4 |
@@ -205,8 +207,23 @@ choice and can be reversed by saying so.
 - Executor tool loop: `github.com/lox/agent-harness` (ours, MIT), behind
   `harness/llm` and `harness/executor`. Changes to it are delegated to a
   thread in that repo and pinned here; no fork or vendoring.
-- Executor model: `gpt-6.1-sol` (OpenAI Responses), chosen by Lachlan after
-  the first gym runs.
+- Executor model: `gpt-6.1-sol` at low reasoning effort, the default in
+  `harness/llm` (chosen by Lachlan, 2026-10-17). On the four gym tasks,
+  three runs each, `gpt-6.1-sol` and `gpt-6-astra` both passed 12/12 with
+  one tool call per task and about the same median times (collect-logs
+  21 s and 22 s, goto-marker 8 s, place-crafting-table 3 s and 4 s,
+  stock-chest 3 s and 4 s); Sol cost $0.0009–0.0013 per task, Astra
+  $0.0055–0.0101. These tasks no longer separate models, so harder
+  multi-step tasks come before any change of model.
+- Executor outcomes are `succeeded`, `failed`, `interrupted`,
+  `budget_exhausted`, and `cancelled` (the caller cancelled the run), and
+  every run ends with `POST /stop` (default).
+- The executor checks goals over RCON when it has it (the gym, a dev
+  server); without RCON the bot's own card answers `items` and `arrived`
+  only (default).
+- Code an aborted action started (eval code, plugin loops) cannot set
+  pathfinder goals or dig; the body tracks each action's async context to
+  refuse it (default).
 - Issue tracking: GitHub issues on this repo (default).
 - Delivery: commit to `main` (Amp merge-to-main), no pull requests; Auto-review
   runs locally before every ship; no Codex.

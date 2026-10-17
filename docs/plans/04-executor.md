@@ -104,3 +104,73 @@ lands.
 
 The planner, priority lanes, memory, skill authoring and the skills gym
 gate (slice 5), production join, and a Chat Completions provider.
+
+## As built
+
+- Layout: `harness/body` (HTTP client, types generated from
+  `api/state.schema.json` and `api/action.schema.json`, and a goal
+  observer), `harness/llm`, `harness/executor`, `harness/mcp`,
+  `harness/cmd/clyde`, `prompts/executor.md`, `gym/agents/executor`, and
+  `body/scripts/soak-preempt.sh`. `agent-harness` is pinned at `8117cc9`
+  (`v0.3.1-0.20261017002310-8117cc9dbc59`); it needed no changes. The MCP
+  SDK is `github.com/modelcontextprotocol/go-sdk` v1.8.0.
+- Generated types: go-jsonschema turns the card's "ActionStatus or null"
+  (`oneOf`) into `interface{}`, and its `anyOf` output does not decode, so
+  `body.Card` wraps the generated `StateCard` and decodes `action` and
+  `lastAction` itself. The action schema's top-level `oneOf` becomes one
+  struct per action type; `act` picks the struct by `type`, and the
+  generated decoders check required fields, ranges, and defaults before
+  anything reaches the body (which validates again). Tool schemas cannot
+  have a top-level `oneOf`, so `act`'s schema and description are built at
+  startup by flattening an embedded copy of `action.schema.json` that `go
+  generate` refreshes; CI's generated-code check covers the copy.
+- The body gained `POST /query`: the same request as `POST /eval`, run
+  beside the current action instead of replacing it. `recipes_for` and
+  `lookup` use it, because answering them through `POST /eval` would abort
+  whatever the bot was doing.
+- `act` takes an optional `wait` (seconds, default 10, at most 60) and
+  `observe` an optional `wait` (at most 30) for the running action to
+  finish. Results are the action status as JSON without params or
+  timestamps, prefixed with "still running after Ns" when it has not
+  finished. `observe` appends chat and whispers from `GET /events` since
+  the previous observe (at most 10 lines).
+- Outcomes add `cancelled` for a run its caller cancelled (the gym's
+  SIGTERM, an MCP client). Cancelled runs and runs where the model ended
+  its turn get a final predicate check (three tries, 500 ms apart), so a
+  goal that held is still `succeeded`. Every run ends with `POST /stop`.
+  `clyde run` exits 0 on `succeeded` and 2 otherwise.
+- The `until` observer is RCON when `--rcon` is given (the gym agent passes
+  it). Without RCON, `body.Observer` answers `items` and `arrived` from the
+  bot's own card and refuses `built` and `delivered`, which need the
+  server's view; `run` fails fast in that case.
+- Issue #3: the judge decodes `body.Card`. Its stall pre-check counts a new
+  closest `distanceRemaining` as progress for `goto` (walking back and
+  forth is not), and movement, a progress text change, or a higher
+  `collected` for everything else. `goto` and `follow` also stall when
+  `lastMovedAt` is 10 s old, which one card can show, except a `follow`
+  within range of its player. The fixtures gained the fields the body now
+  emits, so `goto_no_progress` is decided by the pre-check alone. Live Jev
+  eval afterwards: judge verdict 10/10, model questions 28/28.
+- The gym runner takes `--runs N`, passes `GYM_OUTCOME` (a path where an
+  agent may write `{model, tokens.total, cost_usd}`), and its scoreboard
+  leads with one row per task: pass rate, median time to pass, and tokens
+  and cost per run. The executor agent traps SIGTERM so `clyde run` can
+  write its outcome before the runner kills the group, and stays online
+  after a success because the runner's checks need the player online.
+- Costs come from `llm.Prices` (OpenAI standard short-context rates,
+  2026-10-17), pricing each provider call separately. Models without a
+  price report a cost of 0.
+- `prompts/executor.md` carries no task-specific code, so the gym measures
+  the model rather than the prompt.
+- Gym, three runs of each task, effort low, judge on: `gpt-6.1-sol` (mid
+  tier, $2/$10 per Mtok) and `gpt-6-astra` (frontier, $10/$50) both
+  passed 12/12, each task in one tool call, with the same action-bound
+  times; Sol cost about $0.001 per task and Astra 5–10× that. Lachlan
+  chose `gpt-6.1-sol` as the default. The four tasks no longer separate
+  models; the scoreboards are in the gym commit message.
+- Issue #2 reproduced under CPU load (1 of 57 preemptions). The likely
+  cause is collectblock chasing a drop that landed after its collect was
+  preempted, so the body now runs each action in an AsyncLocalStorage
+  holding its abort signal and ignores pathfinder goals, and refuses
+  gotos and digs, from an aborted action's async work. Afterwards 177
+  preemptions (117 under load) had no failures.
