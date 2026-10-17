@@ -132,8 +132,11 @@ keep SQL/schema ownership in the memory package.
   confined with `os.Root`, and are limited to 4 KiB/note and 16 KiB total.
   Home means the explicitly labelled first-observed anchor, not an inferred
   bed. Last-seen players and nearest visible resource/POI blocks come only
-  from cards. No planner API can insert spatial observations.
-- Reply intent is committed **before** sending chat. Restart therefore
+  from cards. Bounded spatial retrieval retains home and sorts other places
+  by observation time, including updates to older entries. No planner API
+  can insert spatial observations.
+- Reply intent and terminal idle/refusal decisions are committed **before**
+  sending chat, so a crash cannot replan an already answered refusal. Restart
   does not resend an answered request, but a crash between intent and send
   can lose a reply. Without chat acknowledgements this is at-most-once send
   attempt, not exactly-once delivery. Costs cover provider-reported usage;

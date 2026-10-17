@@ -25,6 +25,7 @@ type world struct {
 	replies []string
 	owners  int
 	overlap bool
+	onReply func()
 }
 
 func newWorld() *world {
@@ -57,6 +58,9 @@ func (w *world) Action(_ context.Context, req any) (*body.ActionStatus, error) {
 	defer w.mu.Unlock()
 	if w.owners != 0 {
 		w.overlap = true
+	}
+	if w.onReply != nil {
+		w.onReply()
 	}
 	w.replies = append(w.replies, req.(map[string]any)["message"].(string))
 	return &body.ActionStatus{}, nil
@@ -283,6 +287,44 @@ func TestRestartReconcilesLivePredicatesBeforeResuming(t *testing.T) {
 	if !reflect.DeepEqual(checked, []string{"held", "unfinished"}) || !reflect.DeepEqual(executed, []string{"unfinished"}) || w.replyCount() != 0 {
 		t.Fatalf("checked=%v executed=%v replies=%d", checked, executed, w.replyCount())
 	}
+}
+
+func TestRefusalIsTerminalBeforeChatSend(t *testing.T) {
+	w, store := newWorld(), testStore(t)
+	if err := store.Commit(context.Background(), planner.Checkpoint{Started: true}, nil); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := make(chan planner.Checkpoint, 1)
+	w.onReply = func() {
+		var checkpoint planner.Checkpoint
+		if err := store.Load(context.Background(), &checkpoint); err != nil {
+			t.Error(err)
+		}
+		snapshot <- checkpoint
+	}
+	w.event("whisper", "Alex", "teleport me to the moon")
+	s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond,
+		Plan: func(context.Context, planner.Input) (planner.Decision, error) {
+			return planner.Decision{Idle: true, Reply: "I cannot teleport players."}, nil
+		},
+		Execute: func(context.Context, goal.Goal) (executor.Outcome, error) {
+			t.Error("refusal dispatched execution")
+			return executor.Outcome{}, nil
+		},
+		Check: func(context.Context, goal.Goal) (bool, error) { return false, nil },
+	}
+	stop := start(t, s)
+	select {
+	case checkpoint := <-snapshot:
+		// This is exactly the durable state a restart sees if the process dies
+		// after sending chat but before it can commit any later transition.
+		if len(checkpoint.Jobs) != 0 {
+			t.Fatalf("answered refusal remains eligible for replanning: %+v", checkpoint.Jobs)
+		}
+	case <-time.After(4 * time.Second):
+		t.Fatal("no reply")
+	}
+	stop()
 }
 
 func TestFailureAndDeathPostMortemsDoNotRetryLoop(t *testing.T) {

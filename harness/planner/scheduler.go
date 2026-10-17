@@ -497,8 +497,18 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 		}
 		j.Goal = d.Goal
 		j.Status = "queued"
-		if j.Lane == "player" && !j.ReplySent {
+		sendReply := j.Lane == "player" && !j.ReplySent
+		if sendReply {
 			j.ReplySent = true // persist intent BEFORE network I/O: at-most-once attempt
+		}
+		job := *j
+		if d.Goal == nil {
+			// Persist terminal idle/refusal along with send intent. A crash after
+			// chat must not make the answered request eligible for replanning.
+			eps = append(eps, memory.Episode{Kind: "idle", Detail: job.ID + ": " + d.Reply})
+			removeJob(st, r.id)
+		}
+		if sendReply {
 			if err := s.Memory.Commit(ctx, *st, eps); err != nil {
 				return err
 			}
@@ -512,11 +522,7 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 				}
 			}
 			_, err := s.World.Action(ctx, map[string]any{"type": "chat", "message": reply})
-			eps = append(eps, memory.Episode{Kind: "reply_attempt", Detail: fmt.Sprintf("%s latency_ms=%d reply=%s error=%v", j.ID, time.Since(j.Accepted).Milliseconds(), reply, err)})
-		}
-		if d.Goal == nil {
-			eps = append(eps, memory.Episode{Kind: "idle", Detail: j.ID + ": " + d.Reply})
-			removeJob(st, r.id)
+			eps = append(eps, memory.Episode{Kind: "reply_attempt", Detail: fmt.Sprintf("%s latency_ms=%d reply=%s error=%v", job.ID, time.Since(job.Accepted).Milliseconds(), reply, err)})
 		}
 	} else {
 		status := r.out.Outcome
