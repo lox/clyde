@@ -77,6 +77,59 @@ first. CI already has a `harness` job that runs `go build`, `go vet`, and
 - Paper 26.1.2 speaks the 26.1 protocol the body is pinned to; no
   ViaBackwards in the gym.
 
+## As built
+
+- Layout: `harness/rcon` (minimal RCON client), `harness/goal` (generated
+  types, `Evaluate`, `Observer`, and the `RCON` observer), `harness/gym`
+  (task loading, runner, scoreboard, cheat commands), `harness/cmd/gym`
+  (built by `gym/bin/run` into `gym/.bin/gym`), `gym/agents/` (`join.js`
+  on mineflayer 4.39.0, `idle`, `cheat`). Go types are generated with
+  `go-jsonschema`, pinned as a `tool` in `harness/go.mod`; CI checks that
+  `go generate ./...` leaves no diff.
+- Predicates are keyed by kind (`until: {items: {item, count}}`) rather
+  than tagged with a `kind` field, because the generator turns that shape
+  into one struct with a pointer per kind. The generator does not enforce
+  "exactly one", so `goal.Kind` does. Item and block ids are pattern-checked
+  in the schema and the RCON observer refuses any word containing
+  whitespace, so a goal file cannot inject console commands.
+- RCON replies (Paper 26.1.2): `clear <p> <item> 0` → `Found N matching
+  item(s)` / `No items were found` / `No player was found`; `data get
+  entity <p> Pos` → `[x d, y d, z d]` / `No entity was found`; `execute if
+  block` → `Test passed` / `Test failed`; `delivered` uses `execute if items
+  block <pos> container.* <item>` → `Test passed. Count: N` / `Test failed`
+  / `… is not a container`. Errors come back as ordinary reply text, so
+  setup treats parse errors, unloaded positions, and missing players as
+  failures; `No blocks were filled` and `Could not set the block` mean
+  "unchanged" and are not.
+- Setup runs after the agent's player joins, because `tp`, `give`, and
+  `clear` need them online and chunks are only loaded near players (tasks
+  start with `forceload add`). The runner then creates the file named by a
+  fifth variable, `GYM_READY`, and starts the clock; agents should act once
+  it exists. The cheat agent also gets `GYM_RCON_ADDR` and
+  `GYM_RCON_PASSWORD`. A task whose goal already holds after setup is an
+  `error`, so a broken task cannot pass under `cheat` in CI unnoticed.
+- `gym/bin/paper install` downloads Paper and renders
+  `~/paper/server.properties` from `gym/server.properties` (password from
+  `GYM_RCON_PASSWORD`, default `clyde-gym`); `.agents/setup` and `start`
+  both call it. `start` blocks until RCON is up. Outside an orb (no `amp
+  orb service`) it runs Paper as a background process with a pidfile;
+  everything else is the same code path.
+- Paper 26.1 keeps all dimensions in one `world/` directory, so the
+  template is a copy of it. Measured in an orb (4 vCPU): generating the
+  template 26 s once; reset plus start 13.4–18.3 s per task over 16 runs (about 3 s
+  graceful stop, 12 s boot).
+- Seed `mcbot` spawns on a meadow sloping east to a lake with no trees
+  within 48 blocks, so `collect-logs` places two 3-log oak trunks, and the
+  arena tasks flatten an 11×11 area on the plateau west of spawn.
+  `goto-marker` crosses natural terrain, about 22 blocks uphill.
+- Runner extras: `--timeout` overrides every task's timeout, the default
+  agent is `idle`, and the exit status is non-zero unless every task
+  passes. Task YAML is decoded as YAML 1.2 (`go.yaml.in/yaml/v3`) and then
+  as JSON so the generated validation runs; YAML 1.1 decoders read the key
+  `y` as `true`.
+- The cheat agent fills containers in stacks of 64 and cannot satisfy
+  `#tag` items or blocks; no shipped task needs either.
+
 ## Not in this slice
 
 The body, the judge, `judged` predicates, an executor-driven agent, world
