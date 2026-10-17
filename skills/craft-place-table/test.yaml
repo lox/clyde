@@ -1,0 +1,21 @@
+name: test
+template: mcbot
+timeout: 60s
+setup:
+  - forceload add -330 140 -290 165
+  - difficulty peaceful
+  - fill -315 78 146 -305 78 156 minecraft:grass_block
+  - fill -315 79 146 -305 85 156 minecraft:air
+  - setblock -307 78 151 minecraft:gold_block
+  - clear {player}
+  - give {player} minecraft:birch_log 1
+  - tp {player} -309.5 79 151.5 -90 0
+skill:
+  args: {at: {x: -307, y: 79, z: 151}}
+goal:
+  description: Turn your birch log into planks, craft a table, and place it on the gold block.
+  until:
+    built:
+      blocks:
+        - pos: {x: -307, y: 79, z: 151}
+          block: minecraft:crafting_table

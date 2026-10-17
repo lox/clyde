@@ -1,0 +1,21 @@
+name: test
+template: mcbot
+timeout: 60s
+setup:
+  - forceload add -330 140 -290 165
+  - difficulty peaceful
+  - fill -315 78 146 -305 78 156 minecraft:grass_block
+  - fill -315 79 146 -305 85 156 minecraft:air
+  - setblock -307 79 151 minecraft:chest[facing=west]
+  - clear {player}
+  - give {player} minecraft:oak_planks 11
+  - tp {player} -309.5 79 151.5 -90 0
+skill:
+  args: {item: oak_planks, count: 7, container: {x: -307, y: 79, z: 151}}
+goal:
+  description: Deposit seven of your eleven planks in the chest.
+  until:
+    delivered:
+      container: {x: -307, y: 79, z: 151}
+      item: minecraft:oak_planks
+      count: 7

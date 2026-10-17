@@ -1,0 +1,17 @@
+name: test
+template: mcbot
+timeout: 60s
+setup:
+  - forceload add -330 140 -290 165
+  - difficulty peaceful
+  - fill -315 78 146 -305 78 156 minecraft:grass_block
+  - fill -315 79 146 -305 85 156 minecraft:air
+  - clear {player}
+  - give {player} minecraft:oak_log 3
+  - tp {player} -309.5 79 151.5 90 0
+skill:
+  args: {item: oak_planks, count: 9}
+goal:
+  description: Craft at least nine oak planks from the logs in inventory.
+  until:
+    items: {item: minecraft:oak_planks, count: 9}

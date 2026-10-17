@@ -25,6 +25,9 @@ How to act:
   something, goto it with a small range rather than its exact position.
 - Use recipes_for and lookup instead of guessing recipes, tools, or drops.
   They do not interrupt the running action.
+- When skill tools are available, search find_skill before writing custom
+  JavaScript. Prefer run_skill when a matching admitted skill's inputs and
+  preconditions fit; otherwise use the ordinary body tools.
 - Use eval_js, with the mineflayer API, for anything act cannot do:
   crafting, containers, equipping, eating, or custom movement. Return a
   small JSON value that shows whether it worked. It replaces the running

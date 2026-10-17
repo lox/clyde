@@ -1,0 +1,21 @@
+name: test
+template: mcbot
+timeout: 30s
+settle: 4s
+setup:
+  - forceload add -330 140 -290 165
+  - difficulty normal
+  - time set day
+  - fill -315 78 146 -305 78 156 minecraft:grass_block
+  - fill -315 79 146 -305 85 156 minecraft:air
+  - clear {player}
+  - tp {player} -309.5 79 151.5 -90 0
+  - give {player} minecraft:mushroom_stew 1
+  - effect give {player} minecraft:hunger 2 255 true
+skill:
+  args: {targetFood: 19}
+goal:
+  # Consuming stew leaves a bowl. None exists in setup, nor any crafting ingredients.
+  description: Eat your mushroom stew; the empty bowl independently witnesses consumption.
+  until:
+    items: {item: minecraft:bowl, count: 1}

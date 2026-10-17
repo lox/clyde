@@ -69,6 +69,9 @@ jobs:
       - name: cheat scoreboard
         shell: bash
         run: gym/bin/run --all --agent cheat | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: model-free skill gates
+        shell: bash
+        run: gym/bin/gate-skills | tee -a "$GITHUB_STEP_SUMMARY"
       - name: logs on failure
         if: failure()
         run: |

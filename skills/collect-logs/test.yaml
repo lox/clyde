@@ -1,0 +1,19 @@
+name: test
+template: mcbot
+timeout: 120s
+setup:
+  - forceload add -330 140 -290 165
+  - difficulty peaceful
+  - fill -315 78 146 -305 78 156 minecraft:grass_block
+  - fill -315 79 146 -305 85 156 minecraft:air
+  - fill -312 79 148 -312 81 148 minecraft:oak_log
+  - fill -312 79 154 -312 81 154 minecraft:oak_log
+  - clear {player}
+  - tp {player} -309.5 79 151.5 90 0
+skill:
+  args: {count: 4}
+  timeoutMs: 110000
+goal:
+  description: Gather four oak logs from the nearby trunks.
+  until:
+    items: {item: minecraft:oak_log, count: 4}

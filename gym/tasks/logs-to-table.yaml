@@ -1,0 +1,23 @@
+name: logs-to-table
+template: mcbot
+timeout: 180s
+setup:
+  - forceload add -330 140 -290 165
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  - fill -315 78 146 -305 78 156 minecraft:grass_block
+  - fill -315 79 146 -305 85 156 minecraft:air
+  - fill -312 79 148 -312 81 148 minecraft:oak_log
+  - setblock -307 78 151 minecraft:gold_block
+  - clear {player}
+  - tp {player} -309.5 79 151.5 90 0
+goal:
+  description: Starting with empty inventory, gather wood from the oak trunk, make planks and a crafting table, and place the table on the gold block at (-307,79,151).
+  until:
+    built:
+      blocks:
+        - pos: {x: -307, y: 79, z: 151}
+          block: minecraft:crafting_table
