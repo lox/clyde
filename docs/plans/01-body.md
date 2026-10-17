@@ -40,6 +40,41 @@ Treat the drafts as a sketch, not a contract; keep what survives review.
 - Keep `/eval` sandboxed with `node:vm` and a timeout; expose `bot`, `mc`,
   `Vec3`, `goals`, `Movements`, `goto`, `sleep`, `log`, `signal`.
 
+## As built
+
+Where the implementation differs from or adds to the plan above:
+
+- `api/action.schema.json` defines the `POST /action` bodies (`goto`,
+  `follow`, `collect`, `dig`, `place`, `chat`, `eval`, `stop`); the server
+  validates against it. TS types for both schemas are generated into
+  `body/src/api/` with `npm run gen`.
+- State card field names are the draft's. Additions: `action` and
+  `lastAction` carry `distanceRemaining` and `lastMovedAt` (goto, follow) and
+  `collected` (collect, blocks broken so far) beside the `progress` text.
+  Dropped item entities are named by item (`oak_sapling`), not `item`.
+- `POST /eval` runs as the current action, like `POST /action {type: eval}`,
+  but answers with the final status. `{type: stop}` is the same as
+  `POST /stop` and does not become an action.
+- Preemption is synchronous: the running action is marked aborted and its
+  `action.aborted` event is pushed before the new `action.start`.
+- `GET /events?since=N` returns `{events, latestSeq, missed}`; a cursor ahead
+  of `latestSeq` (from an earlier body process) reads from the start.
+- Event types: `spawn`, `chat`, `whisper`, `damage`, `death`, `pickup`,
+  `kicked`, `error`, `stop`, `safety.refused`, `action.start`, `action.log`,
+  `action.succeeded`, `action.failed`, `action.aborted`.
+- Safety wraps `bot.dig`, `bot._genericPlace`, and `bot.attack`, so actions,
+  eval code, pathfinder, and collectblock all hit the same checks, and adds
+  exclusion areas to both pathfinder Movements so paths avoid protected
+  blocks and stop digging at the cap. `BODY_PROTECTED_REGIONS` is a JSON
+  array of `{name, min: [x,y,z], max: [x,y,z], dimension?}`. `BODY_OPS` lists
+  players whose `<bot name> stop` chat message halts the bot (no latch).
+- mineflayer 4.39 on Paper 26.1 workarounds: `bot.oxygenLevel` is set from any
+  entity's air metadata, so the card reads the bot's own `air_supply`; and
+  the server rubber-bands moves that end exactly touching a wall, so the
+  physics half-width is 0.3001.
+- No reconnect loop: the body exits on disconnect for its supervisor to
+  restart.
+
 ## Not in this slice
 
 Judge, executor, skills, production join through Velocity, Bedrock.
