@@ -4,8 +4,7 @@ dist/
 .env
 .env.*
 !.env.example
-memory/*.db
-memory/*.jsonl
+/memory/
 gym/runs/
 gym/server/
 .amp/
