@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Recover pinned module sources without changing the module cache. Only this
+# disposable spike uses the resulting local replacements.
+set -euo pipefail
+cd "$(dirname "$0")"
+copy_module() {
+  local source
+  source=$(GOPROXY=https://proxy.golang.org go mod download -json "$1" | jq -er .Dir)
+  rm -rf "forks/$2"
+  mkdir -p forks
+  cp -R "$source" "forks/$2"
+  chmod -R u+w "forks/$2"
+}
+copy_module github.com/go-mclib/data@v0.0.0-20260626135928-f4a527b8705b data
+patch -s -d forks/data -p1 < data-nbt-framing.patch
+go mod edit -dropreplace=github.com/go-mclib/client
+if [ "${1:-}" = wide ]; then
+  copy_module github.com/go-mclib/client@v0.0.0-20260626124012-de01d7956dc3 client
+  sed -i 's/PlayerWidth          = 0.6$/PlayerWidth          = 0.6002/' forks/client/pkg/client/modules/physics/constants.go
+  go mod edit -replace=github.com/go-mclib/client=./forks/client
+fi

@@ -1,0 +1,63 @@
+{
+  "joinSeconds": 1.2,
+  "steps": [
+    {
+      "name": "chat",
+      "ok": true,
+      "seconds": 0,
+      "detail": "sent"
+    },
+    {
+      "name": "goto",
+      "ok": false,
+      "seconds": 60.15,
+      "detail": "timeout after 1m0s"
+    },
+    {
+      "name": "dig",
+      "ok": false,
+      "seconds": 4.1,
+      "detail": "minecraft:dirt at -290,62,139, now minecraft:dirt no block update within 3s"
+    },
+    {
+      "name": "collect_log",
+      "ok": false,
+      "seconds": 1.64,
+      "detail": "no logs within 48 blocks"
+    },
+    {
+      "name": "walk_1",
+      "ok": false,
+      "seconds": 17.23,
+      "detail": "to -283.5,63.0,139.5; path 16 nodes planned in 8ms; moved 21.1m; 30.48m from goal navigation reported not reached"
+    },
+    {
+      "name": "walk_2",
+      "ok": false,
+      "seconds": 0,
+      "detail": "no standable surface near waypoint"
+    },
+    {
+      "name": "walk_3",
+      "ok": false,
+      "seconds": 0,
+      "detail": "no standable surface near waypoint"
+    },
+    {
+      "name": "walk_4",
+      "ok": false,
+      "seconds": 0,
+      "detail": "no standable surface near waypoint"
+    },
+    {
+      "name": "chat_done",
+      "ok": true,
+      "seconds": 0,
+      "detail": "sent"
+    }
+  ],
+  "serverPositionCorrections": 1377,
+  "serverInventory": "No items were found on player Clyde",
+  "walkedMetres": 21.1,
+  "totalSeconds": 88.45
+}

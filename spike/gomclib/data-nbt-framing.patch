@@ -1,0 +1,97 @@
+diff -ru a/pkg/packets/c2s_configuration.go b/pkg/packets/c2s_configuration.go
+--- a/pkg/packets/c2s_configuration.go	2026-10-17 06:52:55.953235562 +0000
++++ b/pkg/packets/c2s_configuration.go	2026-10-17 06:52:56.201239569 +0000
+@@ -307,11 +307,8 @@
+ 		return err
+ 	}
+ 	// read remaining bytes as NBT
+-	remaining, err := buf.ReadByteArray(1048576)
+-	if err != nil {
+-		return err
+-	}
+-	p.Payload, err = nbt.DecodeNetwork(remaining)
++	// NBT on the wire is not length-prefixed: read it from the stream.
++	p.Payload, _, err = nbt.NewReaderFrom(buf.Reader()).ReadTag(true)
+ 	return err
+ }
+ 
+diff -ru a/pkg/packets/c2s_play.go b/pkg/packets/c2s_play.go
+--- a/pkg/packets/c2s_play.go	2026-10-17 06:52:55.953235562 +0000
++++ b/pkg/packets/c2s_play.go	2026-10-17 06:52:56.201239569 +0000
+@@ -2122,11 +2122,8 @@
+ 	if p.Id, err = buf.ReadIdentifier(); err != nil {
+ 		return err
+ 	}
+-	remaining, err := buf.ReadByteArray(1048576)
+-	if err != nil {
+-		return err
+-	}
+-	p.Payload, err = nbt.DecodeNetwork(remaining)
++	// NBT on the wire is not length-prefixed: read it from the stream.
++	p.Payload, _, err = nbt.NewReaderFrom(buf.Reader()).ReadTag(true)
+ 	return err
+ }
+ 
+diff -ru a/pkg/packets/s2c_configuration.go b/pkg/packets/s2c_configuration.go
+--- a/pkg/packets/s2c_configuration.go	2026-10-17 06:52:55.953235562 +0000
++++ b/pkg/packets/s2c_configuration.go	2026-10-17 06:53:08.597439815 +0000
+@@ -165,11 +165,8 @@
+ 		if p.Entries[i].HasData {
+ 			// read NBT data - we need to read remaining bytes for this entry,
+ 			// as we don't know the exact NBT size upfront
+-			remaining, err := buf.ReadByteArray(1048576)
+-			if err != nil {
+-				return err
+-			}
+-			p.Entries[i].Data, err = nbt.DecodeNetwork(remaining)
++			// NBT on the wire is not length-prefixed: read it from the stream.
++			p.Entries[i].Data, _, err = nbt.NewReaderFrom(buf.Reader()).ReadTag(true)
+ 			if err != nil {
+ 				return err
+ 			}
+@@ -635,11 +632,9 @@
+ 
+ func (p *S2CShowDialogConfiguration) Read(buf *ns.PacketBuffer) error {
+ 	// read remaining bytes as NBT
+-	remaining, err := buf.ReadByteArray(1048576)
+-	if err != nil {
+-		return err
+-	}
+-	p.Dialog, err = nbt.DecodeNetwork(remaining)
++	// NBT on the wire is not length-prefixed: read it from the stream.
++	var err error
++	p.Dialog, _, err = nbt.NewReaderFrom(buf.Reader()).ReadTag(true)
+ 	return err
+ }
+ 
+diff -ru a/pkg/packets/s2c_play.go b/pkg/packets/s2c_play.go
+--- a/pkg/packets/s2c_play.go	2026-10-17 06:52:55.953235562 +0000
++++ b/pkg/packets/s2c_play.go	2026-10-17 06:52:56.197239504 +0000
+@@ -211,11 +211,8 @@
+ 	if p.Type, err = buf.ReadVarInt(); err != nil {
+ 		return err
+ 	}
+-	remaining, err := buf.ReadByteArray(1048576)
+-	if err != nil {
+-		return err
+-	}
+-	p.NbtData, err = nbt.DecodeNetwork(remaining)
++	// NBT on the wire is not length-prefixed: read it from the stream.
++	p.NbtData, _, err = nbt.NewReaderFrom(buf.Reader()).ReadTag(true)
+ 	return err
+ }
+ 
+@@ -4152,11 +4149,8 @@
+ 	if p.TransactionId, err = buf.ReadVarInt(); err != nil {
+ 		return err
+ 	}
+-	remaining, err := buf.ReadByteArray(1048576)
+-	if err != nil {
+-		return err
+-	}
+-	p.Nbt, err = nbt.DecodeNetwork(remaining)
++	// NBT on the wire is not length-prefixed: read it from the stream.
++	p.Nbt, _, err = nbt.NewReaderFrom(buf.Reader()).ReadTag(true)
+ 	return err
+ }
+ 

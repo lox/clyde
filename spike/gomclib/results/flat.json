@@ -1,0 +1,69 @@
+{
+  "joinSeconds": 0.18,
+  "steps": [
+    {
+      "name": "chat",
+      "ok": true,
+      "seconds": 0,
+      "detail": "sent"
+    },
+    {
+      "name": "goto",
+      "ok": true,
+      "seconds": 3.65,
+      "detail": "to 12.5,161.0,8.5; path 13 nodes planned in 1ms; moved 14.5m; 0.03m from goal"
+    },
+    {
+      "name": "dig",
+      "ok": true,
+      "seconds": 1.15,
+      "detail": "minecraft:grass_block at 13,160,8 (hardness 0.6, 19 ticks) -\u003e minecraft:air"
+    },
+    {
+      "name": "collect_log",
+      "ok": true,
+      "seconds": 7.25,
+      "detail": "to 14.5,161.0,8.5; path 6 nodes planned in 0ms; moved 1.9m; 0.09m from goal; minecraft:oak_log at 17,161,8 (hardness 2.0, 60 ticks) -\u003e minecraft:air; picked up (walked to drop: true); inventory logs 0 -\u003e 1"
+    },
+    {
+      "name": "walk_1",
+      "ok": true,
+      "seconds": 4.7,
+      "detail": "to 37.5,161.0,8.5; path 21 nodes planned in 0ms; moved 19.9m; 0.01m from goal"
+    },
+    {
+      "name": "walk_2",
+      "ok": true,
+      "seconds": 4.7,
+      "detail": "to 37.5,161.0,28.5; path 21 nodes planned in 0ms; moved 19.9m; 0.08m from goal"
+    },
+    {
+      "name": "walk_3",
+      "ok": true,
+      "seconds": 4.7,
+      "detail": "to 17.5,161.0,28.5; path 21 nodes planned in 1ms; moved 19.9m; 0.07m from goal"
+    },
+    {
+      "name": "walk_4",
+      "ok": true,
+      "seconds": 4.7,
+      "detail": "to 17.5,161.0,8.5; path 21 nodes planned in 1ms; moved 19.8m; 0.19m from goal"
+    },
+    {
+      "name": "chat_done",
+      "ok": true,
+      "seconds": 0,
+      "detail": "sent"
+    },
+    {
+      "name": "wall_slide",
+      "ok": true,
+      "seconds": 5,
+      "detail": "wall contact 19.69182 161.00 0.50 -\u003e slide 19.69182 161.00 12.89; corrections=26"
+    }
+  ],
+  "serverPositionCorrections": 26,
+  "serverInventory": "Found 1 matching item(s) on player Clyde",
+  "walkedMetres": 98.9,
+  "totalSeconds": 39.04
+}
