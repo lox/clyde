@@ -16,7 +16,7 @@ decision changes; do not let it drift from the code.
 2. Everything the agent does must be measurable in a throwaway gym server so
    that model, prompt, and skill changes can be compared.
 3. Every model slot is pluggable. Start with Jev (typesafe.ai) for fast
-   judgement and Anthropic/OpenAI-compatible models for reasoning; swap any of
+   judgement and OpenAI models for reasoning; swap any of
    them by config.
 4. Operate safely on a shared world: hard limits in the body, a kill switch, and
    no griefing.
@@ -197,8 +197,8 @@ choice and can be reversed by saying so.
 - Name: Clyde. Repo: `lox/clyde`, public, MIT.
 - Body in TypeScript on mineflayer; harness in Go.
 - Judge: Jev first, behind a backend interface.
-- LLM providers: Anthropic and OpenAI-compatible first, behind one interface
-  (default).
+- LLM providers: OpenAI first (Responses API), Anthropic second, behind one
+  interface in `harness/llm`. Lachlan prefers OpenAI models.
 - Issue tracking: GitHub issues on this repo (default).
 - Delivery: commit to `main` (Amp merge-to-main), no pull requests; Auto-review
   runs locally before every ship; no Codex.
