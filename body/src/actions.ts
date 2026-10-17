@@ -1,50 +1,39 @@
 import type { Bot } from 'mineflayer'
-import { goals } from 'mineflayer-pathfinder'
+import type { Block } from 'prismarine-block'
+import pathfinderPkg from 'mineflayer-pathfinder'
+import type { goals as Goals, GoalPlaceBlockOptions } from 'mineflayer-pathfinder'
+import type {} from 'mineflayer-collectblock'
 import { Vec3 } from 'vec3'
-import { EventLog } from './events.js'
+import type { ActionRequest, StopAction } from './api/action.js'
+import type { ActionStatus } from './api/state.js'
+import type { EventLog } from './events.js'
 import { runCode } from './eval.js'
+import type { Safety } from './safety.js'
 
-export type ActionRequest =
-  | { type: 'goto'; x: number; y: number; z: number; range?: number }
-  | { type: 'follow'; player: string; range?: number }
-  | { type: 'collect'; block: string; count?: number; radius?: number }
-  | { type: 'dig'; x: number; y: number; z: number }
-  | { type: 'chat'; message: string }
-  | { type: 'eval'; code: string; timeoutMs?: number }
+const { goals } = pathfinderPkg
+type Goal = Goals.Goal
 
-export type ActionState = 'running' | 'succeeded' | 'failed' | 'aborted'
-
-export interface ActionStatus {
-  id: number
-  type: ActionRequest['type']
-  params: Record<string, unknown>
-  status: ActionState
-  startedAt: number
-  endedAt?: number
-  elapsedMs: number
-  /** Short, human-readable description of what the action is doing right now. */
-  progress?: string
-  result?: unknown
-  error?: string
-}
+export type { ActionStatus }
+export type RunnableAction = Exclude<ActionRequest, StopAction>
+type ActionState = ActionStatus['status']
+type Progress = Partial<Pick<ActionStatus, 'progress' | 'distanceRemaining' | 'lastMovedAt' | 'collected'>>
 
 export interface ActionContext {
   bot: Bot
+  safety: Safety
   signal: AbortSignal
-  progress: (text: string) => void
+  /** Updates the progress fields shown on the state card. */
+  update: (progress: Progress) => void
   log: (text: string) => void
 }
 
-class AbortedError extends Error {
-  constructor(reason: string) {
-    super(`aborted: ${reason}`)
-    this.name = 'AbortedError'
-  }
-}
+/** How often movement actions refresh distanceRemaining and lastMovedAt. */
+const PROGRESS_INTERVAL_MS = 250
 
 /**
  * Runs at most one action at a time. Starting a new action aborts the current
- * one; that is the interrupt channel for the harness.
+ * one synchronously, so the abort is in /events before the new action starts;
+ * that is the harness's interrupt channel.
  */
 export class ActionRunner {
   private nextId = 1
@@ -54,6 +43,7 @@ export class ActionRunner {
   constructor(
     private readonly bot: Bot,
     private readonly events: EventLog,
+    private readonly safety: Safety,
   ) {}
 
   get currentStatus(): ActionStatus | null {
@@ -65,72 +55,83 @@ export class ActionRunner {
     return this.last
   }
 
-  async stop(reason = 'stop requested'): Promise<void> {
-    if (!this.current) return
-    this.current.controller.abort(new AbortedError(reason))
-    // Give the action a tick to observe the abort and tear down.
-    await new Promise((r) => setTimeout(r, 0))
+  /** Aborts the running action, if any, and stops all movement and digging. */
+  stop(reason = 'stop requested'): ActionStatus | null {
+    const aborted = this.abortCurrent(reason)
+    this.halt()
+    this.events.push('stop', reason)
+    return aborted
   }
 
-  start(request: ActionRequest): ActionStatus {
-    void this.stop('superseded by new action')
+  /** Starts an action, aborting the running one. `done` settles with the final status. */
+  start(request: RunnableAction): { status: ActionStatus; done: Promise<ActionStatus> } {
     const { type, ...params } = request
+    const id = this.nextId++
+    this.abortCurrent(`superseded by ${type} #${id}`)
+    this.halt()
+
     const controller = new AbortController()
-    const status: ActionStatus = {
-      id: this.nextId++,
-      type,
-      params,
-      status: 'running',
-      startedAt: Date.now(),
-      elapsedMs: 0,
-    }
+    const status: ActionStatus = { id, type, params, status: 'running', startedAt: Date.now(), elapsedMs: 0 }
     this.current = { status, controller }
-    this.events.push('action.start', `${type} ${describe(params)}`, { id: status.id })
+    this.events.push('action.start', `#${id} ${type} ${describe(params)}`.trimEnd(), { id, type, params })
 
     const ctx: ActionContext = {
       bot: this.bot,
+      safety: this.safety,
       signal: controller.signal,
-      progress: (text) => {
-        status.progress = text
+      update: (progress) => {
+        if (status.status === 'running') Object.assign(status, progress)
       },
-      log: (text) => this.events.push('action.log', text, { id: status.id }),
+      log: (text) => this.events.push('action.log', text, { id }),
     }
 
-    this.run(request, ctx).then(
+    const done = this.run(request, ctx).then(
       (result) => this.finish(status, 'succeeded', { result }),
-      (err: unknown) => {
-        if (controller.signal.aborted) {
-          const reason = controller.signal.reason
-          this.finish(status, 'aborted', { error: reason instanceof Error ? reason.message : String(reason) })
-        } else {
-          this.finish(status, 'failed', { error: err instanceof Error ? err.message : String(err) })
-        }
-      },
+      (err: unknown) => this.finish(status, 'failed', { error: err instanceof Error ? err.message : String(err) }),
     )
+    return { status: { ...status }, done }
+  }
+
+  private abortCurrent(reason: string): ActionStatus | null {
+    if (!this.current) return null
+    const { status, controller } = this.current
+    this.finish(status, 'aborted', { error: reason })
+    controller.abort(new Error(`aborted: ${reason}`))
     return { ...status }
   }
 
-  private finish(status: ActionStatus, state: ActionState, extra: { result?: unknown; error?: string }) {
-    if (status.status !== 'running') return
+  /**
+   * Leaves no goal, dig, or held control behind. setGoal(null) rather than
+   * pathfinder.stop(): stop() only sets a flag that would also cancel the
+   * next action's goal.
+   */
+  private halt(): void {
+    this.bot.pathfinder.setGoal(null)
+    if (this.bot.targetDigBlock) this.bot.stopDigging()
+    this.bot.clearControlStates()
+  }
+
+  /** First call wins: an aborted action's late rejection does not overwrite its status. */
+  private finish(status: ActionStatus, state: ActionState, extra: { result?: unknown; error?: string }): ActionStatus {
+    if (status.status !== 'running') return { ...status }
     status.status = state
     status.endedAt = Date.now()
     status.elapsedMs = status.endedAt - status.startedAt
-    if (extra.result !== undefined) status.result = extra.result
+    if (extra.result !== undefined) status.result = extra.result as ActionStatus['result']
     if (extra.error !== undefined) status.error = extra.error
     if (this.current?.status.id === status.id) this.current = null
     this.last = status
-    this.events.push(`action.${state}`, `${status.type} ${state}${status.error ? `: ${status.error}` : ''}`, {
+    this.events.push(`action.${state}`, `#${status.id} ${status.type} ${state}${status.error ? `: ${status.error}` : ''}`, {
       id: status.id,
+      type: status.type,
       elapsedMs: status.elapsedMs,
+      ...(status.result !== undefined && { result: status.result }),
+      ...(status.error !== undefined && { error: status.error }),
     })
+    return { ...status }
   }
 
-  private async run(request: ActionRequest, ctx: ActionContext): Promise<unknown> {
-    // Every action starts from a clean slate so a superseded action's
-    // pathfinder goal or dig does not leak into the new one.
-    this.bot.pathfinder.stop()
-    if (this.bot.targetDigBlock) this.bot.stopDigging()
-    this.bot.clearControlStates()
+  private async run(request: RunnableAction, ctx: ActionContext): Promise<Record<string, unknown>> {
     switch (request.type) {
       case 'goto':
         return goto(ctx, new Vec3(request.x, request.y, request.z), request.range ?? 1)
@@ -140,6 +141,8 @@ export class ActionRunner {
         return collect(ctx, request.block, request.count ?? 1, request.radius ?? 32)
       case 'dig':
         return dig(ctx, new Vec3(request.x, request.y, request.z))
+      case 'place':
+        return place(ctx, request.item, new Vec3(request.x, request.y, request.z))
       case 'chat':
         ctx.bot.chat(request.message)
         return { sent: request.message }
@@ -155,15 +158,18 @@ export class ActionRunner {
 
 function describe(params: Record<string, unknown>): string {
   return Object.entries(params)
-    .map(([k, v]) => `${k}=${typeof v === 'string' && v.length > 40 ? v.slice(0, 40) + '…' : String(v)}`)
+    .map(([k, v]) => {
+      const s = typeof v === 'string' ? v.replace(/\s+/g, ' ') : String(v)
+      return `${k}=${s.length > 40 ? s.slice(0, 40) + '…' : s}`
+    })
     .join(' ')
 }
 
 /** Resolves when the goal is reached; rejects on abort or when no path exists. */
-export async function gotoGoal(ctx: ActionContext, goal: goals.Goal): Promise<void> {
+export async function gotoGoal(ctx: ActionContext, goal: Goal): Promise<void> {
   const { bot, signal } = ctx
   signal.throwIfAborted()
-  const onAbort = () => bot.pathfinder.stop()
+  const onAbort = () => bot.pathfinder.setGoal(null)
   signal.addEventListener('abort', onAbort, { once: true })
   try {
     await bot.pathfinder.goto(goal)
@@ -175,41 +181,93 @@ export async function gotoGoal(ctx: ActionContext, goal: goals.Goal): Promise<vo
   }
 }
 
-async function goto(ctx: ActionContext, target: Vec3, range: number): Promise<unknown> {
-  const update = () => ctx.progress(`moving, ${ctx.bot.entity.position.distanceTo(target).toFixed(1)}m to go`)
-  update()
-  const timer = setInterval(update, 500)
-  try {
-    await gotoGoal(ctx, new goals.GoalNear(target.x, target.y, target.z, range))
-    return { arrived: ctx.bot.entity.position.floored() }
-  } finally {
+/** Reports distance to a moving or fixed target and when the bot last moved, until the returned stop is called. */
+function trackMovement(ctx: ActionContext, target: () => Vec3 | null): () => void {
+  let anchor = ctx.bot.entity.position.clone()
+  ctx.update({ lastMovedAt: Date.now() })
+  const tick = () => {
+    const pos = ctx.bot.entity.position
+    const t = target()
+    if (pos.distanceTo(anchor) >= 0.5) {
+      anchor = pos.clone()
+      ctx.update({ lastMovedAt: Date.now() })
+    }
+    if (t) ctx.update({ distanceRemaining: round1(pos.distanceTo(t)) })
+  }
+  tick()
+  const timer = setInterval(tick, PROGRESS_INTERVAL_MS)
+  return () => {
+    tick()
     clearInterval(timer)
   }
 }
 
-async function follow(ctx: ActionContext, name: string, range: number): Promise<unknown> {
+async function goto(ctx: ActionContext, target: Vec3, range: number): Promise<Record<string, unknown>> {
+  ctx.update({ progress: `walking to ${target.x},${target.y},${target.z}` })
+  const stop = trackMovement(ctx, () => target)
+  try {
+    await gotoGoal(ctx, new goals.GoalNear(target.x, target.y, target.z, range))
+  } finally {
+    stop()
+  }
+  return { arrived: vec(ctx.bot.entity.position) }
+}
+
+async function follow(ctx: ActionContext, name: string, range: number): Promise<Record<string, unknown>> {
   const { bot, signal } = ctx
-  const target = bot.players[name]?.entity
-  if (!target) throw new Error(`player ${name} is not visible`)
-  ctx.progress(`following ${name}`)
-  bot.pathfinder.setGoal(new goals.GoalFollow(target, range), true)
-  await new Promise<void>((resolve) => {
-    signal.addEventListener('abort', () => resolve(), { once: true })
-  })
-  bot.pathfinder.stop()
-  signal.throwIfAborted()
+  const entity = () => bot.players[name]?.entity ?? null
+  const first = entity()
+  if (!first) throw new Error(`player ${name} is not in view`)
+  ctx.update({ progress: `following ${name}` })
+  bot.pathfinder.setGoal(new goals.GoalFollow(first, range), true)
+  const stop = trackMovement(ctx, () => entity()?.position ?? null)
+  try {
+    // Runs until aborted, or fails when the player leaves view.
+    await new Promise<void>((_, reject) => {
+      const check = setInterval(() => {
+        if (!entity()) {
+          clearInterval(check)
+          reject(new Error(`lost sight of ${name}`))
+        }
+      }, PROGRESS_INTERVAL_MS)
+      signal.addEventListener('abort', () => {
+        clearInterval(check)
+        reject(signal.reason)
+      }, { once: true })
+    })
+  } finally {
+    stop()
+    // When aborted, the runner has already halted and the next action may own
+    // the pathfinder; clearing the goal now would cancel its goal.
+    if (!signal.aborted) bot.pathfinder.setGoal(null)
+  }
   return {}
 }
 
-async function collect(ctx: ActionContext, blockName: string, count: number, radius: number): Promise<unknown> {
+async function collect(ctx: ActionContext, blockName: string, count: number, radius: number): Promise<Record<string, unknown>> {
   const { bot, signal } = ctx
   const blockType = bot.registry.blocksByName[blockName]
   if (!blockType) throw new Error(`unknown block ${blockName}`)
-  const positions = bot.findBlocks({ matching: blockType.id, maxDistance: radius, count })
-  if (positions.length === 0) throw new Error(`no ${blockName} within ${radius} blocks`)
-  const blocks = positions.map((p) => bot.blockAt(p)).filter((b) => b !== null)
-  ctx.progress(`collecting ${blocks.length} ${blockName}`)
-  const onAbort = () => void bot.collectBlock.cancelTask()
+  const dimension = bot.game.dimension
+  const positions = bot
+    .findBlocks({ matching: blockType.id, maxDistance: radius, count: count * 4 })
+    .filter((p) => !ctx.safety.regionAt(p, dimension))
+    .slice(0, count)
+  if (positions.length === 0) throw new Error(`no ${blockName} outside protected regions within ${radius} blocks`)
+  const blocks = positions.map((p) => bot.blockAt(p)).filter((b): b is Block => b !== null)
+
+  // Count targets that are no longer the block type: diggingCompleted reports
+  // the new (air) block, and mineflayer clears its listeners on death.
+  const brokenCount = () => blocks.filter((b) => bot.blockAt(b.position)?.type !== blockType.id).length
+  ctx.update({ progress: `collecting ${blocks.length} ${blockName}`, collected: 0 })
+  const timer = setInterval(() => ctx.update({ collected: brokenCount() }), PROGRESS_INTERVAL_MS)
+  // cancelTask alone leaves collectblock's loop running: after the current
+  // step it would path to the next target and steal the next action's goal.
+  // Emptying its (private) target list ends the loop.
+  const onAbort = () => {
+    ;(bot.collectBlock as unknown as { targets: { clear(): void } }).targets.clear()
+    void bot.collectBlock.cancelTask()
+  }
   signal.addEventListener('abort', onAbort, { once: true })
   try {
     await bot.collectBlock.collect(blocks, { ignoreNoPath: true })
@@ -217,22 +275,28 @@ async function collect(ctx: ActionContext, blockName: string, count: number, rad
     signal.throwIfAborted()
     throw err
   } finally {
+    clearInterval(timer)
     signal.removeEventListener('abort', onAbort)
   }
-  return { collected: blocks.length, block: blockName }
+  const collected = brokenCount()
+  ctx.update({ collected })
+  if (collected === 0) throw new Error(`could not collect any of ${blocks.length} ${blockName} found`)
+  return { collected, block: blockName }
 }
 
-async function dig(ctx: ActionContext, pos: Vec3): Promise<unknown> {
+async function dig(ctx: ActionContext, pos: Vec3): Promise<Record<string, unknown>> {
   const { bot, signal } = ctx
+  ctx.safety.checkBreak(pos, bot.game.dimension)
   const block = bot.blockAt(pos)
-  if (!block || block.name === 'air') throw new Error(`no block at ${pos}`)
+  if (!block || block.boundingBox === 'empty') throw new Error(`no solid block at ${pos.x},${pos.y},${pos.z}`)
   if (!bot.canDigBlock(block)) {
-    ctx.progress(`walking to ${block.name}`)
+    ctx.update({ progress: `walking to ${block.name}` })
     await gotoGoal(ctx, new goals.GoalLookAtBlock(pos, bot.world, { reach: 4 }))
   }
   const tool = bot.pathfinder.bestHarvestTool(block)
   if (tool) await bot.equip(tool, 'hand')
-  ctx.progress(`digging ${block.name}`)
+  signal.throwIfAborted()
+  ctx.update({ progress: `digging ${block.name}` })
   const onAbort = () => bot.stopDigging()
   signal.addEventListener('abort', onAbort, { once: true })
   try {
@@ -243,5 +307,36 @@ async function dig(ctx: ActionContext, pos: Vec3): Promise<unknown> {
   } finally {
     signal.removeEventListener('abort', onAbort)
   }
-  return { dug: block.name, at: pos }
+  return { dug: block.name, at: vec(pos) }
+}
+
+const FACES = [new Vec3(0, -1, 0), new Vec3(0, 1, 0), new Vec3(0, 0, -1), new Vec3(0, 0, 1), new Vec3(-1, 0, 0), new Vec3(1, 0, 0)]
+
+async function place(ctx: ActionContext, itemName: string, pos: Vec3): Promise<Record<string, unknown>> {
+  const { bot, signal } = ctx
+  ctx.safety.checkPlace(pos, bot.game.dimension)
+  const item = bot.inventory.items().find((i) => i.name === itemName)
+  if (!item) throw new Error(`no ${itemName} in inventory`)
+  const target = bot.blockAt(pos)
+  if (!target) throw new Error(`${pos.x},${pos.y},${pos.z} is not loaded`)
+  if (target.boundingBox !== 'empty') throw new Error(`${pos.x},${pos.y},${pos.z} is occupied by ${target.name}`)
+  // Click the face of a solid neighbour that points at the target.
+  const face = FACES.find((f) => bot.blockAt(pos.plus(f))?.boundingBox === 'block')
+  if (!face) throw new Error(`nothing solid next to ${pos.x},${pos.y},${pos.z} to place against`)
+  const reference = bot.blockAt(pos.plus(face))!
+  ctx.update({ progress: `walking to place ${itemName}` })
+  await gotoGoal(ctx, new goals.GoalPlaceBlock(pos, bot.world, { range: 4 } as GoalPlaceBlockOptions))
+  await bot.equip(item, 'hand')
+  signal.throwIfAborted()
+  ctx.update({ progress: `placing ${itemName}` })
+  await bot.placeBlock(reference, face.scaled(-1))
+  return { placed: itemName, at: vec(pos) }
+}
+
+function vec(v: { x: number; y: number; z: number }) {
+  return { x: round1(v.x), y: round1(v.y), z: round1(v.z) }
+}
+
+function round1(n: number): number {
+  return Math.round(n * 10) / 10
 }

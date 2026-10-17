@@ -1,68 +1,15 @@
 import type { Bot } from 'mineflayer'
 import type { Entity } from 'prismarine-entity'
-import type { ActionStatus } from './actions.js'
+import type { ActionStatus, NearbyEntity, StateCard, Vec } from './api/state.js'
 import type { BodyEvent } from './events.js'
 
 /**
  * The state card is the one observation the rest of the system sees. The JSON
- * form is for code; the text form (renderCard) is what judges and models read.
- * Keep it compact, stable in layout, and free of anything a model cannot act on.
+ * form (api/state.schema.json) is for code; the text form (renderCard) is
+ * what judges and models read. Keep it compact, stable in layout, and free of
+ * anything a model cannot act on.
  */
-export interface StateCard {
-  ts: number
-  bot: {
-    name: string
-    dimension: string
-    position: Vec
-    yaw: number
-    pitch: number
-    health: number
-    food: number
-    oxygen: number
-    xpLevel: number
-    gameMode: string
-    onGround: boolean
-    inWater: boolean
-    inLava: boolean
-  }
-  world: {
-    timeOfDay: number
-    phase: 'day' | 'dusk' | 'night' | 'dawn'
-    raining: boolean
-    thundering: boolean
-  }
-  action: ActionStatus | null
-  lastAction: ActionStatus | null
-  inventory: {
-    used: number
-    total: number
-    held: string | null
-    items: { name: string; count: number }[]
-  }
-  entities: {
-    players: NearbyEntity[]
-    hostiles: NearbyEntity[]
-    passives: NearbyEntity[]
-    items: NearbyEntity[]
-  }
-  blocks: { name: string; count: number; nearest: number; nearestPos: Vec }[]
-  events: { ageMs: number; type: string; text: string }[]
-}
-
-export interface Vec {
-  x: number
-  y: number
-  z: number
-}
-
-export interface NearbyEntity {
-  name: string
-  distance: number
-  direction: string
-  dy: number
-  position: Vec
-  health?: number
-}
+export type { NearbyEntity, StateCard, Vec }
 
 /** Blocks worth noticing. Everything else (stone, dirt, grass, leaves) is noise. */
 export const NOTABLE_BLOCKS = [
@@ -144,12 +91,13 @@ export function buildStateCard({ bot, action, lastAction, events, scanRadius, no
       pitch: round1(me.pitch),
       health: bot.health,
       food: bot.food,
-      oxygen: bot.oxygenLevel,
+      oxygen: oxygenOf(bot),
       xpLevel: bot.experience.level,
       gameMode: bot.game.gameMode,
       onGround: me.onGround,
-      inWater: me.isInWater,
-      inLava: me.isInLava,
+      // Set on the bot's own entity by prismarine-physics; not in the Entity typings.
+      inWater: Boolean((me as Entity & { isInWater?: boolean }).isInWater),
+      inLava: Boolean((me as Entity & { isInLava?: boolean }).isInLava),
     },
     world: {
       timeOfDay,
@@ -171,6 +119,17 @@ export function buildStateCard({ bot, action, lastAction, events, scanRadius, no
   }
 }
 
+/**
+ * Air in half-hearts (0-20) from the bot's own air_supply metadata. Not
+ * bot.oxygenLevel: mineflayer 4.39 sets that from any entity's air_supply,
+ * so a nearby squid (4800 ticks) reports 320. Full until the server sends it.
+ */
+function oxygenOf(bot: Bot): number {
+  const index = bot.registry.entitiesByName.player?.metadataKeys?.indexOf('air_supply') ?? 1
+  const air = (bot.entity.metadata as unknown[] | undefined)?.[index]
+  return typeof air === 'number' ? Math.max(0, Math.min(20, Math.round(air / 15))) : 20
+}
+
 function classify(entity: Entity): keyof StateCard['entities'] | null {
   if (entity.type === 'player') return 'players'
   if (entity.name === 'item') return 'items'
@@ -180,7 +139,12 @@ function classify(entity: Entity): keyof StateCard['entities'] | null {
 }
 
 function describeEntity(entity: Entity, from: Vec, distance: number): NearbyEntity {
-  const name = entity.type === 'player' ? (entity.username ?? 'player') : (entity.name ?? 'unknown')
+  const name =
+    entity.type === 'player'
+      ? (entity.username ?? 'player')
+      : entity.name === 'item'
+        ? (entity.getDroppedItem()?.name ?? 'item')
+        : (entity.name ?? 'unknown')
   const dx = entity.position.x - from.x
   const dz = entity.position.z - from.z
   return {
@@ -194,10 +158,10 @@ function describeEntity(entity: Entity, from: Vec, distance: number): NearbyEnti
 }
 
 /** Compass direction of (dx, dz) in Minecraft coordinates: -z is north, +x is east. */
-export function compass(dx: number, dz: number): string {
+export function compass(dx: number, dz: number): NearbyEntity['direction'] {
   if (Math.abs(dx) < 0.5 && Math.abs(dz) < 0.5) return 'here'
   const angle = (Math.atan2(dx, -dz) * 180) / Math.PI // 0 = north, 90 = east
-  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const
   return dirs[Math.round(((angle + 360) % 360) / 45) % 8]
 }
 
@@ -232,9 +196,9 @@ export function renderCard(card: StateCard): string {
     `world: ${card.world.phase} (t=${card.world.timeOfDay})` +
       (card.world.thundering ? ', thunderstorm' : card.world.raining ? ', raining' : ''),
   )
-  lines.push(`action: ${renderAction(card.action, 'none')}`)
+  lines.push(`action: ${renderAction(card.action, card.ts)}`)
   if (card.lastAction && card.lastAction.id !== card.action?.id) {
-    lines.push(`last action: ${renderAction(card.lastAction, 'none')}`)
+    lines.push(`last action: ${renderAction(card.lastAction, card.ts)}`)
   }
   const inv = card.inventory
   lines.push(
@@ -267,13 +231,18 @@ export function renderCard(card: StateCard): string {
   return lines.join('\n')
 }
 
-function renderAction(a: ActionStatus | null, empty: string): string {
-  if (!a) return empty
+function renderAction(a: ActionStatus | null, now: number): string {
+  if (!a) return 'none'
   const params = Object.entries(a.params)
     .map(([k, v]) => `${k}=${typeof v === 'string' && v.length > 60 ? v.slice(0, 60) + '…' : String(v)}`)
     .join(' ')
   let s = `${a.type} ${params} [${a.status}, ${(a.elapsedMs / 1000).toFixed(1)}s]`
-  if (a.progress && a.status === 'running') s += ` ${a.progress}`
+  if (a.status === 'running') {
+    if (a.progress) s += ` ${a.progress}`
+    if (a.distanceRemaining !== undefined) s += ` | ${a.distanceRemaining}m to go`
+    if (a.lastMovedAt !== undefined) s += ` | last moved ${((now - a.lastMovedAt) / 1000).toFixed(1)}s ago`
+    if (a.collected !== undefined) s += ` | collected ${a.collected}`
+  }
   if (a.error) s += ` error: ${a.error}`
   return s
 }
