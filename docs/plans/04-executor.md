@@ -53,8 +53,8 @@ agent plugs into the gym so every later change has a scoreboard.
   `recipes_for`, `lookup`, `run_goal`, and `stop`. Each tool is defined
   once and adapted for both the executor and MCP. The commit message includes
   a transcript of an MCP client driving the bot on the gym server.
-- A `gym/agents/executor` agent starts the body and runs `clyde run` on
-  `GYM_TASK`. `gym/bin/run --all --agent executor` runs all four gym tasks
+- A `gym/agents/executor` agent starts the body, waits for `GYM_READY`,
+  and runs `clyde run` on `GYM_TASK`. `gym/bin/run --all --agent executor` runs all four gym tasks
   three times each with two OpenAI models, a mid tier and a frontier tier.
   The scoreboard (pass rate, median time to pass, tokens and cost per task)
   is in the commit message and recorded in the roadmap so we can choose
@@ -76,7 +76,9 @@ On `main`: the body (slice 1) with `api/state.schema.json` and
 `harness/jev`, `harness/cmd/judge`; the gym (slice 2) with
 `harness/goal`, `api/goal.schema.json`, `gym/bin/run`, and the agent
 contract (an executable plus `GYM_TASK`, `MC_HOST`, `MC_PORT`,
-`MC_USERNAME`). Read the "As built" sections of 01, 02, and 03 first.
+`MC_USERNAME`, and `GYM_READY`: a file the runner creates once task setup
+has run, which agents wait for before acting). Goal predicates are keyed
+by kind, for example `until: {items: {item, count}}`. Read the "As built" sections of 01, 02, and 03 first.
 
 `lox/agent-harness` is ours (MIT since 8117cc9). If the executor needs a
 change there (a provider option, runner behaviour, a bug), do not fork or

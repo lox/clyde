@@ -179,7 +179,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 |---|-------|------|------------|
 | 0 | Bootstrap: repo, docs, setup, CI skeleton | this file | – |
 | 1 | Body v0: HTTP API, actions, eval, events, safety (done, `4f50deb`) | `01-body.md` | 0 |
-| 2 | Gym v0: Paper runner, world templates, tasks, scoreboard | `02-gym.md` | 0 |
+| 2 | Gym v0: Paper runner, world templates, tasks, scoreboard (done, `1a33297`) | `02-gym.md` | 0 |
 | 3 | Judge v0: contract, jev + replay backends, pre-checks, JSONL (done, `53778fc`) | `03-judge.md` | 0 |
 | 4 | Executor + MCP server | `04-executor.md` | 1, 2, 3 |
 | 5 | Skills: format, loader, gym gate, first five skills | `05-skills.md` | 4 |
@@ -229,6 +229,8 @@ choice and can be reversed by saying so.
   reconnect (default).
 - Gym observes the server over RCON, not through a second bot, and agents
   plug in as an executable plus environment variables (default).
+- CI regenerates the gym world template each run (about 25 s); no
+  actions/cache until gym runs get slow enough to matter (default).
 
 ## Open questions
 
