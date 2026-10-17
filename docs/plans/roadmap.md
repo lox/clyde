@@ -184,7 +184,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 2 | Gym v0: Paper runner, world templates, tasks, scoreboard (done, `1a33297`) | `02-gym.md` | 0 |
 | 3 | Judge v0: contract, jev + replay backends, pre-checks, JSONL (done, `53778fc`) | `03-judge.md` | 0 |
 | 4 | Executor + MCP server (done) | `04-executor.md` | 1, 2, 3 |
-| 5 | Skills: format, loader, gym gate, first five skills | `05-skills.md` | 4 |
+| 5 | Skills: format, loader, gym gate, first five skills, multi-step gym tasks | `05-skills.md` | 4 |
 | 6 | Planner + memory | `06-planner.md` | 4, 5 |
 | 7 | Production: proxy join, regions, kill switch, compose profile | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
@@ -214,7 +214,9 @@ choice and can be reversed by saying so.
   21 s and 22 s, goto-marker 8 s, place-crafting-table 3 s and 4 s,
   stock-chest 3 s and 4 s); Sol cost $0.0009–0.0013 per task, Astra
   $0.0055–0.0101. These tasks no longer separate models, so harder
-  multi-step tasks come before any change of model.
+  multi-step tasks come before any change of model. Slice 5 adds them
+  (for example logs → planks → crafting table → place), since skills need
+  tasks that one tool call cannot solve to show they help (default).
 - Executor outcomes are `succeeded`, `failed`, `interrupted`,
   `budget_exhausted`, and `cancelled` (the caller cancelled the run), and
   every run ends with `POST /stop` (default).
