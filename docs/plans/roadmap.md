@@ -185,7 +185,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 3 | Judge v0: contract, jev + replay backends, pre-checks, JSONL (done, `53778fc`) | `03-judge.md` | 0 |
 | 4 | Executor + MCP server (done) | `04-executor.md` | 1, 2, 3 |
 | 5 | Skills: loader, admission, five skills, multi-step gym tasks (done, `4c94e9a`) | `05-skills.md` | 4 |
-| 6 | Planner + memory (foundations shipped; integration/live demo in progress) | `06-planner.md` | 4, 5 |
+| 6 | Planner + memory (done, `a567305`) | `06-planner.md` | 4, 5 |
 | 7 | Production: proxy join, regions, kill switch, compose profile | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
 
@@ -247,6 +247,12 @@ choice and can be reversed by saying so.
 - The judge flags new chat only on the first tick that sees it; the executor
   reads chat it must answer from `GET /events`, not from judge interrupts
   (default).
+- Planner replies use a durable send intent: at-most-once send attempts,
+  not exactly-once delivery. A crash after intent can lose a reply. Restart
+  reconciles in-flight goals by live predicates, not by replaying side effects.
+- Planner-authored skills remain staged candidates. Operators explicitly
+  gate them on an isolated gym and promote through the shared skill Store;
+  ordinary play never resets a world or automatically promotes code.
 - No x-ray: the state card lists only blocks exposed to air, so Clyde knows
   what a player could see (default).
 - The chat kill switch latches until an op resumes it; slice 7 adds the
