@@ -1,0 +1,24 @@
+name: stock-chest
+template: mcbot
+timeout: 120s
+setup:
+  - forceload add -330 140 -290 165
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  # Flat 11x11 arena with an empty chest in front of the player.
+  - fill -315 78 146 -305 78 156 minecraft:grass_block
+  - fill -315 79 146 -305 85 156 minecraft:air
+  - setblock -307 79 151 minecraft:chest[facing=west]
+  - clear {player}
+  - give {player} minecraft:oak_log 8
+  - tp {player} -309.5 79 151.5 -90 0
+goal:
+  description: Put all 8 of your oak logs into the chest in front of you.
+  until:
+    delivered:
+      container: {x: -307, y: 79, z: 151}
+      item: minecraft:oak_log
+      count: 8

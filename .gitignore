@@ -9,3 +9,4 @@ memory/*.jsonl
 gym/runs/
 gym/server/
 .amp/
+gym/.bin/

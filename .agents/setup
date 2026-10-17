@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Orb setup for Clyde: Go, JDK, Paper gym server, body dependencies.
+# Orb setup for Clyde: Go, JDK, Paper gym server, body and gym agent dependencies.
 # Idempotent; safe to re-run. Tools go under ~/tools, the gym server under ~/paper.
 set -euo pipefail
 
 GO_VERSION=1.27.2
 JDK_MAJOR=25
-PAPER_VERSION=26.1.2
 
 TOOLS="$HOME/tools"
 mkdir -p "$TOOLS"
@@ -30,21 +29,15 @@ if ! grep -q 'tools/go/bin' "$HOME/.bashrc" 2>/dev/null; then
   echo 'export PATH="$HOME/tools/go/bin:$HOME/tools/jdk/bin:$PATH"' >> "$HOME/.bashrc"
 fi
 
-PAPER="$HOME/paper"
-mkdir -p "$PAPER"
-if [ ! -f "$PAPER/paper.jar" ]; then
-  echo "Downloading Paper $PAPER_VERSION"
-  url=$(curl -fsSL "https://fill.papermc.io/v3/projects/paper/versions/${PAPER_VERSION}/builds/latest" | jq -r '.downloads["server:default"].url')
-  curl -fsSL -o "$PAPER/paper.jar" "$url"
-fi
-echo "eula=true" > "$PAPER/eula.txt"
-if [ ! -f "$PAPER/server.properties" ]; then
-  cp "$(dirname "$0")/../gym/server.properties" "$PAPER/server.properties"
-fi
+# Downloads Paper and re-renders ~/paper/server.properties from
+# gym/server.properties on every run, so the two never drift.
+"$(dirname "$0")/../gym/bin/paper" install
 
 if [ -f "$(dirname "$0")/../body/package-lock.json" ]; then
   (cd "$(dirname "$0")/../body" && npm ci --no-audit --no-fund)
 fi
+
+(cd "$(dirname "$0")/../gym/agents" && npm ci --no-audit --no-fund)
 
 if [ -f "$(dirname "$0")/../harness/go.mod" ]; then
   (cd "$(dirname "$0")/../harness" && go mod download)

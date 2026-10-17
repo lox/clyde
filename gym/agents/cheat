@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Joins as MC_USERNAME, then satisfies the goal over RCON once the runner
+# signals GYM_READY: every task should pass. Stays online until stopped,
+# because items and position checks need the player online.
+set -euo pipefail
+dir=$(cd "$(dirname "$0")" && pwd)
+node "$dir/join.js" &
+"$dir/../.bin/gym" cheat
+wait

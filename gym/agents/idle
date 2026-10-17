@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Joins as MC_USERNAME and stands still: every task should fail at timeout.
+exec node "$(dirname "$0")/join.js"

@@ -1,0 +1,11 @@
+{
+  "name": "@clyde/gym-agents",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Built-in gym agents: a minimal mineflayer client that joins and stands still",
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "mineflayer": "4.39.0"
+  }
+}

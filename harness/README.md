@@ -9,6 +9,11 @@ what belongs here.
   loop, JSONL records, and the fixture eval. Questions live in
   `prompts/judge.yaml`.
 - `cmd/judge/`: the judge CLI.
+- `goal/`: goal types generated from `api/goal.schema.json` (`go generate
+  ./goal`) and the `until` predicate evaluator, with an RCON observer.
+- `rcon/`: minimal Minecraft RCON client.
+- `gym/`, `cmd/gym/`: the gym task runner behind `gym/bin/run`; see
+  `gym/tasks/README.md`.
 
 ## Judge
 

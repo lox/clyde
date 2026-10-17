@@ -1,0 +1,20 @@
+name: goto-marker
+template: mcbot
+timeout: 120s
+setup:
+  - forceload add -330 140 -290 165
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  # Gold pillar on natural terrain about 22 blocks uphill (west) of the start.
+  - fill -320 79 151 -320 81 151 minecraft:gold_block
+  - clear {player}
+  - tp {player} -296.5 76 151.5 90 0
+goal:
+  description: Walk to the gold pillar west of you and stand next to it.
+  until:
+    arrived:
+      at: {x: -317.5, y: 79, z: 151.5}
+      radius: 2
