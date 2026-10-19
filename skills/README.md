@@ -69,7 +69,11 @@ The local `<name>/.admission.json` receipt contains `sha256`, `passed_at`,
 and an `evidence` run path/detail. SHA256 covers each filename, NUL, decimal
 byte length, NUL, and contents, in order `skill.md`, `index.js`, `test.yaml`.
 Any edit invalidates admission immediately. Receipts are gitignored at
-**any root** and are not shipped; rerun gates after checkout or updates.
+**any root**, not committed. Rerun gates after checkout or updates; the
+private container build can consume a trusted exact-source receipt export
+from an isolated gym as described in `deploy/README.md`. `clyde skill verify
+--dir skills name...` checks admissions without running code or resetting
+a world and prints the admitted source digests; it never creates receipts.
 Discovery silently omits unadmitted/incomplete skills; execution returns a
 tool error for missing, invalid, or unadmitted names. Retesting an installed
 version revokes its old receipt even if the new run fails.

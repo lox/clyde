@@ -17,11 +17,11 @@ import (
 
 func skillCmd(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: clyde skill gate|promote [--dir skills] [--from candidates] name...")
+		return errors.New("usage: clyde skill gate|promote|verify [--dir skills] [--from candidates] name...")
 	}
 	verb := args[0]
 	fs := flag.NewFlagSet("clyde skill "+verb, flag.ContinueOnError)
-	dir := fs.String("dir", filepath.Join(repoRoot(), "skills"), "library to gate or promote into")
+	dir := fs.String("dir", filepath.Join(repoRoot(), "skills"), "library to gate, promote into, or verify")
 	from := fs.String("from", "", "separate already gated candidate library (promote only)")
 	snapshot := fs.String("snapshot", "", "frozen candidate run file (internal gym agent)")
 	bodyURL := fs.String("body", "http://127.0.0.1:7787", "candidate agent body URL")
@@ -62,7 +62,7 @@ func skillCmd(ctx context.Context, args []string) error {
 		}
 		return nil
 	}
-	if verb != "gate" && verb != "promote" {
+	if verb != "gate" && verb != "promote" && verb != "verify" {
 		return fmt.Errorf("unknown skill command %q", verb)
 	}
 	if fs.NArg() == 0 {
@@ -72,6 +72,14 @@ func skillCmd(ctx context.Context, args []string) error {
 	var results []gym.Result
 	var failures []error
 	for _, name := range fs.Args() {
+		if verb == "verify" {
+			k, err := store.Load(name)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("admitted %s sha256=%s\n", name, k.Digest)
+			continue
+		}
 		if verb == "promote" {
 			if *from == "" {
 				return errors.New("promote requires --from candidate-root")

@@ -46,7 +46,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if len(os.Args) < 2 || (os.Args[1] != "run" && os.Args[1] != "mcp" && os.Args[1] != "skill" && os.Args[1] != "serve") {
-		fmt.Fprintln(os.Stderr, "usage: clyde run --goal goal.json [flags] | clyde mcp [flags] | clyde serve [flags] | clyde skill gate|promote [flags] name...")
+		fmt.Fprintln(os.Stderr, "usage: clyde run --goal goal.json [flags] | clyde mcp [flags] | clyde serve [flags] | clyde skill gate|promote|verify [flags] name...")
 		os.Exit(2)
 	}
 	cmd, args := os.Args[1], os.Args[2:]
