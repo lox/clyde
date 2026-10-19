@@ -204,6 +204,10 @@ choice and can be reversed by saying so.
 - Slices 5 and 6 start together: slice 6 prepares planner/memory in separate
   files, then integrates after slice 5 ships its skill contract. No competing
   skill loader or concurrent edits to executor/CLI wiring (default).
+- Initial deployment: full planner/executor/judge/memory/skills on media-ovh,
+  one private opt-in service. Simplify operations, not bot intelligence
+  (chosen by Lachlan). Stop the whole service for a reliable initial kill
+  switch; chat-stop latching is deferred.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
@@ -255,9 +259,9 @@ choice and can be reversed by saying so.
   ordinary play never resets a world or automatically promotes code.
 - No x-ray: the state card lists only blocks exposed to air, so Clyde knows
   what a player could see (default).
-- The chat kill switch latches until an op resumes it; slice 7 adds the
-  latch and a resume command. Until then a stop lasts only until the next
-  action (default).
+- The chat kill switch currently stops only the action, not the scheduler.
+  A latched chat stop/resume is deferred beyond the initial attended launch;
+  stop the whole service when Clyde must stay stopped.
 - The body exits on disconnect and its supervisor restarts it; no in-process
   reconnect (default).
 - Gym observes the server over RCON, not through a second bot, and agents
