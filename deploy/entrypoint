@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Only child lifecycle glue; all planning remains in the existing clyde serve.
+set -euo pipefail
+body=''
+planner=''
+
+stop_child() {
+  local pid=$1 grace=$2 deadline
+  [ -n "$pid" ] || return 0
+  kill -TERM "$pid" 2>/dev/null || true
+  deadline=$((SECONDS + grace))
+  while kill -0 "$pid" 2>/dev/null; do
+    if ((SECONDS >= deadline)); then
+      echo "clyde-start: child $pid exceeded shutdown grace; killing" >&2
+      kill -KILL "$pid" 2>/dev/null || true
+      break
+    fi
+    sleep 0.1
+  done
+  wait "$pid" 2>/dev/null || true
+}
+cleanup() {
+  trap '' TERM INT
+  echo 'clyde-start: stopping planner before body' >&2
+  stop_child "$planner" 35
+  stop_child "$body" 5
+}
+trap cleanup EXIT
+trap 'exit 0' TERM INT
+
+# Never expose the trusted-code HTTP API, even through an accidental env override.
+export BODY_LISTEN_HOST=127.0.0.1 BODY_LISTEN_PORT=7777
+export CLYDE_BODY_URL=http://127.0.0.1:7777
+: "${TYPESAFE_API_KEY:?Jev requires TYPESAFE_API_KEY}"
+clyde skill verify collect-logs craft-item craft-place-table deposit-items eat-food
+
+node body/dist/index.js &
+body=$!
+ready=false
+for ((i=0; i<60; i++)); do
+  kill -0 "$body" 2>/dev/null || { echo 'clyde-start: body exited before ready' >&2; exit 1; }
+  if curl --fail --silent --max-time 1 "$CLYDE_BODY_URL/state" >/dev/null; then
+    ready=true
+    break
+  fi
+  sleep 1
+done
+$ready || { echo 'clyde-start: body readiness timed out' >&2; exit 1; }
+echo 'clyde-start: body ready; starting planner' >&2
+args=(serve --body "$CLYDE_BODY_URL" --judge jev)
+if [ -n "${CLYDE_RCON_ADDR:-}" ]; then
+  : "${GYM_RCON_PASSWORD:?CLYDE_RCON_ADDR requires GYM_RCON_PASSWORD}"
+  args+=(--rcon "$CLYDE_RCON_ADDR")
+fi
+clyde "${args[@]}" "$@" &
+planner=$!
+# An unexpected exit (even 0) of either child fails this unit. Never leave a
+# live body after planner failure, or a planner using a disconnected body.
+wait -n "$body" "$planner" || true
+echo 'clyde-start: a child exited; failing service' >&2
+exit 1

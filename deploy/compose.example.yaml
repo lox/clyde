@@ -1,0 +1,26 @@
+# Opt-in, private example. Host integration belongs to lox/selfhosted-ovh.
+services:
+  clyde:
+    image: ${CLYDE_IMAGE:?Set an immutable local image tag}
+    profiles: [clyde]
+    init: true
+    restart: "no"
+    stop_grace_period: 50s
+    env_file: [./clyde.private.env]
+    environment:
+      MC_HOST: minecraft-bonnie-bot-proxy
+      MC_PORT: "25565"
+      MC_USERNAME: Clyde
+      MC_AUTH: offline
+      CLYDE_RCON_ADDR: minecraft-bonnie:25575
+    volumes:
+      - clyde-memory:/opt/clyde/memory
+    networks: [minecraft_bonnie_net]
+    # Optional CLI budget overrides, not a second controller:
+    # command: [--max-autonomous, "10", --max-steps, "40", --max-time, 5m]
+    # No ports, HTTP MCP, Docker socket, or server.properties mount.
+volumes:
+  clyde-memory:
+networks:
+  minecraft_bonnie_net:
+    external: true

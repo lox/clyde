@@ -11,3 +11,5 @@ gym/server/
 gym/.bin/
 .admission.json
 memory/skill-candidates/
+/deploy/admissions/
+/deploy/clyde.private.env

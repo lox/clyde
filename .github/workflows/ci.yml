@@ -72,6 +72,20 @@ jobs:
       - name: model-free skill gates
         shell: bash
         run: gym/bin/gate-skills | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: package admitted runtime
+        shell: bash
+        run: |
+          deploy/export-admissions
+          docker build -f deploy/Dockerfile --build-arg CLYDE_REVISION="$GITHUB_SHA" -t clyde:ci .
+          docker run --rm --entrypoint clyde clyde:ci skill verify collect-logs craft-item craft-place-table deposit-items eat-food
+          # A fresh service must refuse a missing Jev key before joining anything.
+          set +e
+          output=$(docker run --rm clyde:ci 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" -eq 1
+          [[ "$output" == *"Jev requires TYPESAFE_API_KEY"* ]]
       - name: logs on failure
         if: failure()
         run: |

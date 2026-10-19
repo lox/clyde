@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Export only genuine receipts; source hashes are checked again in Docker build.
+set -euo pipefail
+root=$(cd "$(dirname "$0")/.." && pwd)
+cd "$root"
+if [ -n "$(git status --porcelain -- body harness api prompts skills deploy/Dockerfile deploy/entrypoint deploy/export-admissions .dockerignore)" ]; then
+  echo 'Commit runtime/build sources before exporting: revision.txt must identify the exact build.' >&2
+  exit 1
+fi
+mkdir -p gym/.bin
+(cd harness && go build -o ../gym/.bin/clyde ./cmd/clyde)
+names=(collect-logs craft-item craft-place-table deposit-items eat-food)
+gym/.bin/clyde skill verify "${names[@]}"
+# A new export replaces only this disposable generated build input.
+rm -rf deploy/admissions
+mkdir deploy/admissions
+git rev-parse HEAD > deploy/admissions/revision.txt
+for name in "${names[@]}"; do
+  mkdir "deploy/admissions/$name"
+  cp "skills/$name/.admission.json" "deploy/admissions/$name/"
+done
+echo 'Exported deploy/admissions (receipts and source revision only; no keys).'

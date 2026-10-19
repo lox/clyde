@@ -77,7 +77,8 @@ amp orb service restart clyde-planner
 SIGINT/SIGTERM cancels and joins the worker, stops the body and retains its
 queue. Stop the planner **before** stopping/restarting its body or Paper.
 Stopping only a body action is not a latched kill switch: the scheduler can
-start another action. Production latching belongs to slice 7.
+start another action. The initial private deployment stops the whole service
+as its reliable kill switch; chat latching is deferred. See `deploy/README.md`.
 
 `CLYDE_PLANNER_PROVIDER`, `CLYDE_PLANNER_MODEL`, `CLYDE_PLANNER_EFFORT` are
 independent of the executor variables above; both default to Sol 6.1, low.
