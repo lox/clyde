@@ -94,7 +94,7 @@ func (c *common) flags(fs *flag.FlagSet) {
 }
 
 // runGoal builds a fresh provider, observer, and judge, and runs g once.
-func (c *common) runGoal(ctx context.Context, g goal.Goal, log io.Writer) (executor.Outcome, error) {
+func (c *common) runGoal(ctx context.Context, g goal.Goal, intent executor.ExecutionContext, log io.Writer) (executor.Outcome, error) {
 	cfg := llm.ExecutorConfig()
 	provider, err := llm.New(cfg)
 	if err != nil {
@@ -111,7 +111,8 @@ func (c *common) runGoal(ctx context.Context, g goal.Goal, log io.Writer) (execu
 	}
 	o := executor.Options{
 		Provider: provider, Model: cfg.Model, Effort: cfg.Effort, System: string(system),
-		Body: client, SkillsDir: c.skillsDir, Player: card.Bot.Name,
+		Context: intent,
+		Body:    client, SkillsDir: c.skillsDir, Player: card.Bot.Name,
 		Observer: body.Observer{Client: client}, MaxSteps: c.maxSteps, MaxDuration: c.maxTime, Log: log,
 	}
 	if c.rconAddr != "" {
@@ -185,7 +186,7 @@ func runCmd(ctx context.Context, args []string) error {
 		return err
 	}
 	defer lease.Close()
-	out, err := c.runGoal(ctx, g, os.Stderr)
+	out, err := c.runGoal(ctx, g, executor.ExecutionContext{}, os.Stderr)
 	if err != nil {
 		return err
 	}
@@ -217,7 +218,7 @@ func mcpCmd(ctx context.Context, args []string) error {
 	tools := append(tb.Tools(),
 		mcp.StopTool(client),
 		mcp.RunGoalTool(func(ctx context.Context, g goal.Goal) (executor.Outcome, error) {
-			return c.runGoal(ctx, g, os.Stderr)
+			return c.runGoal(ctx, g, executor.ExecutionContext{}, os.Stderr)
 		}),
 	)
 	server := mcp.NewServer(version, tools)

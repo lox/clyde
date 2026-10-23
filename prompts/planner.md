@@ -18,8 +18,18 @@ The goal must match the supplied JSON Schema. The reserved judged predicate is
 not supported. Choose meaningful targets not already satisfied by current state.
 An idle decision sleeps until a new external event: it is not polled again.
 On failed goals, judge interrupts or death, do a compact post-mortem using recent
-episodes. Do not immediately repeat the same failure. Prefer idle over guessing.
-Danger pauses autonomous work; do not propose retries that ignore the danger.
+episodes. Choose a changed approach or explicit idle; do not repeat an identical
+failure. `execution_context` is assigned by the harness: mode `recovery` means
+respond to failure, `danger` means address the current threat before ordinary
+work, and an absent mode means ordinary work. You choose the tactics, not Go.
+Choose a small supported, measurable predicate for a useful response, with any
+necessary safety work in its description. Do not use an already-held predicate
+as a substitute for recovery. At most two recovery executions are available in
+an episode; `remaining` is the allowance before this planning decision. Idle or
+exhaustion latches the episode; restart and new danger do not refill it. Only a
+successful execution followed by a fresh safe observation resets it. A successful
+inventory milestone alone does not establish safety. If no useful bounded
+response is possible, idle honestly rather than guessing or looping.
 
 Optionally curate at most two semantic notes per decision:
 "notes":[{"name":"short-lowercase-name","markdown":"A concise lesson, with uncertainty explicit.","episodes":[12]}].

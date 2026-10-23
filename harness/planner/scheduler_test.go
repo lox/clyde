@@ -14,6 +14,7 @@ import (
 	"github.com/lox/clyde/harness/body"
 	"github.com/lox/clyde/harness/executor"
 	"github.com/lox/clyde/harness/goal"
+	"github.com/lox/clyde/harness/judge"
 	"github.com/lox/clyde/harness/memory"
 	"github.com/lox/clyde/harness/planner"
 )
@@ -153,7 +154,7 @@ func TestPlayerPreemptionWaitsForCleanupAndResumesAutonomous(t *testing.T) {
 	cleaning := make(chan string, 1)
 	cleanup := make(chan struct{})
 	var runs atomic.Int32
-	s.Execute = func(ctx context.Context, g goal.Goal) (executor.Outcome, error) {
+	s.Execute = func(ctx context.Context, g goal.Goal, _ executor.ExecutionContext) (executor.Outcome, error) {
 		w.enter()
 		defer w.leave()
 		started <- g.Description
@@ -208,7 +209,7 @@ func TestSlowAutonomousPlanningCancelledAndChatDeduplicatedAfterRestart(t *testi
 		}
 		return answer(`{"idle":true,"reply":"I cannot teleport players."}`)
 	}))
-	s := &planner.Scheduler{Memory: memoryStore, World: w, Plan: m.Plan, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }, Execute: func(context.Context, goal.Goal) (executor.Outcome, error) {
+	s := &planner.Scheduler{Memory: memoryStore, World: w, Plan: m.Plan, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }, Execute: func(context.Context, goal.Goal, executor.ExecutionContext) (executor.Outcome, error) {
 		t.Error("unexpected executor")
 		return executor.Outcome{}, nil
 	}}
@@ -270,7 +271,7 @@ func TestRestartReconcilesLivePredicatesBeforeResuming(t *testing.T) {
 		checked = append(checked, g.Description)
 		return g.Description == "held", nil
 	}
-	s.Execute = func(_ context.Context, g goal.Goal) (executor.Outcome, error) {
+	s.Execute = func(_ context.Context, g goal.Goal, _ executor.ExecutionContext) (executor.Outcome, error) {
 		mu.Lock()
 		defer mu.Unlock()
 		executed = append(executed, g.Description)
@@ -307,7 +308,7 @@ func TestRefusalIsTerminalBeforeChatSend(t *testing.T) {
 		Plan: func(context.Context, planner.Input) (planner.Decision, error) {
 			return planner.Decision{Idle: true, Reply: "I cannot teleport players."}, nil
 		},
-		Execute: func(context.Context, goal.Goal) (executor.Outcome, error) {
+		Execute: func(context.Context, goal.Goal, executor.ExecutionContext) (executor.Outcome, error) {
 			t.Error("refusal dispatched execution")
 			return executor.Outcome{}, nil
 		},
@@ -327,7 +328,7 @@ func TestRefusalIsTerminalBeforeChatSend(t *testing.T) {
 	stop()
 }
 
-func TestFailureAndDeathPostMortemsDoNotRetryLoop(t *testing.T) {
+func TestRecoveryAllowancePersistsWithoutNotificationRefill(t *testing.T) {
 	for _, event := range []string{"goal_failed", "death", "judge_interrupt"} {
 		t.Run(event, func(t *testing.T) {
 			w := newWorld()
@@ -339,7 +340,7 @@ func TestFailureAndDeathPostMortemsDoNotRetryLoop(t *testing.T) {
 				if in.Event == "idle" && event == "goal_failed" {
 					return planner.Decision{Goal: target("impossible", 99)}, nil
 				}
-				if in.Event == event {
+				if in.Context.Mode != "" {
 					// Sustained danger must not cancel its own post-mortem while
 					// it is waiting for a real (slow) model response.
 					select {
@@ -347,11 +348,11 @@ func TestFailureAndDeathPostMortemsDoNotRetryLoop(t *testing.T) {
 						return planner.Decision{}, ctx.Err()
 					case <-time.After(25 * time.Millisecond):
 					}
-					return planner.Decision{Goal: target("must not retry", 99), Notes: []planner.Note{{Name: "lesson", Markdown: "Do not repeat the failed attempt.", Episodes: []int64{in.Episodes[0].ID}}}}, nil
+					return planner.Decision{Goal: target("changed approach", 99), Notes: []planner.Note{{Name: "lesson", Markdown: "Do not repeat the failed attempt.", Episodes: []int64{in.Episodes[0].ID}}}}, nil
 				}
 				return planner.Decision{Idle: true}, nil
 			}
-			s.Execute = func(context.Context, goal.Goal) (executor.Outcome, error) {
+			s.Execute = func(context.Context, goal.Goal, executor.ExecutionContext) (executor.Outcome, error) {
 				runs.Add(1)
 				return executor.Outcome{Outcome: executor.Failed, Detail: "impossible"}, nil
 			}
@@ -365,14 +366,203 @@ func TestFailureAndDeathPostMortemsDoNotRetryLoop(t *testing.T) {
 			}
 			stop := start(t, s)
 			eventually(t, func() bool { v, err := store.Semantic(); return err == nil && strings.Contains(v, "Do not repeat") })
+			eventually(t, func() bool {
+				var c planner.Checkpoint
+				return store.Load(context.Background(), &c) == nil && c.Recovery != nil && c.Recovery.Closed && c.Recovery.Attempts == 2
+			})
 			before := plans.Load()
 			time.Sleep(60 * time.Millisecond)
 			stop()
-			if plans.Load() != before || runs.Load() > 1 {
+			wantRuns := int32(2)
+			if event == "goal_failed" {
+				wantRuns++
+			}
+			if plans.Load() != before || runs.Load() != wantRuns {
 				t.Fatalf("retry loop plans=%d before=%d runs=%d", plans.Load(), before, runs.Load())
 			}
-			if event != "goal_failed" && runs.Load() != 0 {
-				t.Fatal("danger/death triggered execution")
+			// Restart and fresh danger/death notifications cannot refill a closed
+			// episode or trigger another planning loop.
+			w.mu.Lock()
+			w.card.Bot.Health = 20
+			w.mu.Unlock()
+			stop2 := start(t, s)
+			time.Sleep(30 * time.Millisecond)
+			w.mu.Lock()
+			w.card.Bot.Health = 2
+			w.mu.Unlock()
+			w.event("death", "", "another death")
+			time.Sleep(50 * time.Millisecond)
+			stop2()
+			if plans.Load() != before || runs.Load() != wantRuns {
+				t.Fatalf("restart/notification refilled allowance: plans=%d runs=%d", plans.Load(), runs.Load())
+			}
+		})
+	}
+}
+
+func TestRecoveryCanChooseIdleOrChangedApproach(t *testing.T) {
+	for _, tc := range []struct {
+		name, mode string
+		idle       bool
+	}{
+		{"idle", "recovery", true},
+		{"changed approach", "recovery", false},
+		{"model-only danger", "danger", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w, store := newWorld(), testStore(t)
+			var runs, plans atomic.Int32
+			s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }}
+			s.Plan = func(_ context.Context, in planner.Input) (planner.Decision, error) {
+				plans.Add(1)
+				if in.Event == "idle" {
+					return planner.Decision{Goal: target("original", 99)}, nil
+				}
+				if in.Context.Mode == tc.mode {
+					if in.Context.Remaining != 2 {
+						t.Errorf("initial recovery remaining=%d", in.Context.Remaining)
+					}
+					if tc.idle {
+						return planner.Decision{Idle: true}, nil
+					}
+					return planner.Decision{Goal: target("changed", 4)}, nil
+				}
+				return planner.Decision{Idle: true}, nil
+			}
+			s.Execute = func(_ context.Context, g goal.Goal, intent executor.ExecutionContext) (executor.Outcome, error) {
+				runs.Add(1)
+				if g.Description == "original" {
+					if tc.mode == "danger" {
+						return executor.Outcome{Outcome: executor.Interrupted, Interrupt: &judge.Interrupt{Reason: "danger", Source: judge.SourceModel}}, nil
+					}
+					return executor.Outcome{Outcome: executor.Failed}, nil
+				}
+				if g.Description != "changed" || intent.Mode != tc.mode || intent.Remaining != 1 {
+					t.Errorf("unexpected recovery %v %+v", g, intent)
+				}
+				return executor.Outcome{Outcome: executor.Succeeded}, nil
+			}
+			stop := start(t, s)
+			eventually(t, func() bool {
+				var c planner.Checkpoint
+				wantPlans := int32(3)
+				if tc.idle {
+					wantPlans = 2
+				}
+				return store.Load(context.Background(), &c) == nil && c.Started && plans.Load() == wantPlans && len(c.Jobs) == 0
+			})
+			time.Sleep(40 * time.Millisecond)
+			stop()
+			var c planner.Checkpoint
+			if err := store.Load(context.Background(), &c); err != nil {
+				t.Fatal(err)
+			}
+			if tc.idle {
+				if runs.Load() != 1 || plans.Load() != 2 || c.Recovery == nil || !c.Recovery.Closed || c.Recovery.Attempts != 0 {
+					t.Fatalf("idle loop/refill runs=%d plans=%d state=%+v", runs.Load(), plans.Load(), c)
+				}
+			} else if runs.Load() != 2 || plans.Load() != 3 || c.Recovery != nil || c.AutoPaused {
+				t.Fatalf("changed recovery/reset runs=%d plans=%d state=%+v", runs.Load(), plans.Load(), c)
+			}
+		})
+	}
+}
+
+func TestRecoveryPreemptionPreservesChargedAllowance(t *testing.T) {
+	w, store := newWorld(), testStore(t)
+	cp := planner.Checkpoint{Started: true, AutoPaused: true, Recovery: &planner.RecoveryEpisode{Attempts: 1}, Jobs: []planner.Job{{ID: "recovery", Lane: "autonomous", Event: "goal_failed", PostMortem: true, Status: "queued", Goal: target("changed approach", 99), Context: executor.ExecutionContext{Mode: "recovery"}}}}
+	if err := store.Commit(context.Background(), cp, nil); err != nil {
+		t.Fatal(err)
+	}
+	started, cancelled := make(chan string, 1), make(chan string, 1)
+	var runs atomic.Int32
+	s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond,
+		Check: func(context.Context, goal.Goal) (bool, error) { return false, nil },
+		Plan: func(context.Context, planner.Input) (planner.Decision, error) {
+			return planner.Decision{Idle: true}, nil
+		},
+		Execute: func(ctx context.Context, _ goal.Goal, intent executor.ExecutionContext) (executor.Outcome, error) {
+			runs.Add(1)
+			if intent.Mode != "recovery" || intent.Remaining != 0 {
+				t.Errorf("lost recovery context: %+v", intent)
+			}
+			w.enter()
+			defer w.leave()
+			started <- "recovery"
+			<-ctx.Done()
+			cancelled <- "cleanup"
+			return executor.Outcome{Outcome: executor.Cancelled}, nil
+		},
+	}
+	stop := start(t, s)
+	await(t, started, "recovery")
+	w.mu.Lock()
+	w.card.Bot.Health = 2
+	w.mu.Unlock()
+	eventually(t, func() bool {
+		var c planner.Checkpoint
+		return store.Load(context.Background(), &c) == nil && c.Danger
+	})
+	select {
+	case <-cancelled:
+		t.Fatal("new danger deterministically cancelled its own recovery")
+	case <-time.After(100 * time.Millisecond):
+	}
+	w.event("whisper", "Alex", "please stop and reconsider")
+	await(t, cancelled, "cleanup")
+	eventually(t, func() bool {
+		var c planner.Checkpoint
+		return store.Load(context.Background(), &c) == nil && c.Recovery != nil && c.Recovery.Closed && c.Recovery.Attempts == 2 && len(c.Jobs) == 0
+	})
+	stop()
+	if runs.Load() != 1 || w.overlap || w.owners != 0 {
+		t.Fatalf("preemption refilled/laundered recovery or overlapped cleanup: runs=%d overlap=%v owners=%d", runs.Load(), w.overlap, w.owners)
+	}
+}
+
+func TestRestartChargesUnfinishedRecoveryAndSafePlayerSuccessResets(t *testing.T) {
+	for _, attempts := range []int{1, 2} {
+		t.Run(string(rune('0'+attempts)), func(t *testing.T) {
+			w, store := newWorld(), testStore(t)
+			cp := planner.Checkpoint{Started: true, AutoPaused: true, Recovery: &planner.RecoveryEpisode{Attempts: attempts}, Jobs: []planner.Job{{ID: "crashed", Lane: "autonomous", Event: "goal_failed", PostMortem: true, Status: "running", Goal: target("crashed", 99), Context: executor.ExecutionContext{Mode: "recovery"}}}}
+			if err := store.Commit(context.Background(), cp, nil); err != nil {
+				t.Fatal(err)
+			}
+			var runs, plans atomic.Int32
+			s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }}
+			s.Plan = func(_ context.Context, in planner.Input) (planner.Decision, error) {
+				plans.Add(1)
+				if in.Event == "goal_finished" {
+					return planner.Decision{Idle: true}, nil
+				}
+				return planner.Decision{Goal: target("new approach", 4)}, nil
+			}
+			s.Execute = func(_ context.Context, g goal.Goal, intent executor.ExecutionContext) (executor.Outcome, error) {
+				runs.Add(1)
+				if g.Description == "crashed" {
+					t.Error("replayed charged attempt")
+				}
+				if intent.Mode == "" {
+					return executor.Outcome{Outcome: executor.Succeeded}, nil
+				}
+				return executor.Outcome{Outcome: executor.Failed}, nil
+			}
+			stop := start(t, s)
+			eventually(t, func() bool {
+				var c planner.Checkpoint
+				return store.Load(context.Background(), &c) == nil && c.Recovery != nil && c.Recovery.Closed && c.Recovery.Attempts == 2
+			})
+			if runs.Load() != int32(2-attempts) || plans.Load() != int32(2-attempts) {
+				t.Fatalf("allowance replay/refill runs=%d plans=%d", runs.Load(), plans.Load())
+			}
+			w.event("whisper", "Alex", "make a useful safe item")
+			eventually(t, func() bool {
+				var c planner.Checkpoint
+				return store.Load(context.Background(), &c) == nil && c.Recovery == nil && len(c.Jobs) == 0
+			})
+			stop()
+			if runs.Load() != int32(3-attempts) {
+				t.Fatalf("safe player work did not execute: %d", runs.Load())
 			}
 		})
 	}

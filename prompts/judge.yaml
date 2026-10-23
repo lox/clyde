@@ -15,18 +15,29 @@ questions:
   danger:
     type: noul
     instructions: >-
-      The state is a Minecraft bot's state card. Is the bot in danger of
-      taking damage or dying within the next few seconds? Consider
+      The state is a Minecraft bot's state card. Does danger justify stopping
+      the current execution and replanning now? Consider
       `bot.health`, `bot.oxygen`, `bot.inLava`, `bot.inWater`, hostile mobs in
       `entities.hostiles` (with their `distance` in blocks), and damage in
-      recent `events`.
+      recent `events`. When `recovery` is present, answer whether the CURRENT
+      RECOVERY should stop and replan given its goal, action and observations,
+      not merely whether danger exists. Compare previous/current checks,
+      appeared/cleared conditions and `previous_card` when available. Damage
+      cause is unknown: a falling number alone does not establish that this
+      response failed. Continuing a known threat can be compatible with a
+      useful response. A new threat can warrant immediate interruption; judge
+      its relevance to this goal/action, not just its presence. No action yet
+      means the response is starting, not that it failed. Do not invent trends.
     criteria:
       "true": >-
         A hostile mob is close and threatening, the bot is burning, drowning,
-        falling, or in lava, or health is low and dropping.
+        falling, or in lava, or health is low and dropping. With
+        `recovery`, stopping this response is warranted by the observations,
+        for example a new threat makes its action ineffective or untenable.
       "false": >-
         Nothing nearby can hurt the bot soon; distant or absent hostiles,
-        healthy, on safe ground.
+        healthy, on safe ground. Or the current recovery remains useful despite
+        continuing danger or damage, even if health is critical.
 
   stuck:
     type: noul
@@ -60,13 +71,20 @@ questions:
       The state is a Minecraft bot's state card. Should whatever is driving
       the bot stop and replan right now, and if so, why? Pick the single most
       important reason. This is not a choice of what to do next.
+      When `recovery` is present, judge whether THIS recovery should stop given
+      its goal/action and preceding/current observations. Danger or a numeric
+      decrement alone is not a veto: assess whether replanning is warranted.
+      New threats may require immediate interruption. No action yet means the
+      response is starting, not failing. Stalled actions still need replanning.
     criteria:
       none: >-
         Keep going. The bot is safe, any running action is progressing, and
-        nobody is asking for anything.
+        nobody is asking for anything; or it is responding to known danger
+        with a still-useful recovery rather than a reason to stop/replan.
       danger: >-
         The bot is in danger: a hostile mob is close, health or oxygen is low,
-        or it is in lava or fire.
+        or it is in lava or fire. With `recovery`, the observations warrant
+        stopping THIS response and replanning, not merely reporting danger.
       stuck: >-
         The running action has stopped making progress or keeps failing.
       player_request: >-

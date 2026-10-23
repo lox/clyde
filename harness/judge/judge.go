@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/lox/clyde/harness/body"
+	"github.com/lox/clyde/harness/goal"
 )
 
 // Interrupt sources.
@@ -38,6 +39,7 @@ type Interrupt struct {
 type Record struct {
 	TS               time.Time           `json:"ts"`
 	Card             json.RawMessage     `json:"card,omitempty"`
+	Observation      json.RawMessage     `json:"observation,omitempty"` // exact backend input, including factual judge context
 	Prechecks        *Prechecks          `json:"prechecks,omitempty"`
 	Questions        map[string]Question `json:"questions,omitempty"`
 	Answers          map[string]Answer   `json:"answers,omitempty"`
@@ -46,6 +48,7 @@ type Record struct {
 	Backend          string              `json:"backend"`
 	Model            string              `json:"model,omitempty"`
 	LatencyMs        float64             `json:"latency_ms"`
+	StateMs          float64             `json:"state_ms"`
 	TickMs           float64             `json:"tick_ms"`
 	Usage            *Usage              `json:"usage,omitempty"`
 	CostUSD          float64             `json:"cost_usd"`
@@ -65,11 +68,21 @@ type Judge struct {
 	questions map[string]Question
 	cfg       Config
 	pre       *Prechecker
+	recovery  *goal.Goal
+	danger    Danger
+	previous  *body.Card
 }
 
 // New returns a judge with fresh pre-check state.
 func New(src Source, backend Backend, questions map[string]Question, cfg Config) *Judge {
 	return &Judge{src: src, backend: backend, questions: questions, cfg: cfg, pre: NewPrechecker(cfg.Prechecks)}
+}
+
+// Recovering leaves danger assessment to the active model for this goal.
+// Deterministic danger checks supply evidence, not a veto over their response.
+// The existing stall guard, caller cancellation and body safety still apply.
+func (j *Judge) Recovering(g goal.Goal, baseline Danger) {
+	j.recovery, j.danger = &g, baseline
 }
 
 // Tick runs one tick under the configured deadline. It returns io.EOF when
@@ -86,6 +99,7 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 	}
 
 	raw, err := j.src.Card(ctx)
+	rec.StateMs = ms(time.Since(start))
 	if errors.Is(err, io.EOF) {
 		return rec, io.EOF
 	}
@@ -102,8 +116,40 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 		rec.Interrupt = Interrupt{Reason: NoInterrupt, Source: SourceFallback, Detail: "undecodable state card"}
 		return finish()
 	}
+	previousCard := j.previous
+	if previousCard != nil && card.Ts < previousCard.Ts {
+		previousCard, j.danger = nil, nil
+	}
+	j.previous = &card
 	pre := j.pre.Check(card)
 	rec.Prechecks = &pre
+	// Observations stay judge-owned. Ordinary clients keep their raw card;
+	// recoveries additionally receive factual preceding observations.
+	if j.recovery != nil {
+		var observation map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &observation); err != nil {
+			return rec, err
+		}
+		current := dangers(pre)
+		previous := j.danger
+		j.danger = current
+		pre.Decision = ""
+		for _, c := range pre.Checks {
+			if c.Name == "stalled" && c.Fired {
+				pre.Decision = DecideStuck
+			}
+		}
+		observation["recovery"], _ = json.Marshal(map[string]any{
+			"goal": j.recovery, "previous": previous, "current": current,
+			"appeared": current.difference(previous), "cleared": previous.difference(current),
+			"previous_card": previousCard, "damage_cause": "unknown",
+		})
+		raw, err = json.Marshal(observation)
+		if err != nil {
+			return rec, err
+		}
+	}
+	rec.Observation = raw
 	if it, ok := FromPrechecks(pre); ok {
 		it.CardTS = int64(card.Ts)
 		rec.Interrupt = it
@@ -116,7 +162,7 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 	if err != nil {
 		rec.Error = "backend: " + err.Error()
 		rec.Timeout = errors.Is(err, context.DeadlineExceeded)
-		rec.Interrupt = Interrupt{CardTS: int64(card.Ts), Reason: NoInterrupt, Source: SourceFallback, Detail: "backend failed; pre-checks did not fire"}
+		rec.Interrupt = Interrupt{CardTS: int64(card.Ts), Reason: NoInterrupt, Source: SourceFallback, Detail: "backend failed; no deterministic interrupt"}
 		return finish()
 	}
 	rec.Model = res.Model

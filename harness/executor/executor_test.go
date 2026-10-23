@@ -204,6 +204,54 @@ func TestJudgeInterruptCancelsAndStops(t *testing.T) {
 	}
 }
 
+func TestRecoveryJudgeCanContinueOrInterruptFallingHealth(t *testing.T) {
+	for _, verdict := range []string{"none", "danger"} {
+		t.Run(verdict, func(t *testing.T) {
+			fb := &fakeBody{health: 3}
+			seen := make(chan struct{}, 1)
+			p := &scripted{delay: 20 * time.Millisecond, next: func(n int, _ harness.ChatParams) *harness.ChatResult {
+				select {
+				case <-seen:
+				case <-time.After(time.Second):
+					t.Error("recovery evidence never reached judge")
+				}
+				return toolCall(n, "act", `{"type":"collect","block":"oak_log","count":4}`)
+			}}
+			o := setup(t, fb, p)
+			o.Context = ExecutionContext{Mode: "recovery", Danger: judge.Danger{{Name: "low_health", Fired: true, Value: 5, Threshold: 6}}}
+			o.Judge = judge.New(judge.BodySource{URL: o.Body.URL}, recoveryBackend{reason: verdict, seen: seen}, nil, judge.DefaultConfig())
+			out, err := Run(context.Background(), fourLogs, o)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if verdict == "none" && out.Outcome != Succeeded {
+				t.Fatalf("falling health vetoed useful recovery: %+v", out)
+			}
+			if verdict == "danger" && (out.Outcome != Interrupted || out.Interrupt == nil || out.Interrupt.Source != judge.SourceModel || out.Interrupt.Reason != "danger") {
+				t.Fatalf("active recovery judge did not interrupt: %+v", out)
+			}
+			if _, stops := fb.snapshot(); stops != 1 {
+				t.Fatalf("cleanup stops=%d want 1", stops)
+			}
+		})
+	}
+}
+
+type recoveryBackend struct {
+	reason string
+	seen   chan struct{}
+}
+
+func (recoveryBackend) Name() string { return "scripted" }
+func (b recoveryBackend) Ask(context.Context, json.RawMessage, map[string]judge.Question) (judge.Result, error) {
+	select {
+	case b.seen <- struct{}{}:
+	default:
+	}
+	confidence := 1.0
+	return judge.Result{Answers: map[string]judge.Answer{"interrupt": {Type: "choice", Choice: b.reason, Confidence: &confidence}}}, nil
+}
+
 // unusedBackend fails if asked; pre-checks decide the tests that use it.
 type unusedBackend struct{}
 

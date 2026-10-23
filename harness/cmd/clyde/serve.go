@@ -109,7 +109,9 @@ func serveCmd(ctx context.Context, args []string) error {
 		return result.Satisfied, err
 	}
 	s := planner.Scheduler{Memory: store, World: client, Plan: p.Plan, Check: check, MaxAutonomous: *maxAuto, Log: os.Stderr,
-		Execute: func(ctx context.Context, g goal.Goal) (executor.Outcome, error) { return c.runGoal(ctx, g, os.Stderr) },
+		Execute: func(ctx context.Context, g goal.Goal, intent executor.ExecutionContext) (executor.Outcome, error) {
+			return c.runGoal(ctx, g, intent, os.Stderr)
+		},
 		SaveCandidate: func(ctx context.Context, k planner.Candidate) error {
 			path, err := stage.Save(ctx, k)
 			if err == nil {

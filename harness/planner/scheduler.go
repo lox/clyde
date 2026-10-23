@@ -29,28 +29,39 @@ type World interface {
 // Job is persisted before planning/execution. Interrupted autonomous goals keep
 // their typed predicate but get a fresh executor on resumption.
 type Job struct {
-	ID         string     `json:"id"`
-	Lane       string     `json:"lane"`
-	Event      string     `json:"event"`
-	Request    string     `json:"request,omitempty"`
-	Goal       *goal.Goal `json:"goal,omitempty"`
-	Status     string     `json:"status"` // queued, planning, running
-	Accepted   time.Time  `json:"accepted"`
-	ReplySent  bool       `json:"reply_sent"` // persisted send intent: see runbook crash window
-	PostMortem bool       `json:"post_mortem,omitempty"`
+	ID         string                    `json:"id"`
+	Lane       string                    `json:"lane"`
+	Event      string                    `json:"event"`
+	Request    string                    `json:"request,omitempty"`
+	Goal       *goal.Goal                `json:"goal,omitempty"`
+	Status     string                    `json:"status"` // queued, planning, running
+	Accepted   time.Time                 `json:"accepted"`
+	ReplySent  bool                      `json:"reply_sent"` // persisted send intent: see runbook crash window
+	PostMortem bool                      `json:"post_mortem,omitempty"`
+	Context    executor.ExecutionContext `json:"execution_context,omitempty"`
 }
+
+// RecoveryEpisode survives idle, exhaustion and restarts. Only a successful
+// execution followed by a safe observation resets it; notifications never do.
+type RecoveryEpisode struct {
+	Attempts int  `json:"attempts"`
+	Closed   bool `json:"closed"`
+}
+
+const maxRecovery = 2
 
 // Checkpoint is the durable queue and body-event high-water mark. Event IDs,
 // recorded atomically with this checkpoint, disambiguate body sequence resets.
 type Checkpoint struct {
-	Jobs           []Job  `json:"jobs"`
-	Cursor         int    `json:"cursor"`
-	CursorTS       int64  `json:"cursor_ts"`
-	Started        bool   `json:"started"`
-	Danger         bool   `json:"danger"`
-	AutoPaused     bool   `json:"auto_paused"`
-	NextID         uint64 `json:"next_id"`
-	AutonomousRuns int    `json:"autonomous_runs"`
+	Jobs           []Job            `json:"jobs"`
+	Cursor         int              `json:"cursor"`
+	CursorTS       int64            `json:"cursor_ts"`
+	Started        bool             `json:"started"`
+	Danger         bool             `json:"danger"`
+	AutoPaused     bool             `json:"auto_paused"`
+	NextID         uint64           `json:"next_id"`
+	AutonomousRuns int              `json:"autonomous_runs"`
+	Recovery       *RecoveryEpisode `json:"recovery,omitempty"`
 }
 
 // Scheduler owns one serve session. All state transitions happen in Run's
@@ -59,7 +70,7 @@ type Scheduler struct {
 	Memory        *memory.Store
 	World         World
 	Plan          func(context.Context, Input) (Decision, error)
-	Execute       func(context.Context, goal.Goal) (executor.Outcome, error)
+	Execute       func(context.Context, goal.Goal, executor.ExecutionContext) (executor.Outcome, error)
 	Check         func(context.Context, goal.Goal) (bool, error)
 	SaveCandidate func(context.Context, Candidate) error
 	PollInterval  time.Duration // body I/O only, never periodic model invocation
@@ -115,11 +126,29 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				if j.Lane == "autonomous" {
 					state.AutonomousRuns++
 				}
+				card, err := s.World.State(ctx)
+				if err != nil {
+					return err
+				}
+				if len(judge.Dangers(card, judge.DefaultConfig().Prechecks)) == 0 {
+					state.Recovery, state.AutoPaused = nil, false
+				}
 				state.Jobs = append(state.Jobs[:i], state.Jobs[i+1:]...)
-				s.enqueue(&state, "goal_finished", false)
+				if state.Recovery == nil {
+					s.enqueue(&state, "goal_finished", false)
+				} else {
+					s.recover(&state, "goal_finished")
+				}
 				if err := commit(e); err != nil {
 					return err
 				}
+				continue
+			}
+			if j.Context.Mode != "" {
+				// The attempt was charged before dispatch. A crash is not a free
+				// replay of that attempt, even when the predicate is unsatisfied.
+				state.Jobs = append(state.Jobs[:i], state.Jobs[i+1:]...)
+				s.recover(&state, "restart_interrupted")
 				continue
 			}
 		}
@@ -160,11 +189,12 @@ func (s *Scheduler) Run(ctx context.Context) error {
 		}
 		if activeID != "" {
 			j := findJob(&state, activeID)
-			if preempt == "" && (death || (state.Danger && !j.PostMortem) || (newPlayer && j.Lane == "autonomous")) {
+			dangerPreempt := state.Danger && j.Context.Mode == ""
+			if preempt == "" && (death || dangerPreempt || (newPlayer && j.Lane == "autonomous")) {
 				preempt = "player"
 				if death {
 					preempt = "death"
-				} else if state.Danger {
+				} else if dangerPreempt {
 					preempt = "danger"
 				}
 				cancelWork()
@@ -176,6 +206,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				j := &state.Jobs[idx]
 				if j.Goal != nil && j.Lane == "autonomous" && state.AutonomousRuns >= s.MaxAutonomous {
 					state.AutoPaused = true
+					removeJob(&state, j.ID)
 					if err := commit(memory.Episode{Kind: "budget", Detail: "autonomous session goal budget reached"}); err != nil {
 						return err
 					}
@@ -184,6 +215,32 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				phase := "planning"
 				if j.Goal != nil {
 					phase = "running"
+				}
+				if j.PostMortem || (j.Lane == "player" && state.Danger) {
+					if state.Recovery == nil {
+						state.Recovery = &RecoveryEpisode{}
+					}
+					j.Context = executor.ExecutionContext{Mode: "recovery", Cause: j.Event}
+					if state.Danger || j.Event == "danger" {
+						j.Context.Mode = "danger"
+						j.Context.Danger = judge.Dangers(card, judge.DefaultConfig().Prechecks)
+					}
+					j.Context.Remaining = maxRecovery - state.Recovery.Attempts
+				}
+				if phase == "running" && j.Context.Mode != "" {
+					if state.Recovery == nil {
+						state.Recovery = &RecoveryEpisode{}
+					}
+					if state.Recovery.Closed || state.Recovery.Attempts >= maxRecovery {
+						state.Recovery.Closed = true
+						removeJob(&state, j.ID)
+						if err := commit(memory.Episode{Kind: "recovery_exhausted", Detail: "recovery allowance unavailable; idle until successful safe player work"}); err != nil {
+							return err
+						}
+						continue
+					}
+					state.Recovery.Attempts++
+					j.Context.Remaining = maxRecovery - state.Recovery.Attempts
 				}
 				j.Status = phase
 				if err := commit(memory.Episode{Kind: phase, Detail: j.ID + ": " + j.Event + " " + j.Request}); err != nil {
@@ -204,7 +261,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 					if phase == "planning" {
 						r.decision, r.err = s.Plan(workCtx, in)
 					} else {
-						r.out, r.err = s.Execute(workCtx, *job.Goal)
+						r.out, r.err = s.Execute(workCtx, *job.Goal, job.Context)
 					}
 					results <- r
 				}()
@@ -223,6 +280,17 @@ func (s *Scheduler) Run(ctx context.Context) error {
 			if r.phase == "running" {
 				if err := s.stop(ctx); err != nil {
 					return err
+				}
+				// Success is not proof of safety (a recovery predicate may be a
+				// small inventory milestone). Reset only after a fresh observation.
+				if r.out.Outcome == executor.Succeeded && r.err == nil {
+					cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+					fresh, err := s.World.State(cctx)
+					cancel()
+					if err != nil {
+						return err
+					}
+					state.Danger = len(judge.Dangers(fresh, judge.DefaultConfig().Prechecks)) > 0
 				}
 			}
 			// Once a result is received, finish its durable transition even if
@@ -284,17 +352,28 @@ func (s *Scheduler) enqueue(st *Checkpoint, event string, postMortem bool) {
 	st.Jobs = append(st.Jobs, Job{ID: fmt.Sprintf("auto-%d", st.NextID), Lane: "autonomous", Event: event, Status: "queued", Accepted: time.Now().UTC(), PostMortem: postMortem})
 }
 
-func nextJob(st Checkpoint) int {
-	if st.Danger {
-		for i, j := range st.Jobs {
-			if j.PostMortem {
-				return i
-			}
-		}
-		return -1
+func (s *Scheduler) recover(st *Checkpoint, event string) {
+	st.AutoPaused = true
+	if st.Recovery == nil {
+		st.Recovery = &RecoveryEpisode{}
 	}
+	if st.Recovery.Attempts >= maxRecovery {
+		st.Recovery.Closed = true
+	}
+	if st.Recovery.Closed {
+		return
+	}
+	for _, j := range st.Jobs {
+		if j.PostMortem {
+			return
+		}
+	}
+	s.enqueue(st, event, true)
+}
+
+func nextJob(st Checkpoint) int {
 	for i, j := range st.Jobs {
-		if j.Lane == "player" {
+		if j.Lane == "player" && (!st.Danger || j.Goal == nil || j.Context.Mode != "") {
 			return i
 		}
 	}
@@ -303,8 +382,8 @@ func nextJob(st Checkpoint) int {
 			return i
 		}
 	}
-	for i, j := range st.Jobs {
-		if !st.AutoPaused || j.PostMortem {
+	for i := range st.Jobs {
+		if !st.Danger && !st.AutoPaused {
 			return i
 		}
 	}
@@ -343,7 +422,7 @@ func (s *Scheduler) input(ctx context.Context, j Job, card body.Card) (Input, er
 		return Input{}, err
 	}
 	b, err := json.Marshal(card)
-	return Input{Event: j.Event, Request: j.Request, State: string(b), Episodes: episodes, Places: places, Semantic: semantic}, err
+	return Input{Context: j.Context, Event: j.Event, Request: j.Request, State: string(b), Episodes: episodes, Places: places, Semantic: semantic}, err
 }
 
 func (s *Scheduler) poll(ctx context.Context, st *Checkpoint, card *body.Card) (newPlayer, death bool, err error) {
@@ -404,13 +483,11 @@ func (s *Scheduler) poll(ctx context.Context, st *Checkpoint, card *body.Card) (
 				continue
 			}
 			st.Jobs = append(st.Jobs, Job{ID: key, Lane: "player", Event: "player_request", Request: username + ": " + clip(message, 2000), Status: "queued", Accepted: time.Now().UTC()})
-			st.AutoPaused = false
 			newPlayer = true
 			eps = append(eps, memory.Episode{Kind: "request_accepted", Detail: key + ": " + clip(message, 2000)})
 		case "death":
 			death = true
-			st.AutoPaused = true
-			s.enqueue(st, "death", true)
+			s.recover(st, "death")
 			eps = append(eps, memory.Episode{Kind: "death", Detail: e.Text})
 		}
 	}
@@ -418,15 +495,12 @@ func (s *Scheduler) poll(ctx context.Context, st *Checkpoint, card *body.Card) (
 	if len(page.Events) > 0 {
 		st.CursorTS = page.Events[len(page.Events)-1].TS
 	}
-	pc := judge.NewPrechecker(judge.DefaultConfig().Prechecks)
-	danger := pc.Check(*card).Decision == judge.DecideDanger
+	danger := len(judge.Dangers(*card, judge.DefaultConfig().Prechecks)) > 0
 	if danger && !st.Danger {
-		st.AutoPaused = true
-		s.enqueue(st, "judge_interrupt", true)
-		eps = append(eps, memory.Episode{Kind: "danger", Detail: "code prechecks paused scheduling"})
+		s.recover(st, "judge_interrupt")
+		eps = append(eps, memory.Episode{Kind: "danger", Detail: "ordinary work preempted; bounded model response eligible"})
 	} else if !danger && st.Danger {
-		st.AutoPaused = false
-		eps = append(eps, memory.Episode{Kind: "danger_cleared", Detail: "live prechecks safe; queued goals eligible"})
+		eps = append(eps, memory.Episode{Kind: "danger_cleared", Detail: "live prechecks safe; allowance unchanged until successful execution"})
 	}
 	st.Danger = danger
 	if err = s.Memory.Commit(ctx, *st, eps, keys...); err != nil {
@@ -490,10 +564,12 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 			}
 			eps = append(eps, memory.Episode{Kind: kind, Detail: fmt.Sprintf("%s: %v (not admitted)", d.Candidate.Name, err)})
 		}
-		// Post-mortems curate lessons but cannot start another failure/retry loop.
-		if j.PostMortem {
+		// The model selects recovery or idle; the harness enforces the durable
+		// allowance, including player requests arriving in an exhausted episode.
+		if j.Context.Mode != "" && st.Recovery != nil && (st.Recovery.Closed || st.Recovery.Attempts >= maxRecovery) {
 			d.Goal = nil
 			d.Idle = true
+			d.Reply = "Recovery allowance is exhausted; I need successful safe work before another recovery episode."
 		}
 		j.Goal = d.Goal
 		j.Status = "queued"
@@ -503,6 +579,9 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 		}
 		job := *j
 		if d.Goal == nil {
+			if j.Context.Mode != "" && st.Recovery != nil {
+				st.Recovery.Closed = true
+			}
 			// Persist terminal idle/refusal along with send intent. A crash after
 			// chat must not make the answered request eligible for replanning.
 			eps = append(eps, memory.Episode{Kind: "idle", Detail: job.ID + ": " + d.Reply})
@@ -540,14 +619,22 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 				if lane == "autonomous" {
 					st.AutonomousRuns++
 				}
-				s.enqueue(st, "goal_finished", false)
+				if !st.Danger {
+					st.Recovery, st.AutoPaused = nil, false
+					eps = append(eps, memory.Episode{Kind: "recovery_reset", Detail: "successful execution and fresh safe observation"})
+					s.enqueue(st, "goal_finished", false)
+				} else {
+					s.recover(st, "goal_finished")
+				}
 			} else {
-				st.AutoPaused = true
 				event := "goal_failed"
 				if r.out.Interrupt != nil {
 					event = "judge_interrupt"
+					if r.out.Interrupt.Reason == "danger" {
+						event = "danger"
+					}
 				}
-				s.enqueue(st, event, true)
+				s.recover(st, event)
 			}
 		}
 	}

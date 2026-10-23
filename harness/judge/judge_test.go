@@ -10,7 +10,109 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/lox/clyde/harness/body"
+	"github.com/lox/clyde/harness/goal"
 )
+
+func TestRecoverySendsDangerChangesToModelAndRetainsStallGuard(t *testing.T) {
+	b, err := os.ReadFile("testdata/cards/low_health.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var initial body.Card
+	if err := json.Unmarshal(b, &initial); err != nil {
+		t.Fatal(err)
+	}
+	initial.Bot.Health = 5
+	cases := []struct {
+		name   string
+		change func(*body.Card)
+		want   string
+	}{
+		{"persistent", func(*body.Card) {}, "none"},
+		{"improving", func(c *body.Card) { c.Bot.Health = 6 }, "none"},
+		{"worsening", func(c *body.Card) { c.Bot.Health = 4 }, "none"},
+		{"new oxygen danger", func(c *body.Card) { c.Bot.Oxygen = 3 }, "none"},
+		{"new lava danger", func(c *body.Card) { c.Bot.InLava = true }, "none"},
+		{"new hostile", func(c *body.Card) {
+			c.Entities.Hostiles = []body.NearbyEntity{{Name: "zombie", Distance: 3, Direction: "N"}}
+		}, "none"},
+		{"stalled despite danger", func(c *body.Card) { c.Ts += 10_000 }, "stuck"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			start := initial
+			start.Action = &body.ActionStatus{ID: 1, Type: "eval", Status: "running", Params: map[string]any{}, StartedAt: start.Ts}
+			next := start
+			next.Ts += 500
+			tc.change(&next)
+			var fixtures []Fixture
+			for _, c := range []body.Card{start, next} {
+				raw, e := json.Marshal(c)
+				if e != nil {
+					t.Fatal(e)
+				}
+				fixtures = append(fixtures, Fixture{Card: raw})
+			}
+			backend := &slowBackend{}
+			j := New(&FixtureSource{Fixtures: fixtures}, backend, loadTestQuestions(t), DefaultConfig())
+			j.Recovering(goal.Goal{Description: "model-selected response"}, Dangers(start, DefaultConfig().Prechecks))
+			first, e := j.Tick(context.Background())
+			if e != nil || first.Interrupt.Reason != "none" {
+				t.Fatalf("first=%+v err=%v", first, e)
+			}
+			got, e := j.Tick(context.Background())
+			if e != nil || got.Interrupt.Reason != tc.want {
+				t.Fatalf("got=%+v err=%v want=%s", got, e, tc.want)
+			}
+			wantCalls := int32(2)
+			if tc.want == "stuck" {
+				wantCalls = 1
+			}
+			if backend.calls.Load() != wantCalls {
+				t.Fatalf("new evidence did not reach active judge: calls=%d", backend.calls.Load())
+			}
+			var observation struct {
+				Recovery struct {
+					Goal         goal.Goal  `json:"goal"`
+					Current      Danger     `json:"current"`
+					Appeared     Danger     `json:"appeared"`
+					PreviousCard *body.Card `json:"previous_card"`
+					DamageCause  string     `json:"damage_cause"`
+				} `json:"recovery"`
+			}
+			if err := json.Unmarshal(got.Observation, &observation); err != nil {
+				t.Fatal(err)
+			}
+			r := observation.Recovery
+			if r.Goal.Description != "model-selected response" || r.PreviousCard == nil || r.PreviousCard.Bot.Health != 5 || r.DamageCause != "unknown" || r.Current[0].Value != next.Bot.Health {
+				t.Fatalf("missing factual recovery context: %+v", r)
+			}
+			if strings.HasPrefix(tc.name, "new ") && len(r.Appeared) != 1 {
+				t.Fatalf("new threat omitted on its tick: %+v", r)
+			}
+		})
+	}
+	// Clearing and returning to a condition remains evidence for the model,
+	// not a new deterministic veto.
+	var fixtures []Fixture
+	for i, h := range []float64{5, 20, 5} {
+		c := initial
+		c.Ts += i * 500
+		c.Bot.Health = h
+		raw, _ := json.Marshal(c)
+		fixtures = append(fixtures, Fixture{Card: raw})
+	}
+	j := New(&FixtureSource{Fixtures: fixtures}, &slowBackend{}, loadTestQuestions(t), DefaultConfig())
+	j.Recovering(goal.Goal{Description: "model-selected response"}, Dangers(initial, DefaultConfig().Prechecks))
+	for i, want := range []string{"none", "none", "none"} {
+		rec, e := j.Tick(context.Background())
+		if e != nil || rec.Interrupt.Reason != want {
+			t.Fatalf("tick%d: %+v err=%v", i, rec, e)
+		}
+	}
+}
 
 func loadTestQuestions(t *testing.T) map[string]Question {
 	t.Helper()
@@ -217,7 +319,8 @@ func TestTickTimeoutFallsBack(t *testing.T) {
 	if rec.Interrupt.Reason != NoInterrupt || rec.Interrupt.Source != SourceFallback {
 		t.Fatalf("interrupt = %+v, want fallback none", rec.Interrupt)
 	}
-	if rec.LatencyMs < 45 || rec.Card == nil || rec.Prechecks == nil {
+	// The deadline covers observation/decoding too, not 50ms of backend time.
+	if rec.TickMs < 45 || rec.Card == nil || rec.Prechecks == nil {
 		t.Fatalf("record incomplete: %+v", rec)
 	}
 }

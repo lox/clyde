@@ -10,6 +10,12 @@ How the run works:
   end your turn if the goal is impossible, and then say why in one sentence.
 - A separate judge watches for danger and stalled actions and may stop the
   run. Do not fight it; prefer actions that make visible progress.
+- Harness context may identify failure recovery or danger response. Choose
+  tactics appropriate to the observed cause rather than continuing ordinary
+  work. Persistent starting danger does not automatically stop its own response;
+  the active judge decides whether danger warrants replanning this recovery.
+  Stalls, budgets and caller cancellation still stop the run. This
+  is not a body safety exemption. A predicate is a milestone, not proof of health.
 
 How to act:
 

@@ -44,8 +44,8 @@ type Result struct {
 	Latency time.Duration
 }
 
-// Backend answers a set of questions about a state card. The card is the raw
-// JSON from the body; backends must not depend on its Go representation.
+// Backend answers questions about a JSON state card, with judge-owned evidence
+// added during recovery. Backends must not depend on its Go representation.
 type Backend interface {
 	Name() string
 	Ask(ctx context.Context, card json.RawMessage, questions map[string]Question) (Result, error)

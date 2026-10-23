@@ -30,6 +30,15 @@ const (
 	Cancelled       = "cancelled"        // the caller cancelled the run
 )
 
+// ExecutionContext is harness-assigned intent, not model authority to bypass
+// safety. Its zero value is ordinary work, preserving run and MCP clients.
+type ExecutionContext struct {
+	Mode      string       `json:"mode,omitempty"` // empty, recovery, danger
+	Cause     string       `json:"cause,omitempty"`
+	Remaining int          `json:"remaining"`
+	Danger    judge.Danger `json:"danger,omitempty"`
+}
+
 // Options configures one run. Provider, Model, Body, Observer, and Player
 // are required.
 type Options struct {
@@ -37,6 +46,7 @@ type Options struct {
 	Model    string
 	Effort   string
 	System   string // system prompt, prompts/executor.md
+	Context  ExecutionContext
 
 	Body      *body.Client
 	SkillsDir string
@@ -172,6 +182,9 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 		}
 	})
 	if o.Judge != nil {
+		if o.Context.Mode != "" {
+			o.Judge.Recovering(g, o.Context.Danger)
+		}
 		jlog := o.JudgeLog
 		if jlog == nil {
 			jlog = io.Discard
@@ -191,6 +204,10 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 
 	user := fmt.Sprintf("Goal: %s\n\nDone when (checked automatically; the run ends as soon as it holds): %s\n\nCurrent state:\n%s",
 		g.Description, until, first)
+	if o.Context.Mode != "" {
+		intent, _ := json.Marshal(o.Context) // harness-owned finite check values
+		user += "\n\nHarness execution context: " + string(intent)
+	}
 	var usageMu sync.Mutex
 	logEvent := transcript(logw)
 	res, runErr := harness.Run(runCtx, o.Provider,

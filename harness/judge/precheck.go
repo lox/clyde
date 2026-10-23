@@ -78,6 +78,36 @@ func NewPrechecker(cfg PrecheckConfig) *Prechecker {
 	return &Prechecker{cfg: cfg}
 }
 
+// Danger is a factual snapshot of fired danger checks, not a recovery strategy.
+type Danger []Check
+
+// Dangers uses the same thresholds as the judge, without stall/idle policy.
+func Dangers(card body.Card, cfg PrecheckConfig) Danger {
+	return dangers(NewPrechecker(cfg).Check(card))
+}
+
+func dangers(pre Prechecks) Danger {
+	var out Danger
+	for _, c := range pre.Checks {
+		if c.Fired && c.Name != "stalled" && c.Name != "idle" {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// difference reports appeared/cleared conditions, without deciding whether
+// a recovery should stop. Numeric changes remain in the preceding/current checks.
+func (d Danger) difference(previous Danger) Danger {
+	var changed Danger
+	for _, c := range d {
+		if !slices.ContainsFunc(previous, func(p Check) bool { return c.Name == p.Name && c.Detail == p.Detail }) {
+			changed = append(changed, c)
+		}
+	}
+	return changed
+}
+
 // Check runs every pre-check against card. Times come from card.Ts (ms), so
 // fixture streams are deterministic. A card older than the previous one
 // resets the stream state.

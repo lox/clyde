@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	harness "github.com/lox/agent-harness"
+	"github.com/lox/clyde/harness/executor"
 	"github.com/lox/clyde/harness/goal"
 	"github.com/lox/clyde/harness/llm"
 	"github.com/lox/clyde/harness/memory"
@@ -36,12 +37,13 @@ func Config() llm.Config {
 
 // Input is bounded context for one event, not a retained executor conversation.
 type Input struct {
-	Event    string           `json:"event"`
-	Request  string           `json:"request,omitempty"`
-	State    string           `json:"state"`
-	Episodes []memory.Episode `json:"episodes"`
-	Places   []memory.Place   `json:"observed_places"`
-	Semantic string           `json:"semantic_untrusted"`
+	Context  executor.ExecutionContext `json:"execution_context"`
+	Event    string                    `json:"event"`
+	Request  string                    `json:"request,omitempty"`
+	State    string                    `json:"state"`
+	Episodes []memory.Episode          `json:"episodes"`
+	Places   []memory.Place            `json:"observed_places"`
+	Semantic string                    `json:"semantic_untrusted"`
 }
 
 // Note is a semantic update supported by existing episodic IDs.
