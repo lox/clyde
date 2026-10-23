@@ -96,9 +96,23 @@ player work. A player request cancels autonomous planning/execution, waits
 for cleanup and a confirmed body stop, then runs first. Suspended goals keep
 their original predicate and resume with a fresh executor, not the old
 conversation. Unsupported requests receive a bounded idle/refusal reply.
-Death/failure triggers one post-mortem without dispatching its proposed retry;
-failure pauses autonomy until a new player event. Code-detected danger blocks
-execution until live prechecks clear.
+Death/failure invokes a post-mortem that may choose a changed goal or idle.
+The harness permits at most **two recovery executions** per durable episode,
+charged before dispatch. Each retains the existing step/time limits. Idle,
+refusal or exhaustion closes the episode; no timer polls the model again.
+Restart, death notifications, new player requests and danger clearing/returning
+do not replenish it. Only successful execution followed by a fresh observation
+with no fired danger prechecks resets recovery and permits ordinary autonomy.
+Safe player work remains eligible while recovery is closed. A successful
+inventory milestone during danger is not proof of safety and does not reset it.
+
+Code-detected danger still preempts ordinary work. Recovery is not cancelled by
+the scheduler or judge merely because a danger check persists, appears or its
+number falls. Instead the active judge decides whether **this recovery** should
+stop/replan, using its goal/action and factual observations. It can immediately
+interrupt for a new threat; unchanged confidence handling, the deterministic
+stall guard, deadlines, player preemption and body safety remain in force.
+There are no Go-selected recovery tactics or grace-period thresholds.
 
 Defaults: `--memory memory/episodes.db`, `--semantic-dir memory/semantic`,
 `--candidates-dir memory/skill-candidates`, and `--planner-prompt
@@ -110,11 +124,16 @@ One local CLI controller owns each body URL and database via advisory locks;
 remote controllers/host aliases are still the operator's responsibility.
 
 Restart stops stale actions and checks running predicates against live state.
-Satisfied work is recorded; unsatisfied work is requeued. This cannot make
-arbitrary side effects idempotent. Reply intent is committed before sending:
-restart does not resend, but a crash before send can lose the reply. This is
-at-most-once send attempt, **not exactly-once delivery**. The bounded body
-event ring can lose events evicted during downtime; gaps are recorded.
+Satisfied work is recorded; unsatisfied ordinary work is requeued. An unfinished
+running recovery has already spent its attempt: restart does not replay it,
+but may plan another response within the remaining allowance. Player-preempted
+recovery retains its context and spends another attempt if executed again.
+Existing checkpoints without recovery fields decode as ordinary work; their
+existing pause and queue are retained, not silently reset on upgrade. This
+cannot make arbitrary side effects idempotent. Reply intent is committed before
+sending: restart does not resend, but a crash before send can lose the reply.
+This is at-most-once send attempt, **not exactly-once delivery**. The bounded
+body event ring can lose events evicted during downtime; gaps are recorded.
 
 Candidate proposals are immutable separate roots:
 `memory/skill-candidates/proposal-*/<name>/{skill.md,index.js,test.yaml}`.
@@ -138,6 +157,16 @@ Interrupts (reasons to stop and replan, never actions) print to stdout as
 JSON lines; every tick appends a record to `memory/judge.jsonl`. Any judge
 log, including `judge eval --log`, works as a `--replay` file: answers are
 matched by the card's `ts`.
+
+During recovery only, the judge adds `recovery` evidence: the typed goal,
+preceding/current fired checks, appeared/cleared checks and the preceding state
+card. The current card still supplies action/events. Damage cause is explicitly
+unknown; numeric change is evidence, not a deterministic cancellation rule.
+JSONL retains the original `card`, exact backend `observation`, answers and
+interrupt, plus `state_ms` timing at the existing observation boundary. Ordinary
+work receives the original raw card, without a global temporal history feature.
+State/backend failures remain logged gaps, not a survival guarantee; a judge
+outage does not substitute an any-damage cancellation policy for recovery.
 
 Thresholds, rate, and deadline default to the values in
 `judge/config.go`; override any of them with `--config file.yaml`, e.g.
