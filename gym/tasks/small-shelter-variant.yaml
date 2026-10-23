@@ -1,0 +1,49 @@
+name: small-shelter-variant
+template: mcbot
+timeout: 300s
+setup:
+  - forceload add -330 140 -290 170
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  - fill -320 78 144 -300 78 164 minecraft:grass_block
+  - fill -320 79 144 -300 89 164 minecraft:air
+  - fill -303 79 147 -303 82 147 minecraft:birch_log
+  - fill -306 79 161 -306 82 161 minecraft:birch_log
+  - fill -316 78 154 -314 78 156 minecraft:gold_block
+  - clear {player}
+  - tp {player} -310.5 79 151.5 -90 0
+goal:
+  description: 'Starting empty-handed, build a birch-plank shelter on the gold 3x3 footprint x=-316..-314, z=154..156. Put perimeter walls at y=79 and y=80, except leave a two-block-high doorway at x=-316,z=155 (west). Cover the entire 3x3 footprint with a birch-plank roof at y=81. Leave the central interior x=-315,z=155 empty at y=79 and y=80. Gather and craft the materials from nearby birch trunks.'
+  until:
+    built:
+      blocks:
+        - {pos: {x: -316, y: 79, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -315, y: 79, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 79, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 79, z: 155}, block: minecraft:birch_planks}
+        - {pos: {x: -316, y: 79, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -315, y: 79, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 79, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -316, y: 80, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -315, y: 80, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 80, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 80, z: 155}, block: minecraft:birch_planks}
+        - {pos: {x: -316, y: 80, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -315, y: 80, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 80, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -316, y: 81, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -315, y: 81, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 81, z: 154}, block: minecraft:birch_planks}
+        - {pos: {x: -316, y: 81, z: 155}, block: minecraft:birch_planks}
+        - {pos: {x: -315, y: 81, z: 155}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 81, z: 155}, block: minecraft:birch_planks}
+        - {pos: {x: -316, y: 81, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -315, y: 81, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -314, y: 81, z: 156}, block: minecraft:birch_planks}
+        - {pos: {x: -315, y: 79, z: 155}, block: minecraft:air}
+        - {pos: {x: -315, y: 80, z: 155}, block: minecraft:air}
+        - {pos: {x: -316, y: 79, z: 155}, block: minecraft:air}
+        - {pos: {x: -316, y: 80, z: 155}, block: minecraft:air}

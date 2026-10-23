@@ -1,0 +1,27 @@
+name: terrain-delivery-variant
+template: mcbot
+timeout: 300s
+setup:
+  - forceload add -330 140 -290 170
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  - fill -320 78 144 -300 78 164 minecraft:grass_block
+  - fill -320 79 144 -300 89 164 minecraft:air
+  - fill -307 79 155 -300 79 164 minecraft:grass_block
+  - fill -305 80 158 -300 80 164 minecraft:grass_block
+  - fill -302 81 162 -302 83 162 minecraft:oak_log
+  - fill -306 80 156 -306 82 156 minecraft:oak_log
+  - fill -320 79 144 -316 79 149 minecraft:grass_block
+  - setblock -318 80 146 minecraft:chest[facing=east]
+  - clear {player}
+  - tp {player} -312.5 79 153.5 -90 0
+goal:
+  description: Starting empty-handed, gather oak wood from the stepped hillside, craft sixteen oak planks, and deliver sixteen oak planks into the chest at (-318,80,146).
+  until:
+    delivered:
+      container: {x: -318, y: 80, z: 146}
+      item: minecraft:oak_planks
+      count: 16

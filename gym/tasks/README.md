@@ -94,6 +94,24 @@ with or without skills; one general eval may legitimately solve either.
 The scoreboard also reports total attempted skill calls; per-name counts
 live in each outcome/result JSON.
 
+The harder curriculum starts with empty inventory and a 300s limit:
+
+- `stone-pickaxe`: wood and exposed stone, with the final tool checked in
+  server inventory, not inferred from intermediate crafts.
+- `small-shelter`: 23 plank blocks (two-high walls and a complete roof),
+  plus four required air blocks for the interior and doorway. Extra inventory
+  or a filled-in entrance cannot satisfy construction.
+- `terrain-delivery`: gather wood across stepped terrain, craft sixteen
+  planks, then deliver them to an elevated chest.
+
+Each has a `-variant` fixture with changed resource species/positions and
+geometry (including a rotated shelter doorway). Keep variants out of the
+first tuning batch; `--all` includes them for checker controls and regression
+runs. Slice 9's matched model measurements and limitations live in
+[`09-capability-curriculum.md`](../../docs/plans/09-capability-curriculum.md).
+
 For candidate gates, admission and isolated world configuration, see
 [skills/README.md](../../skills/README.md). `gym/bin/gate-skills` runs all
 five deterministic gates without any model or API key and is a CI gate.
+Finish gates before model measurements: retesting installed skills temporarily
+withdraws their admission receipts, even when the gate uses another server.

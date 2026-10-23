@@ -1,0 +1,20 @@
+name: stone-pickaxe-variant
+template: mcbot
+timeout: 300s
+setup:
+  - forceload add -330 140 -290 170
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  - fill -320 78 144 -300 78 164 minecraft:grass_block
+  - fill -320 79 144 -300 88 164 minecraft:air
+  - fill -304 79 159 -304 83 159 minecraft:birch_log
+  - fill -318 79 146 -317 79 149 minecraft:stone
+  - clear {player}
+  - tp {player} -308.5 79 154.5 -90 0
+goal:
+  description: Starting empty-handed, obtain a stone pickaxe. Nearby birch wood and exposed stone are available; gather and craft what you need.
+  until:
+    items: {item: minecraft:stone_pickaxe, count: 1}

@@ -1,0 +1,49 @@
+name: small-shelter
+template: mcbot
+timeout: 300s
+setup:
+  - forceload add -330 140 -290 170
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  - fill -320 78 144 -300 78 164 minecraft:grass_block
+  - fill -320 79 144 -300 89 164 minecraft:air
+  - fill -317 79 147 -317 82 147 minecraft:oak_log
+  - fill -315 79 158 -315 82 158 minecraft:oak_log
+  - fill -307 78 150 -305 78 152 minecraft:gold_block
+  - clear {player}
+  - tp {player} -310.5 79 154.5 90 0
+goal:
+  description: 'Starting empty-handed, build an oak-plank shelter on the gold 3x3 footprint x=-307..-305, z=150..152. Put perimeter walls at y=79 and y=80, except leave a two-block-high doorway at x=-306,z=152 (south). Cover the entire 3x3 footprint with an oak-plank roof at y=81. Leave the central interior x=-306,z=151 empty at y=79 and y=80. Gather and craft the materials from nearby oak trunks.'
+  until:
+    built:
+      blocks:
+        - {pos: {x: -307, y: 79, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -306, y: 79, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 79, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -307, y: 79, z: 151}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 79, z: 151}, block: minecraft:oak_planks}
+        - {pos: {x: -307, y: 79, z: 152}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 79, z: 152}, block: minecraft:oak_planks}
+        - {pos: {x: -307, y: 80, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -306, y: 80, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 80, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -307, y: 80, z: 151}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 80, z: 151}, block: minecraft:oak_planks}
+        - {pos: {x: -307, y: 80, z: 152}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 80, z: 152}, block: minecraft:oak_planks}
+        - {pos: {x: -307, y: 81, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -306, y: 81, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 81, z: 150}, block: minecraft:oak_planks}
+        - {pos: {x: -307, y: 81, z: 151}, block: minecraft:oak_planks}
+        - {pos: {x: -306, y: 81, z: 151}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 81, z: 151}, block: minecraft:oak_planks}
+        - {pos: {x: -307, y: 81, z: 152}, block: minecraft:oak_planks}
+        - {pos: {x: -306, y: 81, z: 152}, block: minecraft:oak_planks}
+        - {pos: {x: -305, y: 81, z: 152}, block: minecraft:oak_planks}
+        - {pos: {x: -306, y: 79, z: 151}, block: minecraft:air}
+        - {pos: {x: -306, y: 80, z: 151}, block: minecraft:air}
+        - {pos: {x: -306, y: 79, z: 152}, block: minecraft:air}
+        - {pos: {x: -306, y: 80, z: 152}, block: minecraft:air}

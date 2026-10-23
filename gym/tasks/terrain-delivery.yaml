@@ -1,0 +1,27 @@
+name: terrain-delivery
+template: mcbot
+timeout: 300s
+setup:
+  - forceload add -330 140 -290 170
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  - fill -320 78 144 -300 78 164 minecraft:grass_block
+  - fill -320 79 144 -300 89 164 minecraft:air
+  - fill -318 79 145 -314 79 153 minecraft:grass_block
+  - fill -318 80 145 -316 80 151 minecraft:grass_block
+  - fill -317 81 147 -317 83 147 minecraft:birch_log
+  - fill -314 80 153 -314 82 153 minecraft:birch_log
+  - fill -305 79 157 -300 79 164 minecraft:grass_block
+  - setblock -302 80 161 minecraft:chest[facing=west]
+  - clear {player}
+  - tp {player} -310.5 79 154.5 90 0
+goal:
+  description: Starting empty-handed, gather birch wood from the stepped hillside, craft sixteen birch planks, and deliver sixteen birch planks into the chest at (-302,80,161).
+  until:
+    delivered:
+      container: {x: -302, y: 80, z: 161}
+      item: minecraft:birch_planks
+      count: 16
