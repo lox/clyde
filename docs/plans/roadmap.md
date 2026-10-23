@@ -193,7 +193,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 7 | Simple deployment: separate play world live; real iPad join pending | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
 | 9 | Harder gym curriculum and evidence-led capability improvements (done, `0787b89`) | `09-capability-curriculum.md` | 5, 6 |
-| 10 | Model-led recovery and judge evidence (in progress) | `10-model-led-recovery.md` | 6, 9 |
+| 10 | Model-led recovery and judge evidence (done, `b2755c1`) | `10-model-led-recovery.md` | 6, 9 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -235,6 +235,16 @@ choice and can be reversed by saying so.
   attempts, body safety and exclusive ownership in code. It also investigates
   factual temporal judge context before changing calibration. No hard-coded
   Minecraft recovery tactics or live deployment are part of this iteration.
+- Recovery iteration accepted at `b2755c1`, exact-head CI green and Oracle
+  recheck passed. Models can choose recovery/idle; recovery-specific danger
+  evidence goes to active Jev, not a deterministic persistent/worsening-danger
+  veto. Ordinary preemption, stall guard and body safety remain. Two durable
+  executions are charged before dispatch; restart/preemption/notifications do
+  not refill them. Idle/exhaustion latch; reset requires success and a fresh
+  code-safe observation, not proof of full recovery. Useful starvation action
+  passed but ended at health 1. Matched tasks were 18/18 before and 17/18
+  after; the late stone stall remains. Global temporal history was rejected
+  after regressions. No general capability/survival gain or live update claimed.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
