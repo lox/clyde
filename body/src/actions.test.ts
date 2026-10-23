@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
 import type { Bot } from 'mineflayer'
 import { Vec3 } from 'vec3'
 import { ActionRunner } from './actions.js'
@@ -10,7 +11,7 @@ import { Safety } from './safety.js'
 function setup() {
   const calls: string[] = []
   let pendingGoto: ((err: Error) => void) | undefined
-  const bot = {
+  const bot = Object.assign(new EventEmitter(), {
     registry: {},
     entity: { position: new Vec3(0, 64, 0) },
     players: { Bonnie: { entity: { position: new Vec3(5, 64, 0) } } },
@@ -29,11 +30,11 @@ function setup() {
     stopDigging: () => calls.push('stopDigging'),
     clearControlStates: () => calls.push('clearControlStates'),
     chat: (message: string) => calls.push(`chat ${message}`),
-  } as unknown as Bot
+  }) as unknown as Bot
   const events = new EventLog()
   const runner = new ActionRunner(bot, events, new Safety({ maxBreaksPerMin: 60, regions: [] }, events))
   const types = () => events.since(0).events.map((e) => `${e.type} #${e.data?.id ?? ''}`)
-  return { runner, events, calls, types }
+  return { runner, events, calls, types, bot }
 }
 
 function within<T>(ms: number, p: Promise<T>): Promise<T> {
@@ -144,6 +145,26 @@ test('a query runs beside the running action without aborting it', async () => {
   assert.equal(runner.currentStatus?.status, 'running')
   assert.deepEqual(types(), ['action.start #1'])
   assert.deepEqual(await runner.query('throw new Error("no such item")', 1000), { status: 'failed', error: 'no such item' })
+  runner.stop()
+})
+
+test('confirmed placements advance only their owning eval, not a subsequent action', async (t) => {
+  const { runner, bot } = setup()
+  t.after(() => runner.stop())
+  const placing = runner.start({ type: 'eval', code: 'bot.emit("blockPlaced"); await sleep(20); bot.emit("blockPlaced"); setTimeout(() => bot.emit("blockPlaced"), 60); await sleep(60000)' })
+  const first = runner.currentStatus?.progress
+  assert.ok(first, 'stationary placement must expose progress')
+  await new Promise((r) => setTimeout(r, 40))
+  assert.notEqual(runner.currentStatus?.progress, first, 'each confirmed placement advances progress')
+  const progress = runner.currentStatus?.progress
+  // An unrelated world notification has no action owner.
+  ;(bot as unknown as EventEmitter).emit('blockPlaced')
+  assert.equal(runner.currentStatus?.progress, progress)
+  const next = runner.start({ type: 'eval', code: 'await sleep(60000)' })
+  assert.equal((await placing.done).status, 'aborted')
+  await new Promise((r) => setTimeout(r, 80))
+  assert.equal(runner.currentStatus?.id, next.status.id)
+  assert.equal(runner.currentStatus?.progress, undefined, 'late placement must not refresh the next eval')
   runner.stop()
 })
 

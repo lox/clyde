@@ -11,6 +11,14 @@ import type { EventLog } from './events.js'
 import { runCode } from './eval.js'
 import type { Safety } from './safety.js'
 
+// mineflayer 4.39 emits this only after a server-confirmed placement, but
+// omits it from BotEvents.
+declare module 'mineflayer' {
+  interface BotEvents {
+    blockPlaced: (oldBlock: Block, newBlock: Block) => void
+  }
+}
+
 const { goals } = pathfinderPkg
 type Goal = Goals.Goal
 
@@ -45,14 +53,23 @@ const actionSignal = new AsyncLocalStorage<AbortSignal>()
  */
 export class ActionRunner {
   private nextId = 1
-  private current: { status: ActionStatus; controller: AbortController } | null = null
+  private current: { status: ActionStatus; controller: AbortController; placements: number } | null = null
   private last: ActionStatus | null = null
 
   constructor(
     private readonly bot: Bot,
     private readonly events: EventLog,
     private readonly safety: Safety,
-  ) {}
+  ) {
+    bot.on('blockPlaced', () => {
+      const owner = this.current
+      // A stationary eval can build for longer than the stall deadline.
+      // Count confirmed work, never an unrelated update or a stale action.
+      if (owner?.status.type === 'eval' && actionSignal.getStore() === owner.controller.signal) {
+        owner.status.progress = `placed ${++owner.placements} blocks`
+      }
+    })
+  }
 
   get currentStatus(): ActionStatus | null {
     if (!this.current) return null
@@ -102,7 +119,7 @@ export class ActionRunner {
 
     const controller = new AbortController()
     const status: ActionStatus = { id, type, params, status: 'running', startedAt: Date.now(), elapsedMs: 0 }
-    this.current = { status, controller }
+    this.current = { status, controller, placements: 0 }
     this.events.push('action.start', `#${id} ${type} ${describe(params)}`.trimEnd(), { id, type, params })
 
     const ctx: ActionContext = {
