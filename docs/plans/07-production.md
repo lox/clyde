@@ -37,10 +37,12 @@ boring and private, not a production-hardening project.
   to Clyde main with transcripts and image/build instructions.
 - The `lox/selfhosted-ovh` deployment thread adds the opt-in Compose service
   through that repo's PR flow, then runs it on media-ovh under Lachlan's
-  authorization. It must not restart Paper/public Velocity or unrelated
-  services. Clyde joins the private bot proxy, chats and completes one
-  modest non-destructive request. Record the result and real limitations;
-  no broad autonomous survival claim from one smoke test.
+  authorization. The final owner-selected target is a fresh separate play
+  world, not Bonnie: private direct Java, new world/memory/RCON, and Bedrock
+  Geyser/Floodgate access. Do not restart Bonnie/public Velocity or unrelated
+  services. Verify Clyde joins and completes one modest request. Record the
+  result and real limitations; owner iPad gameplay is a separate check, not
+  established by a signaling probe or console whisper.
 
 ## Starting point
 
@@ -123,15 +125,29 @@ the proxy; the bot does not need them.
   Docker's pattern matcher confirmed private files/local receipts excluded
   while source and exported receipts remain included. CI now builds the
   gated image and checks admission plus missing-Jev startup without secrets.
-- **Host acceptance remains:** this orb has Docker CLI but no daemon socket
-  or Compose plugin; it did not run containers. Local Node was 26.10.0,
-  whereas the image uses 24.15.0. The host owner must validate the actual
-  image/lifecycle/memory against disposable Paper before production startup.
-  Host preflight authenticated private `minecraft-bonnie:25575` RCON on
-  `minecraft_bonnie_net` (unpublished); supply its existing password as
-  `GYM_RCON_PASSWORD` in a 0600 env file, not a server.properties mount.
-  Host owns private proxy/whitelist, keys, Compose integration/PR and attended
-  modest real-world request; this source thread never deploys to Bonnie.
+- Host Docker/Compose acceptance passed on exact source `91348f47` and image
+  `sha256:de20f61423903e9ce95c5635fd0c1114b4aff702900b85d7d25c0432194ca551`:
+  Node 24/UID 1000, five admissions, real skill/full planner task, memory
+  restart without duplicate reply/new usage, TERM and both child-failure
+  shutdowns, plus pre-readiness/missing-key/stale-admission negatives.
+- Lachlan chose a separate persistent play world before interacting on
+  Bonnie. `lox/selfhosted-ovh` PR 11 merged at `1ea028ec`; the host started
+  only new `minecraft-clyde` and relocated `clyde`, with fresh world and
+  `clyde-play-memory`, private stable RCON file and native Geyser HTTPS/
+  NetherNet at `minecraft.loxflix.xyz:19134`. Paper 26.2 build 134 and pinned
+  ViaBackwards accept the unchanged 26.1 body. Copied TLS requires PKCS#8
+  and attended renewal before its 2027-01-15 expiry; recreate only the new
+  server after replacing file mounts. Host runbook is `docs/minecraft-clyde.md`
+  in selfhosted-ovh. Existing Bonnie/proxies/Traefik stayed unchanged.
+- Live autonomous gather-four was interrupted as stalled after one birch
+  log (server checked), not claimed successful. A genuine admin-console
+  whisper requested a table from that log: acknowledgement 3062ms, admitted
+  skill planks 678ms/table 650ms, independent RCON inventory 1/1 table.
+  Returned planner/executor usage snapshot was 28,458 tokens/$0.036456,
+  excluding total Jev/unknown billing and ongoing calls. The world and bot
+  were left running. External certificate-trusted signaling passed, but
+  **real owner iPad authentication/UDP gameplay remains unverified**. No
+  broad survival claim or production skill gates follow from these checks.
 
 ## Not in this slice
 

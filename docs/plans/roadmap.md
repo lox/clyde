@@ -142,12 +142,16 @@ run so slices and PRs can show numbers. Runs in CI and in orbs.
 
 ## Deployment (`deploy/`)
 
-Production target is Bonnie's server in `lox/selfhosted-ovh`. That repo only
-gains a compose service for Clyde and ViaBackwards on Paper; everything else
-is here.
+Initial live target is a separate persistent Clyde play world on media-ovh,
+configured in `lox/selfhosted-ovh` (PR 11). Lachlan chose to interact with
+Clyde there before considering Bonnie. Full Clyde connects directly to
+private offline Paper with ViaBackwards; Bedrock/iPad joins through that
+world's Geyser/Floodgate native HTTPS/NetherNet route on port 19134. World,
+memory and stable private RCON credentials are independent of Bonnie.
+Bonnie and its public proxies are not part of this rollout.
 
-Clyde joins without a Microsoft account. Design (accepted, implemented in a
-separate `selfhosted-ovh` thread):
+The previously implemented Bonnie route remains available for a later,
+separately approved deployment, without a Microsoft account:
 
 - Velocity proxy in front of Paper, `online-mode=true`, with Geyser-Velocity
   and Floodgate-Velocity for Bedrock players. Paper runs `online-mode=false`
@@ -186,8 +190,9 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 4 | Executor + MCP server (done) | `04-executor.md` | 1, 2, 3 |
 | 5 | Skills: loader, admission, five skills, multi-step gym tasks (done, `4c94e9a`) | `05-skills.md` | 4 |
 | 6 | Planner + memory (done, `a567305`) | `06-planner.md` | 4, 5 |
-| 7 | Production: proxy join, regions, kill switch, compose profile | `07-production.md` | 4 |
+| 7 | Simple deployment: separate play world live; real iPad join pending | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
+| 9 | Harder gym curriculum and evidence-led capability improvements (in progress) | `09-capability-curriculum.md` | 5, 6 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -208,6 +213,13 @@ choice and can be reversed by saying so.
   one private opt-in service. Simplify operations, not bot intelligence
   (chosen by Lachlan). Stop the whole service for a reliable initial kill
   switch; chat-stop latching is deferred.
+- Initial play takes place in a fresh separate persistent world, not Bonnie
+  (chosen by Lachlan). No protected regions are invented for this gathering/
+  building world. Host rollout and a console-requested crafting goal passed;
+  real owner iPad authentication/gameplay remains unverified. Improvements
+  now target harder isolated gym tasks, not more deployment hardening or
+  experiments on the live world. Judge distillation is deferred behind this
+  capability work; slice numbers do not require doing slice 8 first.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
