@@ -192,7 +192,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 6 | Planner + memory (done, `a567305`) | `06-planner.md` | 4, 5 |
 | 7 | Simple deployment: separate play world live; real iPad join pending | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
-| 9 | Harder gym curriculum and evidence-led capability improvements (in progress) | `09-capability-curriculum.md` | 5, 6 |
+| 9 | Harder gym curriculum and evidence-led capability improvements (done, `0787b89`) | `09-capability-curriculum.md` | 5, 6 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -220,6 +220,13 @@ choice and can be reversed by saying so.
   now target harder isolated gym tasks, not more deployment hardening or
   experiments on the live world. Judge distillation is deferred behind this
   capability work; slice numbers do not require doing slice 8 first.
+- First harder-gym iteration accepted at `0787b89`, CI green: revised
+  model-authored table crafting and body-owned confirmed-placement progress.
+  Base tasks remain 9/9, variants 8/9; pickaxe median 137s to 78s, shelter
+  76s to 89s. No general pass-rate or latency gain. The next bounded
+  investigation is stone targeting/navigation versus early judge judgement;
+  intermittent state-read deadlines and the historical live gather stall
+  remain unresolved. Live image/world were not updated by this slice.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
