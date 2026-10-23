@@ -193,6 +193,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 7 | Simple deployment: separate play world live; real iPad join pending | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
 | 9 | Harder gym curriculum and evidence-led capability improvements (done, `0787b89`) | `09-capability-curriculum.md` | 5, 6 |
+| 10 | Model-led recovery and judge evidence (in progress) | `10-model-led-recovery.md` | 6, 9 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -227,6 +228,13 @@ choice and can be reversed by saying so.
   investigation is stone targeting/navigation versus early judge judgement;
   intermittent state-read deadlines and the historical live gather stall
   remain unresolved. Live image/world were not updated by this slice.
+- Oracle review confirmed recent skill/body changes are correctly placed,
+  but identified scheduler policy that discards recovery goals and blocks
+  responses to persistent danger. Lachlan requested correction. Slice 10
+  moves choice of recovery/idle to the models while retaining durable bounded
+  attempts, body safety and exclusive ownership in code. It also investigates
+  factual temporal judge context before changing calibration. No hard-coded
+  Minecraft recovery tactics or live deployment are part of this iteration.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
