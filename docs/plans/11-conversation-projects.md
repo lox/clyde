@@ -152,8 +152,12 @@ implementation; that endorsement was not a source review.
   Jev, body safety, independent predicates and cleanup-before-new-owner remain.
   Preserve conversation does not refill/close recovery or clear its pause.
   Explicit recovery stop/post-mortem idle still closes it; only successful
-  execution plus fresh safe observation resets it. No global normal-Jev history
-  or numerical damage veto was introduced.
+  execution plus fresh safe observation resets it. Allowance admission happens
+  before cancellation, so a refused preserve goal leaves the charged executor
+  running. Explicit no-goal replacement closes the existing episode even when
+  the requesting player has ordinary context in a safe state. The dispatch-time
+  allowance guard remains. No global normal-Jev history or numerical damage
+  veto was introduced.
 
 The current operator contract, bounded planning and crash windows are in the
 [local runbook](../../harness/README.md). Full dialogue, supplied fixtures,
@@ -227,6 +231,14 @@ still notifications: the existing executor only cancels for danger/stuck.
 Auto-review's sequential ship-risk/simplicity pass and targeted recheck found
 and fixed crash-durable supersession, project-clear final reply suppression,
 and cancellation-time checkpoint restoration. No material finding remains.
+Coordinator source review subsequently found cancellation before allowance
+admission and a safe-state replacement-stop that left recovery open. Both
+regressions failed on the initial shipped code and pass after the narrow
+fix-forward. Tests hold execution two running during rejected preserve and
+explicit replace, and stop execution one while safe, then restart and process
+fresh danger/death without replanning, execution or allowance refill. No new
+provider experiment was needed; the matched model transcripts above describe
+the original measured build, not a rerun of this deterministic fix-forward.
 The body regression fails on unchanged code (chat replaces goto identity).
 Final `npm ci`, tests **23/23**, build and type generation passed. Harness
 `go build ./...`, `go test ./...`, `go vet ./...`, `go test -race ./...` and

@@ -737,55 +737,129 @@ func TestRecoveryCanChooseIdleOrChangedApproach(t *testing.T) {
 	}
 }
 
-func TestRecoveryPreemptionPreservesChargedAllowance(t *testing.T) {
-	w, store := newWorld(), testStore(t)
-	cp := planner.Checkpoint{Started: true, AutoPaused: true, Recovery: &planner.RecoveryEpisode{Attempts: 1}, Jobs: []planner.Job{{ID: "recovery", Lane: "autonomous", Event: "goal_failed", PostMortem: true, Status: "queued", Goal: target("changed approach", 99), Context: executor.ExecutionContext{Mode: "recovery"}}}}
-	if err := store.Commit(context.Background(), cp, nil); err != nil {
-		t.Fatal(err)
-	}
-	started, cancelled := make(chan string, 1), make(chan string, 1)
-	var runs atomic.Int32
-	s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond,
-		Check: func(context.Context, goal.Goal) (bool, error) { return false, nil },
-		Plan: func(context.Context, planner.Input) (planner.Decision, error) {
-			return planner.Decision{Idle: true, Work: "replace"}, nil
-		},
-		Execute: func(ctx context.Context, _ goal.Goal, intent executor.ExecutionContext) (executor.Outcome, error) {
-			runs.Add(1)
-			if intent.Mode != "recovery" || intent.Remaining != 0 {
-				t.Errorf("lost recovery context: %+v", intent)
+func TestRejectedPreserveDoesNotCancelChargedRecovery(t *testing.T) {
+	for _, work := range []string{"preserve", "replace"} {
+		t.Run(work, func(t *testing.T) {
+			w, store := newWorld(), testStore(t)
+			w.card.Bot.Health = 2
+			cp := planner.Checkpoint{Started: true, Danger: true, AutoPaused: true, Recovery: &planner.RecoveryEpisode{Attempts: 1}, Jobs: []planner.Job{{ID: "recovery", Lane: "autonomous", Status: "queued", PostMortem: true, Context: executor.ExecutionContext{Mode: "danger"}, Goal: target("recovery", 99)}}}
+			if err := store.Commit(context.Background(), cp, nil); err != nil {
+				t.Fatal(err)
 			}
-			w.enter()
-			defer w.leave()
-			started <- "recovery"
-			<-ctx.Done()
-			cancelled <- "cleanup"
-			return executor.Outcome{Outcome: executor.Cancelled}, nil
-		},
+			started := make(chan string, 1)
+			var runs, cancelled atomic.Int32
+			s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond,
+				Check: func(context.Context, goal.Goal) (bool, error) { return false, nil },
+				Plan: func(context.Context, planner.Input) (planner.Decision, error) {
+					return planner.Decision{Goal: target("new request", 4), Work: work}, nil
+				},
+				Execute: func(ctx context.Context, _ goal.Goal, _ executor.ExecutionContext) (executor.Outcome, error) {
+					runs.Add(1)
+					started <- "recovery"
+					<-ctx.Done()
+					cancelled.Add(1)
+					return executor.Outcome{Outcome: executor.Cancelled}, nil
+				},
+			}
+			stop := start(t, s)
+			await(t, started, "recovery")
+			w.event("whisper", "Alex", "try another task without discarding this one")
+			eventually(t, func() bool { return w.replyCount() == 1 })
+			if work == "replace" {
+				eventually(t, func() bool { return cancelled.Load() == 1 })
+			}
+			time.Sleep(40 * time.Millisecond)
+			var got planner.Checkpoint
+			if err := store.Load(context.Background(), &got); err != nil {
+				t.Fatal(err)
+			}
+			w.mu.Lock()
+			reply := w.replies[0]
+			w.mu.Unlock()
+			if !strings.Contains(reply, "Recovery allowance is exhausted") || got.Recovery == nil || got.Recovery.Attempts != 2 || runs.Load() != 1 {
+				t.Fatalf("invalid refusal/charge: reply=%q state=%+v runs=%d", reply, got, runs.Load())
+			}
+			if work == "preserve" && (cancelled.Load() != 0 || got.Recovery.Closed || len(got.Jobs) != 1 || got.Jobs[0].Status != "running") {
+				t.Fatalf("rejected preserve disturbed running recovery: cancelled=%d state=%+v", cancelled.Load(), got)
+			}
+			stop()
+		})
 	}
-	stop := start(t, s)
-	await(t, started, "recovery")
-	w.mu.Lock()
-	w.card.Bot.Health = 2
-	w.mu.Unlock()
-	eventually(t, func() bool {
-		var c planner.Checkpoint
-		return store.Load(context.Background(), &c) == nil && c.Danger
-	})
-	select {
-	case <-cancelled:
-		t.Fatal("new danger deterministically cancelled its own recovery")
-	case <-time.After(100 * time.Millisecond):
-	}
-	w.event("whisper", "Alex", "please stop and reconsider")
-	await(t, cancelled, "cleanup")
-	eventually(t, func() bool {
-		var c planner.Checkpoint
-		return store.Load(context.Background(), &c) == nil && c.Recovery != nil && c.Recovery.Closed && c.Recovery.Attempts == 2 && len(c.Jobs) == 0
-	})
-	stop()
-	if runs.Load() != 1 || w.overlap || w.owners != 0 {
-		t.Fatalf("preemption refilled/laundered recovery or overlapped cleanup: runs=%d overlap=%v owners=%d", runs.Load(), w.overlap, w.owners)
+}
+
+func TestRecoveryPreemptionPreservesChargedAllowance(t *testing.T) {
+	for _, attempts := range []int{0, 1} {
+		t.Run(string(rune('1'+attempts)), func(t *testing.T) {
+			w, store := newWorld(), testStore(t)
+			cp := planner.Checkpoint{Started: true, AutoPaused: true, Recovery: &planner.RecoveryEpisode{Attempts: attempts}, Jobs: []planner.Job{{ID: "recovery", Lane: "autonomous", Event: "goal_failed", PostMortem: true, Status: "queued", Goal: target("changed approach", 99), Context: executor.ExecutionContext{Mode: "recovery"}}}}
+			if err := store.Commit(context.Background(), cp, nil); err != nil {
+				t.Fatal(err)
+			}
+			started, cancelled := make(chan string, 1), make(chan string, 1)
+			var runs, plans atomic.Int32
+			s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond,
+				Check: func(context.Context, goal.Goal) (bool, error) { return false, nil },
+				Plan: func(context.Context, planner.Input) (planner.Decision, error) {
+					plans.Add(1)
+					return planner.Decision{Idle: true, Work: "replace"}, nil
+				},
+				Execute: func(ctx context.Context, _ goal.Goal, intent executor.ExecutionContext) (executor.Outcome, error) {
+					runs.Add(1)
+					if intent.Mode != "recovery" || intent.Remaining != 1-attempts {
+						t.Errorf("lost recovery context: %+v", intent)
+					}
+					w.enter()
+					defer w.leave()
+					started <- "recovery"
+					<-ctx.Done()
+					cancelled <- "cleanup"
+					return executor.Outcome{Outcome: executor.Cancelled}, nil
+				},
+			}
+			stop := start(t, s)
+			await(t, started, "recovery")
+			if attempts == 1 {
+				w.mu.Lock()
+				w.card.Bot.Health = 2
+				w.mu.Unlock()
+				eventually(t, func() bool {
+					var c planner.Checkpoint
+					return store.Load(context.Background(), &c) == nil && c.Danger
+				})
+				select {
+				case <-cancelled:
+					t.Fatal("new danger deterministically cancelled its own recovery")
+				case <-time.After(100 * time.Millisecond):
+				}
+			}
+			w.event("whisper", "Alex", "please stop and reconsider")
+			await(t, cancelled, "cleanup")
+			eventually(t, func() bool {
+				var c planner.Checkpoint
+				return store.Load(context.Background(), &c) == nil && c.Recovery != nil && c.Recovery.Closed && c.Recovery.Attempts == attempts+1 && len(c.Jobs) == 0
+			})
+			stop()
+			if runs.Load() != 1 || w.overlap || w.owners != 0 {
+				t.Fatalf("preemption refilled/laundered recovery or overlapped cleanup: runs=%d overlap=%v owners=%d", runs.Load(), w.overlap, w.owners)
+			}
+			stop2 := start(t, s)
+			w.mu.Lock()
+			w.card.Bot.Health = 2
+			w.mu.Unlock()
+			w.event("death", "", "another death")
+			eventually(t, func() bool {
+				var c planner.Checkpoint
+				return store.Load(context.Background(), &c) == nil && c.Cursor == 2 && c.Danger
+			})
+			stop2()
+			var got planner.Checkpoint
+			if err := store.Load(context.Background(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if plans.Load() != 1 || runs.Load() != 1 || got.Recovery == nil || !got.Recovery.Closed || got.Recovery.Attempts != attempts+1 {
+				t.Fatalf("restart/notification reopened stopped recovery: plans=%d runs=%d state=%+v", plans.Load(), runs.Load(), got)
+			}
+		})
 	}
 }
 

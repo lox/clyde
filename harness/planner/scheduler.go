@@ -370,6 +370,14 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				if r.revision != revision || preempt != "" {
 					stale = "control_changed"
 				}
+				// Admit the goal before deciding whether it needs the executor.
+				// A rejected preserve must not interrupt an already charged attempt.
+				j := findJob(&state, r.id)
+				if stale == "" && r.err == nil && r.decision.Goal != nil && j.Context.Mode != "" && state.Recovery != nil && (state.Recovery.Closed || state.Recovery.Attempts >= maxRecovery) {
+					r.decision.Goal = nil
+					r.decision.Idle = true
+					r.decision.Reply = "Recovery allowance is exhausted; I need successful safe work before another recovery episode."
+				}
 				if stale == "" && r.err == nil && (r.decision.Work == "replace" || r.decision.Goal != nil) && runID != "" {
 					preempt = "player"
 					if r.decision.Work == "replace" {
@@ -704,13 +712,6 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 			}
 			eps = append(eps, memory.Episode{Kind: kind, Detail: fmt.Sprintf("%s: %v (not admitted)", d.Candidate.Name, err)})
 		}
-		// The model selects recovery or idle; the harness enforces the durable
-		// allowance, including player requests arriving in an exhausted episode.
-		if d.Goal != nil && j.Context.Mode != "" && st.Recovery != nil && (st.Recovery.Closed || st.Recovery.Attempts >= maxRecovery) {
-			d.Goal = nil
-			d.Idle = true
-			d.Reply = "Recovery allowance is exhausted; I need successful safe work before another recovery episode."
-		}
 		j.Goal = d.Goal
 		j.Status = "queued"
 		hadProject := st.Project != nil
@@ -749,7 +750,7 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 			st.Jobs = kept
 		}
 		if d.Goal == nil {
-			if job.Context.Mode != "" && st.Recovery != nil && (job.PostMortem || d.Work == "replace") {
+			if st.Recovery != nil && (d.Work == "replace" || (job.Context.Mode != "" && job.PostMortem)) {
 				st.Recovery.Closed = true
 			}
 			// Persist terminal idle/refusal along with send intent. A crash after

@@ -126,6 +126,10 @@ charged before dispatch. Each retains the existing step/time limits. A recovery
 post-mortem choosing idle/refusal, explicit replacement-stop, or exhaustion
 closes the episode; ordinary preserve conversation does not. No timer polls
 the model again.
+Allowance admission precedes cancellation: a rejected new goal with preserve
+leaves an already charged recovery execution running. Explicit no-goal replace
+still cancels and closes the current episode even when the player request has
+ordinary execution context because live prechecks are safe.
 Restart, death notifications, new player requests and danger clearing/returning
 do not replenish it. Only successful execution followed by a fresh observation
 with no fired danger prechecks resets recovery and permits ordinary autonomy.
