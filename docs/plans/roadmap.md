@@ -194,6 +194,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
 | 9 | Harder gym curriculum and evidence-led capability improvements (done, `0787b89`) | `09-capability-curriculum.md` | 5, 6 |
 | 10 | Model-led recovery and judge evidence (done, `b2755c1`) | `10-model-led-recovery.md` | 6, 9 |
+| 11 | Multi-turn conversation and remembered projects (in progress) | `11-conversation-projects.md` | 6, 10 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -245,6 +246,13 @@ choice and can be reversed by saying so.
   passed but ended at health 1. Matched tasks were 18/18 before and 17/18
   after; the late stone stall remains. Global temporal history was rejected
   after regressions. No general capability/survival gain or live update claimed.
+- Defer semantic decisions to models wherever possible (explicitly requested
+  by Lachlan; recorded in `AGENTS.md`). Next slice makes multi-turn dialogue,
+  clarification and one remembered ongoing project first-class. Models choose
+  intent changes, intermediate goals, replies, memory and reusable procedures;
+  code persists context and enforces safety/ownership/limits/verification.
+  No keyword intent tree, scripted Minecraft plan, new agent service or
+  automatic skill promotion. Validate in isolated gyms before any live rollout.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.

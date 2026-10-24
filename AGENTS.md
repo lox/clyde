@@ -43,6 +43,27 @@ them.
 - Prefer small, boring code. The intelligence belongs to the models and the
   skill library.
 
+## Design principle: defer to models
+
+- Models own language understanding, conversational replies, clarification,
+  priorities, project decomposition, strategy, recovery and deciding what to
+  remember or turn into a skill. Prompts and model-authored skills are the
+  normal extension points for improving playing ability.
+- Code supplies accurate observations, tools, durable state, independent goal
+  verification and bounded execution. The body enforces hard safety; the
+  harness enforces ownership, cancellation, budgets and admission contracts.
+  These limits must not silently choose Minecraft tactics or override a
+  model's useful decision merely because the harness lacks a way to express it.
+- Do not add keyword intent handlers, scripted dialogue, task-specific plans,
+  hard-coded recovery tactics or benchmark exceptions to the harness. Simple
+  addressing/routing and factual signal processing are not semantic policy.
+  Before adding a heuristic, ask whether the model instead needs better
+  evidence, a clearer prompt, a tool or a tested reusable skill.
+- Deferring to models does not permit bypassing safety, fabricating progress,
+  trusting self-reported success, unbounded calls or automatic skill admission.
+  Evaluate changes on observed failures and matched gym tasks; retain negative
+  results rather than coding around a benchmark.
+
 ## Thread workflow
 
 - One coordinator thread owns the roadmap. It writes slice plans, creates one
