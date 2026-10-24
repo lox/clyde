@@ -58,7 +58,8 @@ combat reflexes, and hard safety limits.
   nearby notable blocks, entities classified hostile/passive/player, inventory,
   current action and its progress, recent events).
 - `POST /action`: one of `goto`, `follow`, `collect`, `dig`, `place`, `chat`,
-  `eval`, `stop`. A new action aborts the current one. Actions report progress
+  `eval`, `stop`. Chat sends beside current work and preserves its status;
+  other new actions abort the current one. Actions report progress
   deltas (distance remaining, items collected) rather than deciding they are
   stuck; the judge decides that.
 - `POST /eval`: run JavaScript against the bot with a timeout. This is
@@ -104,13 +105,21 @@ Clyde interactively during development.
 A frontier model invoked on events (goal finished, goal failed, player
 request, death, long idle), not on a cadence. It writes goals, maintains the
 curriculum, runs post-mortems on failures, authors and revises skills, and
-curates `memory/*.md`.
+curates `memory/*.md`. Bounded addressed dialogue and one durable model-owned
+project intent accompany goal context. A read-only planner call may answer
+beside the exclusive executor; the scheduler serializes accepted decisions.
+Models choose whether to preserve or replace work. Replacement waits for joined
+cleanup; stale decisions are discarded with bounded replanning. Project intent
+is not verified progress, and reply intents guarantee at-most-once attempts,
+not delivery.
 
 ### Priority lanes
 
-Two lanes feed the executor: `player` (chat instructions, danger) preempts
-`autonomous` (planner goals). A preempted autonomous goal is re-queued, not
-lost.
+Two lanes feed the executor: `player` work has priority over `autonomous`
+(planner goals). An addressed chat turn first goes to the model: conversation
+can preserve running work, a new goal can suspend it, and explicit replacement
+discards superseded work. Suspended goals are re-queued, not lost. Danger still
+preempts ordinary execution; bounded recovery uses its own judge context.
 
 ## Contracts (`api/`)
 
@@ -194,7 +203,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
 | 9 | Harder gym curriculum and evidence-led capability improvements (done, `0787b89`) | `09-capability-curriculum.md` | 5, 6 |
 | 10 | Model-led recovery and judge evidence (done, `b2755c1`) | `10-model-led-recovery.md` | 6, 9 |
-| 11 | Multi-turn conversation and remembered projects (in progress) | `11-conversation-projects.md` | 6, 10 |
+| 11 | Multi-turn conversation and remembered projects (done, `c2d7442`) | `11-conversation-projects.md` | 6, 10 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -247,12 +256,26 @@ choice and can be reversed by saying so.
   after; the late stone stall remains. Global temporal history was rejected
   after regressions. No general capability/survival gain or live update claimed.
 - Defer semantic decisions to models wherever possible (explicitly requested
-  by Lachlan; recorded in `AGENTS.md`). Next slice makes multi-turn dialogue,
+  by Lachlan; recorded in `AGENTS.md`). Slice 11 makes multi-turn dialogue,
   clarification and one remembered ongoing project first-class. Models choose
   intent changes, intermediate goals, replies, memory and reusable procedures;
   code persists context and enforces safety/ownership/limits/verification.
   No keyword intent tree, scripted Minecraft plan, new agent service or
   automatic skill promotion. Validate in isolated gyms before any live rollout.
+- Conversation iteration accepted at `c2d7442`, exact-head CI green and Oracle
+  recheck passed. A bounded read-only planner answers beside one exclusive executor; models preserve,
+  suspend or replace work and curate one durable project intent. Existing
+  clarification, goal chaining and semantic recall already worked. Matched
+  status latency was 32.838s to 3.101s; revision 43.464s to 9.542s. A separate
+  observed-motion probe replied in 2.553s without replacing its running action.
+  Both full arms verified supplies and preference recall through restart;
+  executor controls were 12/12 and skill gates 5/5 before and after. These are
+  bounded trials, not general latency or recall guarantees. The later recovery
+  admission/stop fixes have regression evidence, not rerun model measurements.
+  Reported usage including failures/exclusions was $2.112174484; unreturned
+  billing is unknown. Project intent is not a verified progress ledger; model/
+  context reliability remains the next bottleneck. No new skill was necessary
+  or promoted. The live image/world remain unchanged; rollout is separate.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
