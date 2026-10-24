@@ -272,7 +272,7 @@ func (j *NearbyEntity) UnmarshalJSON(value []byte) error {
 // GET /state: the one observation the rest of the system sees. Distances are in
 // blocks, times in epoch milliseconds unless named *Ms.
 type StateCard struct {
-	// The running action, or null when idle.
+	// The running exclusive action (never chat), or null when idle.
 	Action interface{} `json:"action"`
 
 	// Notable blocks within the scan radius, nearest first.
@@ -290,7 +290,7 @@ type StateCard struct {
 	// Inventory corresponds to the JSON schema field "inventory".
 	Inventory StateCardInventory `json:"inventory"`
 
-	// The most recently finished action, or null.
+	// The most recently finished exclusive action (never chat), or null.
 	LastAction interface{} `json:"lastAction"`
 
 	// When the card was built.

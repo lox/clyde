@@ -33,11 +33,11 @@ export interface StateCard {
     thundering: boolean
   }
   /**
-   * The running action, or null when idle.
+   * The running exclusive action (never chat), or null when idle.
    */
   action: ActionStatus | null
   /**
-   * The most recently finished action, or null.
+   * The most recently finished exclusive action (never chat), or null.
    */
   lastAction: ActionStatus | null
   inventory: {

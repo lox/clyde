@@ -6,6 +6,8 @@ import "encoding/json"
 import "fmt"
 import "unicode/utf8"
 
+// Send chat beside work. Returns its own final receipt; does not replace current
+// or last exclusive-action status.
 type ChatAction struct {
 	// Message corresponds to the JSON schema field "message".
 	Message string `json:"message"`

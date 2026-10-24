@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "action.schema.json",
   "title": "ActionRequest",
-  "description": "Body of POST /action. A new action aborts the running one.",
+  "description": "Body of POST /action. A new action aborts the running one, except immediate non-replacing chat.",
   "oneOf": [
     { "$ref": "#/definitions/GotoAction" },
     { "$ref": "#/definitions/FollowAction" },
@@ -82,6 +82,7 @@
     },
     "ChatAction": {
       "title": "ChatAction",
+      "description": "Send chat beside work. Returns its own final receipt; does not replace current or last exclusive-action status.",
       "type": "object",
       "additionalProperties": false,
       "required": ["type", "message"],

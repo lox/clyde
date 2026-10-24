@@ -287,6 +287,11 @@ func (tb *Toolbox) act(ctx context.Context, args json.RawMessage) (string, error
 	if err != nil {
 		return "", err
 	}
+	// Immediate non-replacing chat has its own receipt. It deliberately never
+	// occupies current/last exclusive-action state, so do not poll for it there.
+	if status.Status != "running" {
+		return statusJSON(status), nil
+	}
 	final, done, err := tb.waitAction(ctx, status.ID, seconds(wait))
 	if err != nil {
 		return "", err

@@ -46,21 +46,40 @@ test('a new action aborts the running one before it starts, and the abort is in 
   const first = runner.start({ type: 'eval', code: 'await sleep(60000); log("still running")' })
   calls.length = 0
 
-  const second = runner.start({ type: 'chat', message: 'hi' })
+  const second = runner.start({ type: 'eval', code: 'return 42' })
 
   // Synchronous: no await between the two starts and these checks.
   assert.deepEqual(types(), ['action.start #1', 'action.aborted #1', 'action.start #2'])
   assert.equal(runner.lastStatus?.id, 1)
   assert.equal(runner.lastStatus?.status, 'aborted')
-  assert.match(runner.lastStatus?.error ?? '', /superseded by chat #2/)
+  assert.match(runner.lastStatus?.error ?? '', /superseded by eval #2/)
   assert.deepEqual(calls.slice(0, 3), ['setGoal(null)', 'stopDigging', 'clearControlStates'])
 
   // The old action's promise settles within a tick (50 ms) and keeps its aborted status.
   const firstFinal = await within(50, first.done)
   assert.equal(firstFinal.status, 'aborted')
   assert.equal((await within(50, second.done)).status, 'succeeded')
-  assert.ok(calls.includes('chat hi'))
   assert.ok(!types().some((t) => t.startsWith('action.log')), 'aborted eval code must not keep running')
+})
+
+test('chat preserves moving work and the retained exclusive result, including after completion', async () => {
+  const { runner, calls, types } = setup()
+  const completed = await runner.start({ type: 'eval', code: 'return 7' }).done
+  const moving = runner.start({ type: 'goto', x: 20, y: 64, z: 3 })
+  calls.length = 0
+  const chat = runner.start({ type: 'chat', message: 'Still walking.' })
+  assert.equal(runner.currentStatus?.id, moving.status.id)
+  assert.equal(runner.lastStatus?.id, completed.id)
+  assert.equal(chat.status.status, 'succeeded')
+  assert.equal((await chat.done).id, chat.status.id)
+  assert.deepEqual(calls, ['chat Still walking.'])
+  assert.ok(!types().includes(`action.aborted #${moving.status.id}`))
+  runner.stop()
+  const ended = await moving.done
+  runner.start({ type: 'chat', message: 'Now stopped.' })
+  assert.equal(runner.currentStatus, null)
+  assert.equal(runner.lastStatus?.id, ended.id)
+  assert.equal(runner.lastStatus?.status, 'aborted')
 })
 
 test('an aborted action that finishes later does not overwrite its status or emit a second outcome', async () => {

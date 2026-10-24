@@ -1,7 +1,7 @@
 // Generated from api/action.schema.json by body/scripts/gen-types.mjs. Do not edit.
 
 /**
- * Body of POST /action. A new action aborts the running one.
+ * Body of POST /action. A new action aborts the running one, except immediate non-replacing chat.
  */
 export type ActionRequest =
   GotoAction | FollowAction | CollectAction | DigAction | PlaceAction | ChatAction | EvalAction | StopAction
@@ -52,6 +52,9 @@ export interface PlaceAction {
   y: number
   z: number
 }
+/**
+ * Send chat beside work. Returns its own final receipt; does not replace current or last exclusive-action status.
+ */
 export interface ChatAction {
   type: 'chat'
   message: string

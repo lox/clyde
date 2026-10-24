@@ -40,11 +40,11 @@
       }
     },
     "action": {
-      "description": "The running action, or null when idle.",
+      "description": "The running exclusive action (never chat), or null when idle.",
       "oneOf": [{ "$ref": "#/definitions/ActionStatus" }, { "type": "null" }]
     },
     "lastAction": {
-      "description": "The most recently finished action, or null.",
+      "description": "The most recently finished exclusive action (never chat), or null.",
       "oneOf": [{ "$ref": "#/definitions/ActionStatus" }, { "type": "null" }]
     },
     "inventory": {

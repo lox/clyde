@@ -47,9 +47,8 @@ const PROGRESS_INTERVAL_MS = 250
 const actionSignal = new AsyncLocalStorage<AbortSignal>()
 
 /**
- * Runs at most one action at a time. Starting a new action aborts the current
- * one synchronously, so the abort is in /events before the new action starts;
- * that is the harness's interrupt channel.
+ * Runs at most one world action at a time. Chat is an immediate send beside
+ * it; starting any other action aborts the current one synchronously.
  */
 export class ActionRunner {
   private nextId = 1
@@ -110,10 +109,21 @@ export class ActionRunner {
     return aborted
   }
 
-  /** Starts an action, aborting the running one. `done` settles with the final status. */
+  /** Starts an action (chat does not replace work). `done` settles with the final status. */
   start(request: RunnableAction): { status: ActionStatus; done: Promise<ActionStatus> } {
     const { type, ...params } = request
     const id = this.nextId++
+    if (request.type === 'chat') {
+      const status: ActionStatus = { id, type, params, status: 'running', startedAt: Date.now(), elapsedMs: 0 }
+      this.events.push('action.start', `#${id} chat`, { id, type, params })
+      try {
+        this.bot.chat(request.message)
+        this.finish(status, 'succeeded', { result: { sent: request.message } })
+      } catch (err) {
+        this.finish(status, 'failed', { error: err instanceof Error ? err.message : String(err) })
+      }
+      return { status: { ...status }, done: Promise.resolve({ ...status }) }
+    }
     this.abortCurrent(`superseded by ${type} #${id}`)
     this.halt()
 
@@ -196,7 +206,9 @@ export class ActionRunner {
         this.halt()
       }
     }
-    this.last = status
+    // Chat has its own HTTP receipt/events, but must not hide the retained
+    // exclusive-action result that an executor may still be polling.
+    if (status.type !== 'chat') this.last = status
     this.events.push(`action.${state}`, `#${status.id} ${status.type} ${state}${status.error ? `: ${status.error}` : ''}`, {
       id: status.id,
       type: status.type,
@@ -207,7 +219,7 @@ export class ActionRunner {
     return { ...status }
   }
 
-  private async run(request: RunnableAction, ctx: ActionContext): Promise<Record<string, unknown>> {
+  private async run(request: Exclude<RunnableAction, { type: 'chat' }>, ctx: ActionContext): Promise<Record<string, unknown>> {
     switch (request.type) {
       case 'goto':
         return goto(ctx, new Vec3(request.x, request.y, request.z), request.range ?? 1)
@@ -219,9 +231,6 @@ export class ActionRunner {
         return dig(ctx, new Vec3(request.x, request.y, request.z))
       case 'place':
         return place(ctx, request.item, new Vec3(request.x, request.y, request.z))
-      case 'chat':
-        ctx.bot.chat(request.message)
-        return { sent: request.message }
       case 'eval':
         return runCode(ctx, request.code, request.timeoutMs ?? 60_000)
       default: {

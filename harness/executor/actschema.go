@@ -81,7 +81,7 @@ func flattenActions(schemaJSON []byte) (json.RawMessage, string) {
 	if err != nil {
 		panic(err)
 	}
-	desc := "Start one body action. It replaces any running action. Waits until the action finishes or wait seconds pass, " +
+	desc := "Start one body action. Except chat, it replaces any running action. Chat returns an immediate separate receipt without replacing current or last work. Waits until the action finishes or wait seconds pass, " +
 		"then returns its final status (result or error) or its progress so far. Actions (? marks optional fields):\n" +
 		strings.Join(lines, "\n")
 	return b, desc
