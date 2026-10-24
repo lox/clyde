@@ -103,6 +103,54 @@ not Bonnie's live services, secret, identity or network.
   topology change. Bonnie and unrelated services must remain uninterrupted.
   Existing reliable bot stop is `docker compose stop clyde` on the host.
 
+## As built
+
+- Infrastructure [PR 13](https://github.com/lox/selfhosted-ovh/pull/13) merged
+  at `264158f30253a00c57f461c7ab2f2da4b878f903`; all three checks passed on
+  accepted head `dd761cb97fafb483deb06c5379747c67d86935aa`. The two Clyde-only
+  proxies are live: authenticated Java `minecraft.loxflix.xyz:25567`, preserved
+  Bedrock `minecraft.loxflix.xyz:19134`, same private Paper/world. All four
+  Clyde services were running, Paper/proxies healthy with zero restarts at
+  final host inspection. Only new host firewall rule is TCP25567.
+- Actual-artifact disposable acceptance passed direct-backend, public-offline,
+  wrong-secret and unwhitelisted rejection; private Clyde UUID and Via26.1 to
+  Paper26.2 translation; forwarded existing inventory/position; seven artifact
+  hashes, identity preservation and managed-only Spigot removal. Rollback
+  disabled persisted forwarding, restored the pinned backend plugins/HTTPS
+  and retained seven initial diamonds plus two post-migration emeralds without
+  world restore. Reapply preserved that progress. The UUID fixture never ran
+  live and does not prove Microsoft authentication.
+- Clean stops preceded verified whole-data (232 files) and whole-memory
+  (15 files) snapshots at `20261024T230526Z`; restored SQLite integrity passed.
+  Host cutover preserved world/playerdata, bot UUID/position/inventory,
+  1,611 historical episodes, 14 memory-file prefixes and seven substantive
+  places/home records. Observation timestamps refresh normally. The bot image
+  remains source `7700696`, image
+  `sha256:6ae9e5d7b862e42c6ba2ff75a9665bc4cb1789ea8bb2e191854f0660b819e4c5`.
+  Runtime comparison changed only `MC_HOST`; models/Jev/budgets/safety/memory
+  mount were unchanged. All 25 untargeted container baselines and private
+  identity/whitelist/TLS/RCON/provider inputs were preserved; Bonnie untouched.
+- Live negative auth tests passed, and independent coordinator orb probes
+  returned Java status `Clyde World`, protocol775/Velocity1.7.2–26.3 in831ms,
+  plus HTTPS `/v1/join` HTTP200 with default CA verification. The timed-out
+  host private-container public-IP hairpin probe did not reproduce externally.
+  These are status/signaling observations, not authenticated client gameplay.
+- A live admin-console observational whisper got one received/persisted model
+  reply matching independent RCON coordinates and empty inventory, then idle.
+  Recorded usage was 6,926 tokens/$0.0179135 and reply latency3,106ms: routing
+  about1ms, planning3,045ms, send61ms. No tuning or general latency gain claimed;
+  no startup replay/model usage. Disposable fixtures/resources were removed;
+  private backup data remains on the host, not in this repository.
+- **Deployment accepted; owner client acceptance pending.** Java username,
+  version and approved online UUID are not yet verified. Neither actual
+  authenticated owner Java join/gameplay nor real Bedrock auth/UDP/gameplay
+  has passed. Whitelist was not broadened. Ask the owner to connect and report
+  the exact error if rejected; do not turn synthetic tests into a login claim.
+  Detailed acceptance, backup checksums and rollback are retained in the
+  [host thread](https://ampcode.com/threads/T-01a14894-8624-72d8-af3c-2c59e8fb5d5b),
+  `.amp/in/artifacts/clyde-slice12-rollout.md`. Reliable bot stop remains
+  `docker compose stop clyde`; chat stop is not latched.
+
 ## Not in this slice
 
 New world, Bonnie deployment/changes, DNS changes, public offline Java or RCON,

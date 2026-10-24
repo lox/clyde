@@ -154,18 +154,20 @@ run so slices and PRs can show numbers. Runs in CI and in orbs.
 
 Initial live target is a separate persistent Clyde play world on media-ovh,
 configured in `lox/selfhosted-ovh` (PR 11). Lachlan chose to interact with
-Clyde there before considering Bonnie. Full Clyde connects directly to
-private offline Paper with ViaBackwards; Bedrock/iPad joins through that
-world's Geyser/Floodgate native HTTPS/NetherNet route on port 19134. World,
+Clyde there before considering Bonnie. Java players enter through authenticated
+Clyde-only Velocity at `minecraft.loxflix.xyz:25567`; Bedrock uses its
+Geyser/Floodgate native HTTPS/NetherNet route on port 19134. Full Clyde uses
+an unpublished offline bot proxy to private Paper with ViaBackwards. World,
 memory and stable private RCON credentials are independent of Bonnie.
 Bonnie and its public proxies are not part of this rollout.
 
 Clyde source `7700696` is deployed there through `lox/selfhosted-ovh` PR 12.
 The host verified the image, memory continuity and one live model reply;
 real owner client gameplay remains unverified. Lachlan uses Java Edition,
-not Bedrock. Slice 12 adds Clyde-only authenticated public and unpublished
-offline-bot Velocity proxies to the same world; until cutover, human access
-remains Bedrock-only. See slices 7/12 and the host stop/rollback runbook.
+not Bedrock. Slice 12's proxies are deployed through infrastructure PR 13;
+the same world, player identities and bot memory are preserved. Owner Java
+username/version and real client acceptance remain pending. See slices 7/12
+and the host stop/rollback runbook.
 
 The previously implemented Bonnie route remains available for a later,
 separately approved deployment, without a Microsoft account:
@@ -207,12 +209,12 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 4 | Executor + MCP server (done) | `04-executor.md` | 1, 2, 3 |
 | 5 | Skills: loader, admission, five skills, multi-step gym tasks (done, `4c94e9a`) | `05-skills.md` | 4 |
 | 6 | Planner + memory (done, `a567305`) | `06-planner.md` | 4, 5 |
-| 7 | Simple deployment: separate play world live; real iPad join pending | `07-production.md` | 4 |
+| 7 | Simple deployment: separate play world live; real client join pending | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
 | 9 | Harder gym curriculum and evidence-led capability improvements (done, `0787b89`) | `09-capability-curriculum.md` | 5, 6 |
 | 10 | Model-led recovery and judge evidence (done, `b2755c1`) | `10-model-led-recovery.md` | 6, 9 |
 | 11 | Multi-turn conversation and remembered projects (done, `c2d7442`) | `11-conversation-projects.md` | 6, 10 |
-| 12 | Authenticated Java access to the existing Clyde world (in progress) | `12-java-access.md` | 7 |
+| 12 | Authenticated Java access (deployed; owner login pending) | `12-java-access.md` | 7 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -306,6 +308,15 @@ choice and can be reversed by saying so.
   Bedrock identity/linking/TLS and bot image/settings. No Bonnie changes or
   direct public offline backend. Owner Java username/version and real client
   acceptance remain pending; server-side tests must not be called owner login.
+- Slice 12 deployed through infrastructure PR 13, merged at `264158f3`, all
+  checks green. Isolated auth/UUID/inventory/rollback matrix and live negative
+  auth tests passed; independent external Java status and trusted Bedrock HTTPS
+  passed. Stopped whole-data/memory snapshots preceded cutover. The host
+  verified bot identity/playerdata, all 1,611 historical episodes, memory files
+  and places retained; only the bot Minecraft host changed, not image/settings.
+  All 25 untargeted containers stayed unchanged, including Bonnie. Authenticated
+  owner Java join and real Bedrock gameplay remain unverified. Do not mark
+  client acceptance complete until an actual client joins.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
