@@ -23,8 +23,9 @@ decision changes; do not let it drift from the code.
 
 ## Non-goals (for now)
 
-- Microsoft-account authentication. Clyde joins as an offline-mode player
-  through a proxy we control (see Deployment).
+- Giving Clyde a Microsoft account. Clyde joins as an offline-mode player
+  through a proxy we control; human Java players authenticate normally
+  (see Deployment).
 - Training our own vision or policy models. Observations are symbolic (blocks,
   entities, inventory), not pixels.
 - Multi-agent play. One Clyde at a time until the single-agent loop is good.
@@ -161,8 +162,10 @@ Bonnie and its public proxies are not part of this rollout.
 
 Clyde source `7700696` is deployed there through `lox/selfhosted-ovh` PR 12.
 The host verified the image, memory continuity and one live model reply;
-real owner iPad authentication/UDP gameplay remains unverified. See slice 7
-for rollout evidence and the host runbook for stop/rollback procedures.
+real owner client gameplay remains unverified. Lachlan uses Java Edition,
+not Bedrock. Slice 12 adds Clyde-only authenticated public and unpublished
+offline-bot Velocity proxies to the same world; until cutover, human access
+remains Bedrock-only. See slices 7/12 and the host stop/rollback runbook.
 
 The previously implemented Bonnie route remains available for a later,
 separately approved deployment, without a Microsoft account:
@@ -209,6 +212,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 9 | Harder gym curriculum and evidence-led capability improvements (done, `0787b89`) | `09-capability-curriculum.md` | 5, 6 |
 | 10 | Model-led recovery and judge evidence (done, `b2755c1`) | `10-model-led-recovery.md` | 6, 9 |
 | 11 | Multi-turn conversation and remembered projects (done, `c2d7442`) | `11-conversation-projects.md` | 6, 10 |
+| 12 | Authenticated Java access to the existing Clyde world (in progress) | `12-java-access.md` | 7 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -293,6 +297,15 @@ choice and can be reversed by saying so.
   or silently changing models/budgets. Real owner iPad gameplay is still pending.
   Downgrade requires the old image and matching stopped whole-memory snapshot;
   do not run it against upgraded memory alone. Bonnie remains untouched.
+- Lachlan clarified he uses Java Edition and requested proxies like Bonnie's.
+  The existing world is already Java Paper; its human entrance was Bedrock-only,
+  not a demonstrated server failure. Slice 12 reuses the tested dual-Velocity
+  pattern with new Clyde-only services: authenticated Java TCP25567, existing
+  Bedrock TCP+UDP19134 on the public proxy, and an unpublished offline bot
+  proxy with modern forwarding. Preserve world/player UUIDs, memory, whitelist,
+  Bedrock identity/linking/TLS and bot image/settings. No Bonnie changes or
+  direct public offline backend. Owner Java username/version and real client
+  acceptance remain pending; server-side tests must not be called owner login.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
