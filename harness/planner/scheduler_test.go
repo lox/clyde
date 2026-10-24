@@ -57,9 +57,7 @@ func (w *world) Stop(context.Context) error { return nil }
 func (w *world) Action(_ context.Context, req any) (*body.ActionStatus, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.owners != 0 {
-		w.overlap = true
-	}
+	// Chat is not an exclusive world-action owner.
 	if w.onReply != nil {
 		w.onReply()
 	}
@@ -171,7 +169,7 @@ func TestPlayerPreemptionWaitsForCleanupAndResumesAutonomous(t *testing.T) {
 	w.event("chat", "Alex", "Clyde: collect three logs")
 	await(t, cleaning, "cleanup")
 	time.Sleep(30 * time.Millisecond)
-	if w.replyCount() != 0 || runs.Load() != 1 {
+	if runs.Load() != 1 {
 		t.Fatal("player work started before old owner finished cleanup")
 	}
 	close(cleanup)
@@ -254,6 +252,7 @@ func TestRestartReconcilesLivePredicatesBeforeResuming(t *testing.T) {
 	w := newWorld()
 	store := testStore(t)
 	state := planner.Checkpoint{Started: true, Jobs: []planner.Job{
+		{ID: "obsolete", Lane: "player", Status: "running", Superseded: true, Goal: target("must not replay", 99)},
 		{ID: "held", Lane: "player", Event: "player_request", Status: "running", ReplySent: true, Goal: target("held", 3)},
 		{ID: "unfinished", Lane: "autonomous", Event: "idle", Status: "running", Goal: target("unfinished", 7)},
 	}}
@@ -322,10 +321,280 @@ func TestRefusalIsTerminalBeforeChatSend(t *testing.T) {
 		if len(checkpoint.Jobs) != 0 {
 			t.Fatalf("answered refusal remains eligible for replanning: %+v", checkpoint.Jobs)
 		}
+		if len(checkpoint.Dialogue) != 2 || !checkpoint.Dialogue[1].ReplyIntent || checkpoint.Dialogue[1].Text != "I cannot teleport players." || checkpoint.Dialogue[0].RequestID != checkpoint.Dialogue[1].RequestID {
+			t.Fatalf("exact reply/identity not durable before send: %+v", checkpoint.Dialogue)
+		}
 	case <-time.After(4 * time.Second):
 		t.Fatal("no reply")
 	}
 	stop()
+}
+
+func TestConversationPreservesWorkUntilModelReplacesIt(t *testing.T) {
+	w, store := newWorld(), testStore(t)
+	initial := planner.Checkpoint{Started: true, Project: &planner.Project{Summary: "Alex prefers birch; workshop is ongoing", Request: "Alex: workshop"}, Jobs: []planner.Job{{ID: "travel", Lane: "player", Status: "queued", Goal: target("travel", 7)}}}
+	if err := store.Commit(context.Background(), initial, nil); err != nil {
+		t.Fatal(err)
+	}
+	started, cleaning := make(chan string, 3), make(chan string, 1)
+	cleanup := make(chan struct{})
+	var runs atomic.Int32
+	s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }}
+	s.Execute = func(ctx context.Context, g goal.Goal, _ executor.ExecutionContext) (executor.Outcome, error) {
+		w.enter()
+		defer w.leave()
+		runs.Add(1)
+		started <- g.Description
+		if g.Description == "travel" {
+			<-ctx.Done()
+			cleaning <- "cleanup"
+			<-cleanup
+			return executor.Outcome{Outcome: executor.Cancelled}, nil
+		}
+		return executor.Outcome{Outcome: executor.Succeeded}, nil
+	}
+	s.Plan = func(_ context.Context, in planner.Input) (planner.Decision, error) {
+		if in.Event != "player_request" {
+			return planner.Decision{Idle: true}, nil
+		}
+		if strings.HasPrefix(in.Request, "Alex:") {
+			if len(in.Work) != 1 || in.Work[0].Goal.Description != "travel" || in.Project == nil {
+				t.Errorf("missing work/project context: %+v", in)
+			}
+			return planner.Decision{Idle: true, Work: "preserve", Reply: "Which side of the workshop do you mean?"}, nil
+		}
+		if len(in.Dialogue) != 3 || in.Dialogue[0].Speaker != "Alex" || !in.Dialogue[1].ReplyIntent || in.Dialogue[2].Speaker != "Bob" || in.Dialogue[0].RequestID != in.Dialogue[1].RequestID {
+			t.Errorf("dialogue lost identity/order: %+v", in.Dialogue)
+		}
+		project := "Bob revised the workshop location; still use birch."
+		return planner.Decision{Goal: target("revised", 3), Work: "replace", Project: &project, Reply: "I will change the work."}, nil
+	}
+	stop := start(t, s)
+	await(t, started, "travel")
+	w.event("whisper", "Alex", "which side?")
+	eventually(t, func() bool { return w.replyCount() == 1 })
+	select {
+	case <-cleaning:
+		t.Fatal("clarification cancelled travel")
+	case <-time.After(35 * time.Millisecond):
+	}
+	w.event("whisper", "Bob", "use the other location instead")
+	await(t, cleaning, "cleanup")
+	eventually(t, func() bool { return w.replyCount() == 2 })
+	var replacing planner.Checkpoint
+	if err := store.Load(context.Background(), &replacing); err != nil {
+		t.Fatal(err)
+	}
+	for _, job := range replacing.Jobs {
+		if job.ID == "travel" && !job.Superseded {
+			t.Fatal("replacement cancellation intent was not durable before reply")
+		}
+	}
+	if runs.Load() != 1 {
+		t.Fatal("replacement overlapped cleanup")
+	}
+	close(cleanup)
+	await(t, started, "revised")
+	eventually(t, func() bool {
+		var c planner.Checkpoint
+		return store.Load(context.Background(), &c) == nil && len(c.Jobs) == 0
+	})
+	stop()
+	var c planner.Checkpoint
+	if err := store.Load(context.Background(), &c); err != nil {
+		t.Fatal(err)
+	}
+	if runs.Load() != 2 || w.overlap || c.Project == nil || !strings.Contains(c.Project.Request, "Bob:") || !strings.Contains(c.Project.Summary, "birch") {
+		t.Fatalf("lost replacement/ownership/project: runs=%d checkpoint=%+v", runs.Load(), c)
+	}
+}
+
+func TestStaleConversationDropsAllMutationsAndRefreshesOnce(t *testing.T) {
+	w, store := newWorld(), testStore(t)
+	cp := planner.Checkpoint{Started: true, Project: &planner.Project{Summary: "original intent"}, Jobs: []planner.Job{{ID: "work", Lane: "player", Status: "queued", Goal: target("original", 1)}}}
+	if err := store.Commit(context.Background(), cp, nil); err != nil {
+		t.Fatal(err)
+	}
+	working, planning := make(chan string, 1), make(chan string, 1)
+	complete, release := make(chan struct{}), make(chan struct{})
+	var plans, runs atomic.Int32
+	s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }}
+	s.Execute = func(ctx context.Context, _ goal.Goal, _ executor.ExecutionContext) (executor.Outcome, error) {
+		runs.Add(1)
+		working <- "work"
+		select {
+		case <-complete:
+			return executor.Outcome{Outcome: executor.Succeeded}, nil
+		case <-ctx.Done():
+			return executor.Outcome{Outcome: executor.Cancelled}, nil
+		}
+	}
+	s.Plan = func(_ context.Context, in planner.Input) (planner.Decision, error) {
+		if in.Event != "player_request" {
+			return planner.Decision{Idle: true}, nil
+		}
+		if plans.Add(1) == 1 {
+			planning <- "planning"
+			<-release // deliberately returns a late, otherwise valid decision
+			bad := "stale project"
+			return planner.Decision{Goal: target("stale", 99), Work: "replace", Project: &bad, Reply: "stale reply", Notes: []planner.Note{{Name: "stale", Markdown: "stale note", Episodes: []int64{in.Episodes[0].ID}}}}, nil
+		}
+		if len(in.Work) != 0 {
+			t.Error("refresh did not see completed work")
+		}
+		return planner.Decision{Idle: true, Work: "preserve", Reply: "Fresh answer after completion."}, nil
+	}
+	stop := start(t, s)
+	await(t, working, "work")
+	w.event("whisper", "Alex", "status?")
+	await(t, planning, "planning")
+	close(complete)
+	eventually(t, func() bool {
+		es, e := store.Recent(context.Background(), 16)
+		if e != nil {
+			return false
+		}
+		for _, ep := range es {
+			if ep.Kind == "goal_succeeded" {
+				return true
+			}
+		}
+		return false
+	})
+	close(release)
+	eventually(t, func() bool { return w.replyCount() == 1 })
+	stop()
+	var got planner.Checkpoint
+	store.Load(context.Background(), &got)
+	semantic, err := store.Semantic()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plans.Load() != 2 || runs.Load() != 1 || got.Project.Summary != "original intent" || semantic != "" || w.replies[0] != "Fresh answer after completion." {
+		t.Fatalf("stale decision leaked: plans=%d runs=%d project=%+v notes=%s replies=%v", plans.Load(), runs.Load(), got.Project, semantic, w.replies)
+	}
+}
+
+func TestConversationDoesNotLaunderRecovery(t *testing.T) {
+	for _, closed := range []bool{false, true} {
+		t.Run(map[bool]string{false: "running recovery", true: "exhausted"}[closed], func(t *testing.T) {
+			w, store := newWorld(), testStore(t)
+			w.card.Bot.Health = 2
+			cp := planner.Checkpoint{Started: true, Danger: true, AutoPaused: true, Recovery: &planner.RecoveryEpisode{Attempts: 2, Closed: closed}}
+			if !closed {
+				cp.Recovery.Attempts = 1
+				cp.Jobs = []planner.Job{{ID: "recovery", Lane: "autonomous", Status: "queued", PostMortem: true, Context: executor.ExecutionContext{Mode: "danger"}, Goal: target("recovery", 99)}}
+			}
+			if err := store.Commit(context.Background(), cp, nil); err != nil {
+				t.Fatal(err)
+			}
+			started := make(chan string, 1)
+			var plans atomic.Int32
+			s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }, Plan: func(context.Context, planner.Input) (planner.Decision, error) {
+				plans.Add(1)
+				return planner.Decision{Idle: true, Work: "preserve", Reply: "Still discussing; no change."}, nil
+			}, Execute: func(ctx context.Context, _ goal.Goal, _ executor.ExecutionContext) (executor.Outcome, error) {
+				started <- "recovery"
+				<-ctx.Done()
+				return executor.Outcome{Outcome: executor.Cancelled}, nil
+			}}
+			stop := start(t, s)
+			if !closed {
+				await(t, started, "recovery")
+			}
+			w.event("whisper", "Alex", "what is happening?")
+			eventually(t, func() bool { return w.replyCount() == 1 })
+			time.Sleep(35 * time.Millisecond)
+			var got planner.Checkpoint
+			if err := store.Load(context.Background(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if got.Recovery == nil || got.Recovery.Attempts != 2 || got.Recovery.Closed != closed || !got.AutoPaused || plans.Load() != 1 {
+				t.Fatalf("conversation changed recovery: %+v plans=%d", got, plans.Load())
+			}
+			stop()
+		})
+	}
+}
+
+func TestDialogueBoundAndProjectSurviveRestartWithoutReplayingIntents(t *testing.T) {
+	w, store := newWorld(), testStore(t)
+	var calls atomic.Int32
+	s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }, Execute: func(context.Context, goal.Goal, executor.ExecutionContext) (executor.Outcome, error) {
+		t.Error("conversation started execution")
+		return executor.Outcome{}, nil
+	}}
+	s.Plan = func(_ context.Context, in planner.Input) (planner.Decision, error) {
+		if in.Event != "player_request" {
+			return planner.Decision{Idle: true}, nil
+		}
+		calls.Add(1)
+		if calls.Load() == 1 {
+			project := "Alex agreed on birch; await supplies"
+			return planner.Decision{Idle: true, Work: "preserve", Project: &project, Reply: "Which supplies?"}, nil
+		}
+		if len(in.Dialogue) > 12 || in.Project == nil || !strings.Contains(in.Project.Summary, "birch") {
+			t.Errorf("lost bounded context/project: %+v", in)
+		}
+		if calls.Load() == 9 {
+			for _, turn := range in.Dialogue {
+				if strings.Contains(turn.Text, "prefer birch") {
+					t.Error("old preference still in recent window")
+				}
+			}
+		}
+		return planner.Decision{Idle: true, Work: "preserve", Reply: "Agreed."}, nil
+	}
+	stop := start(t, s)
+	w.event("whisper", "Alex", "prefer birch")
+	for i := 1; i <= 8; i++ {
+		eventually(t, func() bool { return w.replyCount() == i })
+		w.event("whisper", "Bob", "just chatting")
+	}
+	eventually(t, func() bool { return w.replyCount() == 9 })
+	stop()
+	before := calls.Load()
+	stop2 := start(t, s)
+	time.Sleep(40 * time.Millisecond)
+	stop2()
+	if calls.Load() != before || w.replyCount() != 9 {
+		t.Fatal("restart replayed intent/accepted event")
+	}
+	// A request whose refresh allowance was charged before a crash cannot
+	// acquire another model call after restart.
+	var cp planner.Checkpoint
+	if err := store.Load(context.Background(), &cp); err != nil {
+		t.Fatal(err)
+	}
+	cp.Jobs = append(cp.Jobs, planner.Job{ID: "spent", Lane: "player", Event: "player_request", Status: "planning", Request: "Alex: answer", PlanAttempts: 2})
+	if err := store.Commit(context.Background(), cp, nil); err != nil {
+		t.Fatal(err)
+	}
+	stop3 := start(t, s)
+	eventually(t, func() bool { return w.replyCount() == 10 })
+	stop3()
+	if calls.Load() != before {
+		t.Fatal("restart refilled planning allowance")
+	}
+	// Clearing a project on an autonomous result must not swallow its final reply.
+	if err := store.Load(context.Background(), &cp); err != nil {
+		t.Fatal(err)
+	}
+	cp.Jobs = []planner.Job{{ID: "finished", Lane: "autonomous", Event: "goal_finished", Status: "queued"}}
+	if err := store.Commit(context.Background(), cp, nil); err != nil {
+		t.Fatal(err)
+	}
+	s.Plan = func(context.Context, planner.Input) (planner.Decision, error) {
+		clear := ""
+		return planner.Decision{Idle: true, Project: &clear, Reply: "The agreed work is complete."}, nil
+	}
+	stop4 := start(t, s)
+	eventually(t, func() bool { return w.replyCount() == 11 })
+	stop4()
+	var cleared planner.Checkpoint
+	if err := store.Load(context.Background(), &cleared); err != nil || cleared.Project != nil {
+		t.Fatalf("project not cleared: %+v error=%v", cleared.Project, err)
+	}
 }
 
 func TestRecoveryAllowancePersistsWithoutNotificationRefill(t *testing.T) {
@@ -479,7 +748,7 @@ func TestRecoveryPreemptionPreservesChargedAllowance(t *testing.T) {
 	s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond,
 		Check: func(context.Context, goal.Goal) (bool, error) { return false, nil },
 		Plan: func(context.Context, planner.Input) (planner.Decision, error) {
-			return planner.Decision{Idle: true}, nil
+			return planner.Decision{Idle: true, Work: "replace"}, nil
 		},
 		Execute: func(ctx context.Context, _ goal.Goal, intent executor.ExecutionContext) (executor.Outcome, error) {
 			runs.Add(1)

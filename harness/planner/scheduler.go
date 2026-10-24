@@ -17,8 +17,8 @@ import (
 	"github.com/lox/clyde/harness/memory"
 )
 
-// World is the subset of the body used by the scheduler. Chat is sent only
-// between executor runs because even a chat action replaces the current action.
+// World is the subset of the body used by the scheduler. Chat actions must be
+// non-replacing; only the executor owns movement and other world actions.
 type World interface {
 	State(context.Context) (body.Card, error)
 	Events(context.Context, int) (body.EventPage, error)
@@ -29,16 +29,19 @@ type World interface {
 // Job is persisted before planning/execution. Interrupted autonomous goals keep
 // their typed predicate but get a fresh executor on resumption.
 type Job struct {
-	ID         string                    `json:"id"`
-	Lane       string                    `json:"lane"`
-	Event      string                    `json:"event"`
-	Request    string                    `json:"request,omitempty"`
-	Goal       *goal.Goal                `json:"goal,omitempty"`
-	Status     string                    `json:"status"` // queued, planning, running
-	Accepted   time.Time                 `json:"accepted"`
-	ReplySent  bool                      `json:"reply_sent"` // persisted send intent: see runbook crash window
-	PostMortem bool                      `json:"post_mortem,omitempty"`
-	Context    executor.ExecutionContext `json:"execution_context,omitempty"`
+	ID           string                    `json:"id"`
+	Lane         string                    `json:"lane"`
+	Event        string                    `json:"event"`
+	Request      string                    `json:"request,omitempty"`
+	Goal         *goal.Goal                `json:"goal,omitempty"`
+	Status       string                    `json:"status"` // queued, planning, running
+	Accepted     time.Time                 `json:"accepted"`
+	ReplySent    bool                      `json:"reply_sent"` // persisted send intent: see runbook crash window
+	PostMortem   bool                      `json:"post_mortem,omitempty"`
+	Context      executor.ExecutionContext `json:"execution_context,omitempty"`
+	PlanAttempts int                       `json:"plan_attempts,omitempty"`
+	PlanUntil    time.Time                 `json:"plan_until,omitempty"`
+	Superseded   bool                      `json:"superseded,omitempty"`
 }
 
 // RecoveryEpisode survives idle, exhaustion and restarts. Only a successful
@@ -49,6 +52,26 @@ type RecoveryEpisode struct {
 }
 
 const maxRecovery = 2
+
+const maxDialogue = 12
+
+// Turn is addressed dialogue, in chronological order. Clyde's entries are send
+// intents, not acknowledgements of delivery; request IDs link both sides.
+type Turn struct {
+	RequestID   string `json:"request_id"`
+	Speaker     string `json:"speaker"`
+	Text        string `json:"text"`
+	ReplyIntent bool   `json:"reply_intent,omitempty"`
+}
+
+// Project is one model-written intent, not observed progress or a workflow.
+// The originating request is retained separately for provenance. Verification
+// remains in goal-result episodes and live predicates, never this summary.
+type Project struct {
+	Summary   string `json:"summary"`
+	Request   string `json:"source_request"`
+	RequestID string `json:"source_request_id"`
+}
 
 // Checkpoint is the durable queue and body-event high-water mark. Event IDs,
 // recorded atomically with this checkpoint, disambiguate body sequence resets.
@@ -62,10 +85,13 @@ type Checkpoint struct {
 	NextID         uint64           `json:"next_id"`
 	AutonomousRuns int              `json:"autonomous_runs"`
 	Recovery       *RecoveryEpisode `json:"recovery,omitempty"`
+	Dialogue       []Turn           `json:"dialogue,omitempty"`
+	Project        *Project         `json:"project,omitempty"`
 }
 
 // Scheduler owns one serve session. All state transitions happen in Run's
-// goroutine; the one worker sends a result only after executor cleanup returns.
+// goroutine. One read-only planner may answer beside the exclusive executor;
+// a replacement executor starts only after the old worker's cleanup returns.
 type Scheduler struct {
 	Memory        *memory.Store
 	World         World
@@ -74,6 +100,7 @@ type Scheduler struct {
 	Check         func(context.Context, goal.Goal) (bool, error)
 	SaveCandidate func(context.Context, Candidate) error
 	PollInterval  time.Duration // body I/O only, never periodic model invocation
+	PlanningTime  time.Duration // per-request deadline, shared by player refreshes
 	MaxAutonomous int           // default 10 completed autonomous runs per durable session
 	Log           io.Writer
 }
@@ -84,6 +111,7 @@ type workResult struct {
 	decision Decision
 	out      executor.Outcome
 	err      error
+	revision uint64
 }
 
 // Run reconciles outstanding work then consumes events until graceful shutdown.
@@ -98,6 +126,9 @@ func (s *Scheduler) Run(ctx context.Context) error {
 	}
 	if s.MaxAutonomous <= 0 {
 		s.MaxAutonomous = 10
+	}
+	if s.PlanningTime <= 0 {
+		s.PlanningTime = 30 * time.Second
 	}
 	if s.Log == nil {
 		s.Log = io.Discard
@@ -114,6 +145,12 @@ func (s *Scheduler) Run(ctx context.Context) error {
 	}
 	for i := 0; i < len(state.Jobs); {
 		j := &state.Jobs[i]
+		if j.Superseded {
+			// Cancellation intent was committed with the replacing decision.
+			// Startup already stopped stale body work; never replay this goal.
+			state.Jobs = append(state.Jobs[:i], state.Jobs[i+1:]...)
+			continue
+		}
 		if j.Status == "running" && j.Goal != nil {
 			cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 			held, err := s.Check(cctx, *j.Goal)
@@ -162,16 +199,31 @@ func (s *Scheduler) Run(ctx context.Context) error {
 	if err := commit(memory.Episode{Kind: "start", Detail: "unfinished goals checked against live predicates; unsatisfied work requeued"}); err != nil {
 		return err
 	}
-	results := make(chan workResult, 1)
-	var cancelWork context.CancelFunc
-	var activeID, preempt string
-	// Always join the worker on exit; no goroutine or body owner outlives Run.
+	// A single result queue orders planner decisions against executor results.
+	// Only control transitions invalidate planning, never ordinary movement.
+	results := make(chan workResult, 2)
+	var cancelPlan, cancelRun context.CancelFunc
+	var planID, runID, preempt string
+	var revision uint64
+	// Always join both workers; neither a model call nor a body owner outlives Run.
 	defer func() {
-		if cancelWork != nil {
-			cancelWork()
+		pending := 0
+		for _, cancel := range []context.CancelFunc{cancelPlan, cancelRun} {
+			if cancel != nil {
+				cancel()
+				pending++
+			}
+		}
+		for range pending {
 			<-results
 		}
 	}()
+	fail := func(err error) error {
+		if ctx.Err() != nil {
+			return s.shutdown(ctx, &state, &cancelPlan, &cancelRun, results)
+		}
+		return err
+	}
 	ticker := time.NewTicker(s.PollInterval)
 	defer ticker.Stop()
 	var card body.Card
@@ -179,42 +231,72 @@ func (s *Scheduler) Run(ctx context.Context) error {
 		// Polling also runs immediately at startup and after completion, so queued
 		// requests are noticed before an autonomous worker can start.
 		pollCtx, pollCancel := context.WithTimeout(ctx, 3*time.Second)
+		wasDanger := state.Danger
 		newPlayer, death, err := s.poll(pollCtx, &state, &card)
 		pollCancel()
 		if err != nil {
-			if ctx.Err() != nil {
-				return s.shutdown(ctx, &state, activeID, &cancelWork, results)
-			}
-			return err
+			return fail(err)
 		}
-		if activeID != "" {
-			j := findJob(&state, activeID)
+		if death || wasDanger != state.Danger {
+			revision++
+			if cancelPlan != nil {
+				cancelPlan()
+			}
+		}
+		if planID != "" && newPlayer && findJob(&state, planID).Lane == "autonomous" {
+			revision++
+			cancelPlan()
+		}
+		if runID != "" {
+			j := findJob(&state, runID)
 			dangerPreempt := state.Danger && j.Context.Mode == ""
-			if preempt == "" && (death || dangerPreempt || (newPlayer && j.Lane == "autonomous")) {
-				preempt = "player"
+			if preempt == "" && (death || dangerPreempt) {
+				preempt = "danger"
 				if death {
 					preempt = "death"
-				} else if dangerPreempt {
-					preempt = "danger"
 				}
-				cancelWork()
+				cancelRun()
 			}
 		}
-		if activeID == "" {
-			idx := nextJob(state)
+		if planID == "" {
+			idx := -1
+			if runID == "" {
+				idx = nextJob(state)
+			} else if preempt == "" {
+				// Conversation may be planned beside work, but never another
+				// executor or autonomous continuation based on unfinished work.
+				for i, j := range state.Jobs {
+					if j.Lane == "player" && j.Goal == nil {
+						idx = i
+						break
+					}
+				}
+			}
 			if idx >= 0 {
 				j := &state.Jobs[idx]
 				if j.Goal != nil && j.Lane == "autonomous" && state.AutonomousRuns >= s.MaxAutonomous {
 					state.AutoPaused = true
 					removeJob(&state, j.ID)
 					if err := commit(memory.Episode{Kind: "budget", Detail: "autonomous session goal budget reached"}); err != nil {
-						return err
+						return fail(err)
 					}
 					continue
 				}
 				phase := "planning"
 				if j.Goal != nil {
 					phase = "running"
+				}
+				if phase == "planning" && j.Lane == "player" {
+					if j.PlanAttempts >= 2 || (!j.PlanUntil.IsZero() && time.Now().After(j.PlanUntil)) {
+						if err := s.finish(ctx, &state, workResult{id: j.ID, phase: phase, err: errors.New("request planning allowance exhausted")}, ""); err != nil {
+							return fail(err)
+						}
+						continue
+					}
+					if j.PlanUntil.IsZero() {
+						j.PlanUntil = time.Now().Add(s.PlanningTime)
+					}
+					j.PlanAttempts++ // durable: restart/stale results do not mint calls
 				}
 				if j.PostMortem || (j.Lane == "player" && state.Danger) {
 					if state.Recovery == nil {
@@ -235,7 +317,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 						state.Recovery.Closed = true
 						removeJob(&state, j.ID)
 						if err := commit(memory.Episode{Kind: "recovery_exhausted", Detail: "recovery allowance unavailable; idle until successful safe player work"}); err != nil {
-							return err
+							return fail(err)
 						}
 						continue
 					}
@@ -244,20 +326,28 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				}
 				j.Status = phase
 				if err := commit(memory.Episode{Kind: phase, Detail: j.ID + ": " + j.Event + " " + j.Request}); err != nil {
-					return err
+					return fail(err)
 				}
-				activeID = j.ID
-				workCtx, cancel := context.WithCancel(ctx)
-				cancelWork = cancel
 				job := *j
-				in, err := s.input(ctx, job, card)
+				in, err := s.input(ctx, job, card, state)
 				if err != nil {
-					cancelWork = nil
-					cancel()
-					return err
+					return fail(err)
 				}
+				workCtx, cancel := context.WithCancel(ctx)
+				if phase == "planning" {
+					cancel()
+					deadline := time.Now().Add(s.PlanningTime)
+					if job.Lane == "player" && job.PlanUntil.Before(deadline) {
+						deadline = job.PlanUntil
+					}
+					workCtx, cancel = context.WithDeadline(ctx, deadline)
+					planID, cancelPlan = job.ID, cancel
+				} else {
+					runID, cancelRun = job.ID, cancel
+				}
+				startedRevision := revision
 				go func() {
-					r := workResult{id: job.ID, phase: phase}
+					r := workResult{id: job.ID, phase: phase, revision: startedRevision}
 					if phase == "planning" {
 						r.decision, r.err = s.Plan(workCtx, in)
 					} else {
@@ -269,12 +359,40 @@ func (s *Scheduler) Run(ctx context.Context) error {
 		}
 		select {
 		case <-ctx.Done():
-			return s.shutdown(ctx, &state, activeID, &cancelWork, results)
+			return s.shutdown(ctx, &state, &cancelPlan, &cancelRun, results)
 		case <-ticker.C:
 			continue
 		case r := <-results:
-			cancelWork()
-			cancelWork = nil
+			if r.phase == "planning" {
+				cancelPlan()
+				cancelPlan, planID = nil, ""
+				stale := ""
+				if r.revision != revision || preempt != "" {
+					stale = "control_changed"
+				}
+				if stale == "" && r.err == nil && (r.decision.Work == "replace" || r.decision.Goal != nil) && runID != "" {
+					preempt = "player"
+					if r.decision.Work == "replace" {
+						preempt = "replace"
+					}
+					// Do not keep obsolete work acting while sending its reply.
+					// The replacement still cannot start until cleanup is joined.
+					cancelRun()
+				}
+				finishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+				err := s.finish(finishCtx, &state, r, stale)
+				cancel()
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			cancelRun()
+			cancelRun = nil
+			revision++
+			if cancelPlan != nil {
+				cancelPlan()
+			}
 			// A second body stop confirms ownership even if a runner's cleanup
 			// logged and swallowed a stop failure. Never overlap uncertain owners.
 			if r.phase == "running" {
@@ -302,7 +420,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			activeID, preempt = "", ""
+			runID, preempt = "", ""
 		}
 	}
 }
@@ -316,22 +434,30 @@ func (s *Scheduler) stop(ctx context.Context) error {
 	return nil
 }
 
-func (s *Scheduler) shutdown(ctx context.Context, state *Checkpoint, id string, cancelWork *context.CancelFunc, results <-chan workResult) error {
+func (s *Scheduler) shutdown(ctx context.Context, state *Checkpoint, cancelPlan, cancelRun *context.CancelFunc, results <-chan workResult) error {
 	cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	// Poll may have been cancelled before its transaction committed. Restore
 	// the durable checkpoint rather than persisting partially accepted events.
-	if err := s.Memory.Load(cctx, state); err != nil {
+	var durable Checkpoint
+	if err := s.Memory.Load(cctx, &durable); err != nil {
 		return err
 	}
+	*state = durable
 	eps := []memory.Episode{{Kind: "shutdown", Detail: "queue retained; in-flight goals require live reconciliation"}}
-	if *cancelWork != nil {
-		(*cancelWork)()
+	pending := 0
+	for _, worker := range []*context.CancelFunc{cancelPlan, cancelRun} {
+		if *worker != nil {
+			(*worker)()
+			*worker = nil
+			pending++
+		}
+	}
+	for range pending {
 		r := <-results
-		*cancelWork = nil
-		eps[0].Tokens = r.decision.Tokens + r.out.Tokens.Total
-		eps[0].CostUSD = r.decision.CostUSD + r.out.CostUSD
-		j := findJob(state, id)
+		eps[0].Tokens += r.decision.Tokens + r.out.Tokens.Total
+		eps[0].CostUSD += r.decision.CostUSD + r.out.CostUSD
+		j := findJob(state, r.id)
 		// Leave execution marked running for live reconciliation after restart.
 		if r.phase == "planning" {
 			j.Status = "queued"
@@ -408,7 +534,7 @@ func removeJob(st *Checkpoint, id string) {
 	}
 }
 
-func (s *Scheduler) input(ctx context.Context, j Job, card body.Card) (Input, error) {
+func (s *Scheduler) input(ctx context.Context, j Job, card body.Card, st Checkpoint) (Input, error) {
 	episodes, err := s.Memory.Recent(ctx, 16)
 	if err != nil {
 		return Input{}, err
@@ -422,7 +548,20 @@ func (s *Scheduler) input(ctx context.Context, j Job, card body.Card) (Input, er
 		return Input{}, err
 	}
 	b, err := json.Marshal(card)
-	return Input{Context: j.Context, Event: j.Event, Request: j.Request, State: string(b), Episodes: episodes, Places: places, Semantic: semantic}, err
+	var work []Job
+	for _, job := range st.Jobs {
+		if job.Goal != nil {
+			work = append(work, job)
+		}
+	}
+	return Input{Context: j.Context, Event: j.Event, Request: j.Request, Dialogue: append([]Turn(nil), st.Dialogue...), Project: st.Project, Work: work, State: string(b), Episodes: episodes, Places: places, Semantic: semantic}, err
+}
+
+func dialogue(st *Checkpoint, turn Turn) {
+	st.Dialogue = append(st.Dialogue, turn)
+	if len(st.Dialogue) > maxDialogue {
+		st.Dialogue = append([]Turn(nil), st.Dialogue[len(st.Dialogue)-maxDialogue:]...)
+	}
 }
 
 func (s *Scheduler) poll(ctx context.Context, st *Checkpoint, card *body.Card) (newPlayer, death bool, err error) {
@@ -483,6 +622,7 @@ func (s *Scheduler) poll(ctx context.Context, st *Checkpoint, card *body.Card) (
 				continue
 			}
 			st.Jobs = append(st.Jobs, Job{ID: key, Lane: "player", Event: "player_request", Request: username + ": " + clip(message, 2000), Status: "queued", Accepted: time.Now().UTC()})
+			dialogue(st, Turn{RequestID: key, Speaker: username, Text: clip(message, 2000)})
 			newPlayer = true
 			eps = append(eps, memory.Episode{Kind: "request_accepted", Detail: key + ": " + clip(message, 2000)})
 		case "death":
@@ -566,50 +706,81 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 		}
 		// The model selects recovery or idle; the harness enforces the durable
 		// allowance, including player requests arriving in an exhausted episode.
-		if j.Context.Mode != "" && st.Recovery != nil && (st.Recovery.Closed || st.Recovery.Attempts >= maxRecovery) {
+		if d.Goal != nil && j.Context.Mode != "" && st.Recovery != nil && (st.Recovery.Closed || st.Recovery.Attempts >= maxRecovery) {
 			d.Goal = nil
 			d.Idle = true
 			d.Reply = "Recovery allowance is exhausted; I need successful safe work before another recovery episode."
 		}
 		j.Goal = d.Goal
 		j.Status = "queued"
-		sendReply := j.Lane == "player" && !j.ReplySent
+		hadProject := st.Project != nil
+		if d.Project != nil {
+			if *d.Project == "" {
+				st.Project = nil
+			} else {
+				source := j.Request
+				sourceID := j.ID
+				if source == "" && st.Project != nil {
+					source = st.Project.Request
+					sourceID = st.Project.RequestID
+				}
+				st.Project = &Project{Summary: *d.Project, Request: source, RequestID: sourceID}
+			}
+		}
+		sendReply := d.Reply != "" && (j.Lane == "player" || hadProject || st.Project != nil) && !j.ReplySent
 		if sendReply {
 			j.ReplySent = true // persist intent BEFORE network I/O: at-most-once attempt
+			dialogue(st, Turn{RequestID: j.ID, Speaker: "Clyde", Text: d.Reply, ReplyIntent: true})
+			eps = append(eps, memory.Episode{Kind: "reply_intent", Detail: j.ID + ": " + d.Reply})
 		}
 		job := *j
+		if d.Work == "replace" {
+			kept := st.Jobs[:0]
+			for _, queued := range st.Jobs {
+				// A running owner stays until its joined result is processed.
+				// Pending player turns and recovery notifications are not erased.
+				if queued.ID != job.ID && queued.Status == "running" {
+					queued.Superseded = true
+				}
+				if queued.ID == job.ID || queued.Goal == nil || queued.Status == "running" {
+					kept = append(kept, queued)
+				}
+			}
+			st.Jobs = kept
+		}
 		if d.Goal == nil {
-			if j.Context.Mode != "" && st.Recovery != nil {
+			if job.Context.Mode != "" && st.Recovery != nil && (job.PostMortem || d.Work == "replace") {
 				st.Recovery.Closed = true
 			}
 			// Persist terminal idle/refusal along with send intent. A crash after
 			// chat must not make the answered request eligible for replanning.
 			eps = append(eps, memory.Episode{Kind: "idle", Detail: job.ID + ": " + d.Reply})
 			removeJob(st, r.id)
+		} else {
+			// The new player goal takes priority over preserved/suspended work.
+			removeJob(st, r.id)
+			st.Jobs = append([]Job{job}, st.Jobs...)
 		}
+		decision, _ := json.Marshal(d)
+		eps = append(eps, memory.Episode{Kind: "decision_applied", Detail: job.ID + ": " + string(decision)})
 		if sendReply {
 			if err := s.Memory.Commit(ctx, *st, eps); err != nil {
 				return err
 			}
 			eps = nil
-			reply := d.Reply
-			if reply == "" {
-				if d.Idle {
-					reply = "I don't have a supported goal for that request."
-				} else {
-					reply = "I'll work on that now."
-				}
-			}
-			_, err := s.World.Action(ctx, map[string]any{"type": "chat", "message": reply})
-			eps = append(eps, memory.Episode{Kind: "reply_attempt", Detail: fmt.Sprintf("%s latency_ms=%d reply=%s error=%v", job.ID, time.Since(job.Accepted).Milliseconds(), reply, err)})
+			_, err := s.World.Action(ctx, map[string]any{"type": "chat", "message": d.Reply})
+			eps = append(eps, memory.Episode{Kind: "reply_attempt", Detail: fmt.Sprintf("%s latency_ms=%d reply=%s error=%v", job.ID, time.Since(job.Accepted).Milliseconds(), d.Reply, err)})
 		}
 	} else {
+		if j.Superseded {
+			preempt = "replace"
+		}
 		status := r.out.Outcome
 		if r.err != nil {
 			status = executor.Failed
 		}
 		eps = append(eps, memory.Episode{Kind: "goal_" + status, Detail: fmt.Sprintf("%s %s: %s %s error=%v", j.ID, j.Goal.Description, r.out.Detail, r.out.Until, r.err), Tokens: r.out.Tokens.Total, CostUSD: r.out.CostUSD})
-		if preempt != "" && status != executor.Succeeded && preempt != "death" {
+		if preempt != "" && status != executor.Succeeded && preempt != "death" && preempt != "replace" {
 			j.Status = "queued"
 			eps = append(eps, memory.Episode{Kind: "requeued", Detail: j.ID + ": " + preempt})
 		} else {
@@ -626,7 +797,7 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 				} else {
 					s.recover(st, "goal_finished")
 				}
-			} else {
+			} else if preempt != "replace" {
 				event := "goal_failed"
 				if r.out.Interrupt != nil {
 					event = "judge_interrupt"

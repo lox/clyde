@@ -41,6 +41,9 @@ func TestPlanningValidationBoundedRetry(t *testing.T) {
 		`{"goal":{"description":"bad","until":{"items":{"item":"oak_log","count":1},"arrived":{"at":{"x":1,"y":2,"z":3},"radius":1}}},"idle":false}`,
 		`{"goal":{"description":"bad","until":{"judged":{"question":"done?"}}},"idle":false}`,
 		`{"idle":true,"goal":{"description":"bad","until":{}}}`,
+		`{"idle":true,"work":"cancel"}`,
+		`{"idle":false,"work":"preserve","reply":"no measurable goal"}`,
+		`{"idle":true,"project":"` + strings.Repeat("x", 4097) + `"}`,
 	} {
 		t.Run(bad, func(t *testing.T) {
 			var calls atomic.Int32

@@ -31,7 +31,7 @@ func serveCmd(ctx context.Context, args []string) error {
 	semanticDir := fs.String("semantic-dir", filepath.Join(c.root, "memory", "semantic"), "bounded Markdown memory directory")
 	candidateDir := fs.String("candidates-dir", filepath.Join(c.root, "memory", "skill-candidates"), "staged proposals only; never the admitted library root")
 	promptPath := fs.String("planner-prompt", filepath.Join(c.root, "prompts", "planner.md"), "planner system prompt")
-	planningTime := fs.Duration("planner-time", 30*time.Second, "deadline for one planning event, including at most two attempts")
+	planningTime := fs.Duration("planner-time", 30*time.Second, "request deadline shared by one stale refresh; each plan permits two validation attempts")
 	maxAuto := fs.Int("max-autonomous", 10, "durable autonomous session goal budget; raise explicitly to continue after exhaustion")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -108,7 +108,7 @@ func serveCmd(ctx context.Context, args []string) error {
 		result, err := goal.Evaluate(ctx, obs, card.Bot.Name, g.Until)
 		return result.Satisfied, err
 	}
-	s := planner.Scheduler{Memory: store, World: client, Plan: p.Plan, Check: check, MaxAutonomous: *maxAuto, Log: os.Stderr,
+	s := planner.Scheduler{Memory: store, World: client, Plan: p.Plan, Check: check, MaxAutonomous: *maxAuto, PlanningTime: *planningTime, Log: os.Stderr,
 		Execute: func(ctx context.Context, g goal.Goal, intent executor.ExecutionContext) (executor.Outcome, error) {
 			return c.runGoal(ctx, g, intent, os.Stderr)
 		},

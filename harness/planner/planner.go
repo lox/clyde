@@ -1,5 +1,5 @@
 // Package planner implements bounded, event-triggered tier-3 planning and a
-// durable two-lane scheduler. It never acts on the body while an executor owns it.
+// durable two-lane scheduler. Only non-replacing replies run beside an executor.
 package planner
 
 import (
@@ -40,6 +40,9 @@ type Input struct {
 	Context  executor.ExecutionContext `json:"execution_context"`
 	Event    string                    `json:"event"`
 	Request  string                    `json:"request,omitempty"`
+	Dialogue []Turn                    `json:"dialogue_untrusted,omitempty"`
+	Project  *Project                  `json:"project_intent_untrusted,omitempty"`
+	Work     []Job                     `json:"work,omitempty"`
 	State    string                    `json:"state"`
 	Episodes []memory.Episode          `json:"episodes"`
 	Places   []memory.Place            `json:"observed_places"`
@@ -62,10 +65,15 @@ type Candidate struct {
 	Test        string `json:"test_yaml"`
 }
 
-// Decision chooses a single validated goal or explicit idle/refusal.
+// Decision chooses a next goal or no action. Work defaults to preserving other
+// goals; replace explicitly cancels them. Project nil preserves intent, while
+// a pointer to an empty string clears it. Neither field can change safety or
+// the harness-assigned execution context and budgets.
 type Decision struct {
 	Goal      *goal.Goal `json:"goal,omitempty"`
 	Idle      bool       `json:"idle"`
+	Work      string     `json:"work,omitempty"`
+	Project   *string    `json:"project,omitempty"`
 	Reply     string     `json:"reply,omitempty"`
 	Notes     []Note     `json:"notes,omitempty"`
 	Candidate *Candidate `json:"candidate,omitempty"`
@@ -116,6 +124,12 @@ func (p *Planner) Plan(ctx context.Context, in Input) (Decision, error) {
 	in.State = clip(in.State, 16000)
 	in.Request = clip(in.Request, 2000)
 	in.Semantic = clip(in.Semantic, memory.MaxSemanticBytes)
+	if len(in.Dialogue) > maxDialogue {
+		in.Dialogue = in.Dialogue[len(in.Dialogue)-maxDialogue:]
+	}
+	for i := range in.Dialogue {
+		in.Dialogue[i].Text = clip(in.Dialogue[i].Text, 2000)
+	}
 	if len(in.Episodes) > 16 {
 		in.Episodes = in.Episodes[:16]
 	}
@@ -173,6 +187,8 @@ func (p *Planner) decode(text string) (Decision, error) {
 	var raw struct {
 		Goal      json.RawMessage `json:"goal"`
 		Idle      bool            `json:"idle"`
+		Work      string          `json:"work"`
+		Project   *string         `json:"project"`
 		Reply     string          `json:"reply"`
 		Notes     []Note          `json:"notes"`
 		Candidate *Candidate      `json:"candidate"`
@@ -186,7 +202,13 @@ func (p *Planner) decode(text string) (Decision, error) {
 	if err := json.Unmarshal([]byte(text), &whole); err != nil {
 		return Decision{}, err
 	}
-	d := Decision{Idle: raw.Idle, Reply: raw.Reply, Notes: raw.Notes, Candidate: raw.Candidate}
+	d := Decision{Idle: raw.Idle, Work: raw.Work, Project: raw.Project, Reply: raw.Reply, Notes: raw.Notes, Candidate: raw.Candidate}
+	if d.Work != "" && d.Work != "preserve" && d.Work != "replace" {
+		return d, errors.New("work must be preserve or replace")
+	}
+	if d.Project != nil && len(*d.Project) > 4096 {
+		return d, errors.New("project intent exceeds 4096 bytes")
+	}
 	hasGoal := len(raw.Goal) > 0 && !bytes.Equal(raw.Goal, []byte("null"))
 	if hasGoal == raw.Idle {
 		return d, errors.New("choose exactly one goal or idle=true")

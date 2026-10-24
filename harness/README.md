@@ -74,7 +74,7 @@ amp orb service stop clyde-planner
 amp orb service restart clyde-planner
 ```
 
-SIGINT/SIGTERM cancels and joins the worker, stops the body and retains its
+SIGINT/SIGTERM cancels and joins both workers, stops the body and retains its
 queue. Stop the planner **before** stopping/restarting its body or Paper.
 Stopping only a body action is not a latched kill switch: the scheduler can
 start another action. The initial private deployment stops the whole service
@@ -82,8 +82,10 @@ as its reliable kill switch; chat latching is deferred. See `deploy/README.md`.
 
 `CLYDE_PLANNER_PROVIDER`, `CLYDE_PLANNER_MODEL`, `CLYDE_PLANNER_EFFORT` are
 independent of the executor variables above; both default to Sol 6.1, low.
-The planner has at most two schema-validation attempts within
-`--planner-time` per event. `--max-steps`/`--max-time` bound each fresh
+Each plan has at most two schema-validation attempts. A player request allows
+one stale-result refresh, sharing one durable `--planner-time` deadline (default
+30s) across both plans and restart; exhaustion gives a bounded failure reply.
+Autonomous events get one plan. `--max-steps`/`--max-time` bound each fresh
 executor. `--max-autonomous` is a durable completed-goal cap (default ten),
 not reset by restart; explicitly raise it to continue. Player requests are
 not charged to that cap. These are work/time budgets, not a hard dollar cap;
@@ -92,14 +94,38 @@ idle observation invokes a model. Usage/cost is stored in SQLite, including
 returned usage for cancelled calls; unreturned provider billing is unknown.
 
 Whispers and public chat starting with `Clyde`, `Clyde:` or `Clyde,` enqueue
-player work. A player request cancels autonomous planning/execution, waits
-for cleanup and a confirmed body stop, then runs first. Suspended goals keep
-their original predicate and resume with a fresh executor, not the old
-conversation. Unsupported requests receive a bounded idle/refusal reply.
+player turns. One planner can answer beside the single exclusive executor.
+The model chooses `work: preserve` (default) or `replace`: a question or
+clarification with no goal preserves work; a new goal with preserve suspends
+old goals; replace discards old goals, or explicitly stops with no new goal.
+Changed work cancels the current executor, joins its cleanup and confirms body
+stop before another executor starts. Suspended goals retain their original
+predicate and resume with a fresh executor, not its old conversation. Player
+turns preempt autonomous planning, not useful execution merely by arriving.
+Executor results, death and danger transitions discard all stale planner
+effects together, including replies/notes/project; moving positions do not.
+The executor does not answer its observed chat as a second dialogue agent.
+
+Planner context includes the last 12 addressed speaker/request turns, current
+and suspended goals, and one model-written project summary (at most 4096 bytes).
+`project` omitted/null preserves intent; `""` clears it. Its source request is
+retained, but neither intent nor proposed coordinates certify observations or
+completion. Goal results and live predicates remain authoritative. The model
+curates older preferences into existing cited semantic notes, not an unbounded
+transcript or a new retrieval service. No-action conversation consumes no
+executor and does not itself alter the project or recovery allowance.
+
+Chat is an immediate, non-replacing body action: `POST /action` returns its own
+final receipt, and `/events` records it. It changes neither `action` nor
+`lastAction` in `/state`, so replies cannot abort travel or hide an exclusive
+action's result from a polling executor. Other actions still replace work.
+Unsupported requests receive a bounded idle/refusal reply.
 Death/failure invokes a post-mortem that may choose a changed goal or idle.
 The harness permits at most **two recovery executions** per durable episode,
-charged before dispatch. Each retains the existing step/time limits. Idle,
-refusal or exhaustion closes the episode; no timer polls the model again.
+charged before dispatch. Each retains the existing step/time limits. A recovery
+post-mortem choosing idle/refusal, explicit replacement-stop, or exhaustion
+closes the episode; ordinary preserve conversation does not. No timer polls
+the model again.
 Restart, death notifications, new player requests and danger clearing/returning
 do not replenish it. Only successful execution followed by a fresh observation
 with no fired danger prechecks resets recovery and permits ordinary autonomy.
@@ -128,10 +154,12 @@ Satisfied work is recorded; unsatisfied ordinary work is requeued. An unfinished
 running recovery has already spent its attempt: restart does not replay it,
 but may plan another response within the remaining allowance. Player-preempted
 recovery retains its context and spends another attempt if executed again.
-Existing checkpoints without recovery fields decode as ordinary work; their
-existing pause and queue are retained, not silently reset on upgrade. This
-cannot make arbitrary side effects idempotent. Reply intent is committed before
-sending: restart does not resend, but a crash before send can lose the reply.
+Existing checkpoints default missing dialogue/project/planning fields without
+losing jobs, reply intents, pause or recovery allowance. Accepted replacement
+intent is durable too: restart stops and drops superseded work rather than
+resuming it. This cannot make arbitrary side effects idempotent. The accepted
+decision, project, exact reply and send intent are committed before sending:
+restart does not resend, but a crash before send can lose the reply.
 This is at-most-once send attempt, **not exactly-once delivery**. The bounded
 body event ring can lose events evicted during downtime; gaps are recorded.
 
