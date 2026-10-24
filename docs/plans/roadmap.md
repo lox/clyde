@@ -159,6 +159,11 @@ world's Geyser/Floodgate native HTTPS/NetherNet route on port 19134. World,
 memory and stable private RCON credentials are independent of Bonnie.
 Bonnie and its public proxies are not part of this rollout.
 
+Clyde source `7700696` is deployed there through `lox/selfhosted-ovh` PR 12.
+The host verified the image, memory continuity and one live model reply;
+real owner iPad authentication/UDP gameplay remains unverified. See slice 7
+for rollout evidence and the host runbook for stop/rollback procedures.
+
 The previously implemented Bonnie route remains available for a later,
 separately approved deployment, without a Microsoft account:
 
@@ -275,7 +280,19 @@ choice and can be reversed by saying so.
   Reported usage including failures/exclusions was $2.112174484; unreturned
   billing is unknown. Project intent is not a verified progress ledger; model/
   context reliability remains the next bottleneck. No new skill was necessary
-  or promoted. The live image/world remain unchanged; rollout is separate.
+  or promoted. Slice 11 itself left the live image/world unchanged.
+- Lachlan subsequently approved the separate-world rollout. Source `7700696`
+  is live through `lox/selfhosted-ovh` PR 12, merged at `aec9fd74`. The host
+  took and verified a fresh stopped whole-memory snapshot before recreation;
+  all 1,334 historical episodes, 13 semantic files and 7 places/home survived.
+  Only Clyde was recreated; all 24 other production containers were unchanged.
+  A live admin-console whisper received one factually checked model reply in
+  5.436s: queue 1ms, planning 5.367s, dispatch 69ms. Planning includes context/
+  client/provider work, not pure provider latency. Latency remains unresolved;
+  measure that path before selecting an optimisation, without scripted replies
+  or silently changing models/budgets. Real owner iPad gameplay is still pending.
+  Downgrade requires the old image and matching stopped whole-memory snapshot;
+  do not run it against upgraded memory alone. Bonnie remains untouched.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.

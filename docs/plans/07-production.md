@@ -148,6 +148,37 @@ the proxy; the bot does not need them.
   were left running. External certificate-trusted signaling passed, but
   **real owner iPad authentication/UDP gameplay remains unverified**. No
   broad survival claim or production skill gates follow from these checks.
+- Subsequent owner-approved rollout on 2026-10-24 deployed source `7700696`
+  (conversation/projects and bounded recovery) through `lox/selfhosted-ovh`
+  PR 12, merged at `aec9fd74`, all three checks green. Actual running image:
+  `sha256:6ae9e5d7b862e42c6ba2ff75a9665bc4cb1789ea8bb2e191854f0660b819e4c5`.
+  The host independently checked fresh exact-source admission receipts and
+  tested migration of copied old memory, chat during movement, revised arrival
+  and restart on an isolated server before cutover. Those are not live player
+  gameplay results.
+- Live cutover stopped old Clyde cleanly, snapshotted the entire memory volume
+  and verified gzip/archive/restored-copy SQLite integrity **before** the new
+  image read it. The same volume retained all 1,334 historical episode rows,
+  13 semantic hashes and 7 places/home, with no startup replay/model usage.
+  Only Clyde was recreated; Paper/world remained running and all 24 other
+  production containers matched fresh ID/image/PID/start/restart/health baselines.
+  World, private inputs and unrelated host work were preserved. Downgrade
+  requires the prior image plus its matching stopped whole-memory snapshot;
+  the prior image alone must not read migrated memory. Host runbook records
+  the backup-first sequence; never reset Paper or the play world for rollback.
+- A modest live admin-console whisper produced exactly one model reply,
+  independently visible in the server log. Coordinates (-21.5, 76, 24.5) and
+  empty inventory matched RCON before/after; no movement, supplies or world
+  edits were needed. Acceptance-to-reply-attempt was 5,436ms: queue 1ms,
+  planning 5,367ms and dispatch 69ms. Planning includes context/client/provider
+  work, not pure provider latency. Returned live usage was 6,675 tokens /
+  $0.0079008, excluding separately billed Jev/unknown usage. This confirms
+  the model path, not satisfactory latency or owner iPad gameplay. Full host
+  evidence is retained in the [deployment thread](https://ampcode.com/threads/T-01a14894-8624-72d8-af3c-2c59e8fb5d5b),
+  `.amp/in/artifacts/clyde-7700696-rollout.md`. Clyde was left available at
+  the existing Bedrock address; real iPad authentication/UDP gameplay remains
+  owner verification. Reliable stop remains `docker compose stop clyde` from
+  `/home/ubuntu/selfhosted`; chat stop is not latched.
 
 ## Not in this slice
 
