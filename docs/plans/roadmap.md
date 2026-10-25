@@ -214,7 +214,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 10 | Model-led recovery and judge evidence (done, `b2755c1`) | `10-model-led-recovery.md` | 6, 9 |
 | 11 | Multi-turn conversation and remembered projects (done, `c2d7442`) | `11-conversation-projects.md` | 6, 10 |
 | 12 | Authenticated Java access (deployed; owner Java login confirmed) | `12-java-access.md` | 7 |
-| 13 | Bounded model-led exploration (approved for implementation) | `13-bounded-exploration.md` | 10, 11 |
+| 13 | Bounded model-led exploration (in review; terminal-response race blocks acceptance) | `13-bounded-exploration.md` | 10, 11 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -326,6 +326,15 @@ choice and can be reversed by saying so.
   policy for this first slice. A durable exploration allowance is deferred
   until matched trials show that boundary blocks useful work. Implementation
   and isolated validation are approved; no live changes or rollout authorized.
+- Slice 13 source `9b0bb3b` has green body/harness/gym CI and matched obstruction
+  results of 1/4 before versus 4/4 after; unchanged controls were 11/12 versus
+  12/12 and skill gates 5/5 both arms. Coordinator source/hash checks, body
+  tests and changed-package race/build/vet passed. Acceptance is held: Oracle
+  identified a late-stuck window after provider generation validation but
+  before terminal-response acceptance, allowing a stale end-turn to lose the
+  adaptation opportunity. The slice owner must reproduce and fix it without
+  refilling turns/time/usage. The retained moving-status missed return target
+  limits capability claims but is not a separate ownership blocker. No rollout.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
