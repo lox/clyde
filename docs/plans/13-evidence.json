@@ -1,5 +1,24 @@
 {
   "baseline_source": "ddfb9ee6ac2ae756e1feed6c29c24fa59d70abf0",
+  "terminal_history_fix_forward": {
+    "before_source": "5322765c1827fca88e095e68256da711c74fe488",
+    "test": "harness/executor/executor_test.go:TestLateStuckBeforeTerminalAcceptance",
+    "test_file_sha256": "35835e0718c5c5313d9978bf773bac3a309e78df0210e4f6740bd6c9a5bd6180",
+    "method": "Identical final regression copied into isolated git archive of before source; original late-response barrier retained. Twelve text-only controls plus nine partial-call cases across refusal/incomplete/max_tokens and limits4/3/2. Each partial reply retains two distinct calls: truncated collect arguments and valid chat arguments.",
+    "before": {"cases": 21, "passed": 15, "failed": 6, "failure": "resumed history has two unanswered terminal tool calls"},
+    "after": {
+      "cases": 21,
+      "passed": 21,
+      "balanced_ordered_history": true,
+      "explicit_error_result_per_withheld_call_id": true,
+      "withheld_body_dispatches": 0,
+      "assistant_message_reasoning_provider_data_and_partial_arguments_unchanged": true,
+      "prior_step_usage_cost_and_deadline_boundaries_unchanged": true
+    },
+    "validation": "Body npm ci/test26/26/build/gen; harness build/vet/test/race/generate; twenty focused race repetitions; generated files unchanged; sequential Auto-review with no material finding. Exact-head CI linked in implementation thread.",
+    "additional_paid_usage_usd": 0,
+    "limitations": "Deterministic HTTP-body/provider fixtures, not a paid-model/provider acceptance rerun. Earlier measured arms and moving-status negative unchanged and predate both fix-forwards. Returned experiment usage remains $1.342987860; unreturned billing unknown. No dependency/model/settings, live world or deployment changes. Coordinator owns acceptance."
+  },
   "terminal_acceptance_fix_forward": {
     "before_source": "9b0bb3b2fda4cef6f6e51224412de4945b822ff9",
     "test": "harness/executor/executor_test.go:TestLateStuckBeforeTerminalAcceptance",

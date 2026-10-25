@@ -169,6 +169,9 @@ separate decision.
   a stop winning after provider return but before acceptance resumes the pinned
   library loop with the complete conversation, accumulated usage/steps and only
   the remaining turns, under the original context/deadline and watchers.
+  Retained but unexecuted terminal tool calls receive matching explicit error
+  results in history and the cumulative result, never dispatch. Assistant text,
+  reasoning and opaque provider content remain unchanged.
   Acceptance winning cancels that context while locked; a queued stuck callback
   then cannot stop an action. A stale last turn remains exhausted. There is
   exactly one provider call per charged turn and no new time/turn allowance.
@@ -384,6 +387,34 @@ boundaries; no material finding remained. Body install/test (26/26)/build/gen,
 harness build/vet/test/race/generate and twenty repeated focused race runs pass;
 regeneration has no drift. Exact-head CI, including unchanged cheat scoreboard
 and five skill gates, is required before the implementation thread reports ready.
+
+### Partial terminal-call history fix-forward
+
+Oracle recheck closed the synchronization blocker at `5322765`, then found a
+separate history gap: the pinned library retains tool calls on refusal,
+max-token and incomplete finishes without executing or answering them. The
+OpenAI adapter can produce exactly that combination. The prior terminal fixtures
+contained no tool calls and missed this case.
+
+Before any stale-terminal resumption, the executor now appends an explicit
+`IsError` result, matched by call ID, for every such call: "Tool call withheld
+after action-local interruption; not executed." Both conversation and cumulative
+result receive these records, including at exhaustion. Nothing dispatches or
+rewrites the assistant message; native reasoning/provider data and even partial
+argument bytes survive unchanged. There is no added turn, usage or deadline.
+
+The extended regression retains the twelve text-only controls and adds nine
+partial-call cases (three permitted finishes × three existing limits). Each
+partial reply contains two distinct calls: truncated collect arguments and a
+valid chat call that must never send. The identical final test against an
+isolated archive of `5322765` exposes six unbalanced resumed histories; the
+other fifteen cases pass. Fixed source passes all21, asserting ordered balanced
+history, explicit withheld errors, exact native-message preservation, no extra
+body dispatch, original goal verification and unchanged limit/usage/deadline
+boundaries. Twenty focused race repetitions and full body/harness validation
+pass with no generated drift. Sequential Auto-review found no remaining material
+issue in this change. No paid-model rerun was made; the prior moving-status
+negative, measured arms, returned spend and rollout limitations remain unchanged.
 
 Exact pushed source and CI confirmation are linked in the
 [implementation thread](https://ampcode.com/threads/T-01a171da-b4f8-70d6-b9ab-590c106c5878).

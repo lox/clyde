@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -318,64 +319,112 @@ func TestActionFailuresContinueInOriginalConversation(t *testing.T) {
 // A later judge tick confirms its serial stop callback has fully completed.
 func TestLateStuckBeforeTerminalAcceptance(t *testing.T) {
 	for _, finish := range []harness.FinishReason{harness.FinishReasonEndTurn, harness.FinishReasonRefusal, harness.FinishReasonIncomplete, harness.FinishReasonMaxTokens} {
-		for _, limit := range []int{4, 3, 2} {
-			t.Run(fmt.Sprintf("%s/max_steps=%d", finish, limit), func(t *testing.T) {
-				inference := make(chan struct{})
-				settled := make(chan struct{}, 1)
-				fb := &fakeBody{health: 13, holdFirst: true}
-				p := &scripted{next: func(n int, params harness.ChatParams) *harness.ChatResult {
-					switch n {
-					case 0:
-						return toolCall(n, "act", `{"type":"collect","block":"oak_log","wait":0}`)
-					case 1:
-						res := say("late terminal response")
-						res.FinishReason = finish
-						res.Usage = &harness.Usage{InputTokens: 17, OutputTokens: 11}
-						return res
-					default:
-						text, _ := json.Marshal(params.Messages)
-						if !strings.Contains(string(text), fourLogs.Description) || !strings.Contains(string(text), "owner-1") || !strings.Contains(string(text), "late terminal response") || !strings.Contains(string(text), "Same goal and run budget remain") {
-							t.Error("continuation lost original conversation or stop evidence")
-						}
-						return toolCall(n, "act", `{"type":"collect","block":"oak_log"}`)
-					}
-				}}
-				o := setup(t, fb, p)
-				o.MaxSteps = limit
-				o.Log = writeFunc(func(b []byte) (int, error) {
-					if strings.Contains(string(b), "model: late terminal response") {
-						close(inference)
-						select {
-						case <-settled:
-						case <-time.After(time.Second):
-							t.Error("judge did not finish stop after provider return")
+		for _, partial := range []bool{false, true} {
+			if partial && finish == harness.FinishReasonEndTurn {
+				continue // the pinned loop rejects end_turn with tool calls
+			}
+			for _, limit := range []int{4, 3, 2} {
+				t.Run(fmt.Sprintf("%s/partial_calls=%t/max_steps=%d", finish, partial, limit), func(t *testing.T) {
+					inference := make(chan struct{})
+					settled := make(chan struct{}, 1)
+					fb := &fakeBody{health: 13, holdFirst: true}
+					terminal := harness.Message{Role: harness.RoleAssistant, Content: "late terminal response",
+						Thinking: "native reasoning", ProviderData: json.RawMessage(`{"opaque":"native continuation state"}`)}
+					if partial {
+						terminal.ToolCalls = []harness.ToolCall{
+							{ID: "withheld-first", Name: "act", Arguments: json.RawMessage(`{"type":"collect","block":`)},
+							{ID: "withheld-second", Name: "act", Arguments: json.RawMessage(`{"type":"chat","message":"must not send"}`)},
 						}
 					}
-					return len(b), nil
+					p := &scripted{next: func(n int, params harness.ChatParams) *harness.ChatResult {
+						switch n {
+						case 0:
+							return toolCall(n, "act", `{"type":"collect","block":"oak_log","wait":0}`)
+						case 1:
+							return &harness.ChatResult{Message: terminal, FinishReason: finish,
+								Usage: &harness.Usage{InputTokens: 17, OutputTokens: 11}}
+						default:
+							pending := map[string]bool{}
+							withheld := 0
+							var text strings.Builder
+							for _, msg := range params.Messages {
+								text.WriteString(msg.Content)
+								if msg.Content == terminal.Content && !reflect.DeepEqual(msg, terminal) {
+									t.Error("terminal assistant message or provider-native content changed")
+								}
+								if msg.Role != harness.RoleTool && len(pending) != 0 {
+									t.Errorf("unanswered tool calls before next message: %v", pending)
+								}
+								for _, call := range msg.ToolCalls {
+									pending[call.ID] = true
+								}
+								if result := msg.ToolResult; result != nil {
+									text.WriteString(result.Content)
+									if !pending[result.ToolCallID] {
+										t.Errorf("tool result without matching call: %+v", result)
+									}
+									delete(pending, result.ToolCallID)
+									if strings.HasPrefix(result.ToolCallID, "withheld-") {
+										withheld++
+										if !result.IsError || !strings.Contains(result.Content, "withheld after action-local interruption") {
+											t.Errorf("missing explicit withheld error: %+v", result)
+										}
+									}
+								}
+							}
+							if len(pending) != 0 || withheld != len(terminal.ToolCalls) {
+								t.Errorf("unbalanced terminal history: pending=%v withheld=%d", pending, withheld)
+							}
+							if !strings.Contains(text.String(), fourLogs.Description) || !strings.Contains(text.String(), "owner-1") || !strings.Contains(text.String(), "late terminal response") || !strings.Contains(text.String(), "Same goal and run budget remain") {
+								t.Error("continuation lost original conversation or stop evidence")
+							}
+							return toolCall(n, "act", `{"type":"collect","block":"oak_log"}`)
+						}
+					}}
+					o := setup(t, fb, p)
+					o.MaxSteps = limit
+					o.Log = writeFunc(func(b []byte) (int, error) {
+						if strings.Contains(string(b), "model: late terminal response") {
+							close(inference)
+							select {
+							case <-settled:
+							case <-time.After(time.Second):
+								t.Error("judge did not finish stop after provider return")
+							}
+						}
+						return len(b), nil
+					})
+					cfg := judge.DefaultConfig()
+					cfg.Rate = 100
+					o.Judge = judge.New(judge.BodySource{URL: o.Body.URL}, actionStuckBackend{seen: make(chan struct{}, 1), inference: inference, settled: settled}, nil, cfg)
+					out, err := Run(context.Background(), fourLogs, o)
+					wantOutcome, wantSteps, wantTokens, wantCost := Succeeded, 3, 2128, 0.005144
+					if limit < 4 {
+						wantOutcome = BudgetExhausted
+					}
+					if limit == 2 {
+						wantSteps, wantTokens, wantCost = 2, 1078, 0.002644
+					}
+					if err != nil || out.Outcome != wantOutcome || out.Steps != wantSteps || p.callCount() != wantSteps || out.Tokens.Total != wantTokens || out.CostUSD != wantCost {
+						t.Fatalf("out=%+v calls=%d err=%v; want %s, %d original turns, %d returned tokens, cost %g", out, p.callCount(), err, wantOutcome, wantSteps, wantTokens, wantCost)
+					}
+					if wantOutcome == Succeeded && out.Until != "4/4 minecraft:oak_log" {
+						t.Fatalf("original goal not independently verified: %+v", out)
+					}
+					wantActions := []string{"collect"}
+					if wantOutcome == Succeeded {
+						wantActions = append(wantActions, "collect")
+					}
+					if actions, _ := fb.snapshot(); !reflect.DeepEqual(actions, wantActions) {
+						t.Fatalf("withheld or last-turn call dispatched: %v", actions)
+					}
+					for _, deadline := range p.deadlines {
+						if deadline.IsZero() || !deadline.Equal(p.deadlines[0]) {
+							t.Fatalf("continuation changed original deadline: %v", p.deadlines)
+						}
+					}
 				})
-				cfg := judge.DefaultConfig()
-				cfg.Rate = 100
-				o.Judge = judge.New(judge.BodySource{URL: o.Body.URL}, actionStuckBackend{seen: make(chan struct{}, 1), inference: inference, settled: settled}, nil, cfg)
-				out, err := Run(context.Background(), fourLogs, o)
-				wantOutcome, wantSteps, wantTokens, wantCost := Succeeded, 3, 2128, 0.005144
-				if limit < 4 {
-					wantOutcome = BudgetExhausted
-				}
-				if limit == 2 {
-					wantSteps, wantTokens, wantCost = 2, 1078, 0.002644
-				}
-				if err != nil || out.Outcome != wantOutcome || out.Steps != wantSteps || p.callCount() != wantSteps || out.Tokens.Total != wantTokens || out.CostUSD != wantCost {
-					t.Fatalf("out=%+v calls=%d err=%v; want %s, %d original turns, %d returned tokens, cost %g", out, p.callCount(), err, wantOutcome, wantSteps, wantTokens, wantCost)
-				}
-				if wantOutcome == Succeeded && out.Until != "4/4 minecraft:oak_log" {
-					t.Fatalf("original goal not independently verified: %+v", out)
-				}
-				for _, deadline := range p.deadlines {
-					if deadline.IsZero() || !deadline.Equal(p.deadlines[0]) {
-						t.Fatalf("continuation changed original deadline: %v", p.deadlines)
-					}
-				}
-			})
+			}
 		}
 	}
 }

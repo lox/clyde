@@ -282,6 +282,16 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 		tb.controlMu.Lock()
 		if runErr == nil && runCtx.Err() == nil && res != nil && tb.planned != tb.version &&
 			(res.StopReason == harness.StopEndTurn || res.StopReason == harness.StopRefusal || res.StopReason == harness.StopIncomplete) {
+			// Terminal refusals/incomplete replies may retain unexecuted calls.
+			// Balance them without altering provider-native assistant content.
+			for _, call := range res.Messages[len(res.Messages)-1].ToolCalls {
+				withheld := harness.Message{Role: harness.RoleTool, ToolResult: &harness.ToolResult{
+					ToolCallID: call.ID, IsError: true,
+					Content: "Tool call withheld after action-local interruption; not executed.",
+				}}
+				messages = append(messages, withheld)
+				res.Messages = append(res.Messages, withheld)
+			}
 			if completed < o.MaxSteps {
 				tb.controlMu.Unlock()
 				continue // same history, cumulative usage/steps, original deadline
