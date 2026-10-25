@@ -66,7 +66,7 @@ type Toolbox struct {
 	mu        sync.Mutex
 	chatSince int
 
-	// Serialize only dispatch and conditional stop, never the wait for work.
+	// Serialize dispatch, conditional stop and run acceptance, never work waits.
 	controlMu sync.Mutex
 	version   uint64
 	planned   uint64
@@ -89,6 +89,9 @@ func (tb *Toolbox) stuck(ctx context.Context, it judge.Interrupt) error {
 	}
 	tb.controlMu.Lock()
 	defer tb.controlMu.Unlock()
+	if ctx.Err() != nil {
+		return nil // terminal acceptance won the lock and cancelled the run
+	}
 	stopped, err := tb.Body.StopAction(ctx, it.ActionToken)
 	if err != nil {
 		return err

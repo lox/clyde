@@ -120,14 +120,17 @@ type scripted struct {
 	delay time.Duration
 	next  func(n int, p harness.ChatParams) *harness.ChatResult
 
-	mu    sync.Mutex
-	calls []harness.ChatParams
+	mu        sync.Mutex
+	calls     []harness.ChatParams
+	deadlines []time.Time
 }
 
 func (s *scripted) Chat(ctx context.Context, p harness.ChatParams) (*harness.ChatResult, error) {
 	s.mu.Lock()
 	n := len(s.calls)
 	s.calls = append(s.calls, p)
+	deadline, _ := ctx.Deadline()
+	s.deadlines = append(s.deadlines, deadline)
 	s.mu.Unlock()
 	select {
 	case <-ctx.Done():
@@ -311,9 +314,80 @@ func TestActionFailuresContinueInOriginalConversation(t *testing.T) {
 	}
 }
 
+// Block transcript emission after exploringProvider returned, not inference.
+// A later judge tick confirms its serial stop callback has fully completed.
+func TestLateStuckBeforeTerminalAcceptance(t *testing.T) {
+	for _, finish := range []harness.FinishReason{harness.FinishReasonEndTurn, harness.FinishReasonRefusal, harness.FinishReasonIncomplete, harness.FinishReasonMaxTokens} {
+		for _, limit := range []int{4, 3, 2} {
+			t.Run(fmt.Sprintf("%s/max_steps=%d", finish, limit), func(t *testing.T) {
+				inference := make(chan struct{})
+				settled := make(chan struct{}, 1)
+				fb := &fakeBody{health: 13, holdFirst: true}
+				p := &scripted{next: func(n int, params harness.ChatParams) *harness.ChatResult {
+					switch n {
+					case 0:
+						return toolCall(n, "act", `{"type":"collect","block":"oak_log","wait":0}`)
+					case 1:
+						res := say("late terminal response")
+						res.FinishReason = finish
+						res.Usage = &harness.Usage{InputTokens: 17, OutputTokens: 11}
+						return res
+					default:
+						text, _ := json.Marshal(params.Messages)
+						if !strings.Contains(string(text), fourLogs.Description) || !strings.Contains(string(text), "owner-1") || !strings.Contains(string(text), "late terminal response") || !strings.Contains(string(text), "Same goal and run budget remain") {
+							t.Error("continuation lost original conversation or stop evidence")
+						}
+						return toolCall(n, "act", `{"type":"collect","block":"oak_log"}`)
+					}
+				}}
+				o := setup(t, fb, p)
+				o.MaxSteps = limit
+				o.Log = writeFunc(func(b []byte) (int, error) {
+					if strings.Contains(string(b), "model: late terminal response") {
+						close(inference)
+						select {
+						case <-settled:
+						case <-time.After(time.Second):
+							t.Error("judge did not finish stop after provider return")
+						}
+					}
+					return len(b), nil
+				})
+				cfg := judge.DefaultConfig()
+				cfg.Rate = 100
+				o.Judge = judge.New(judge.BodySource{URL: o.Body.URL}, actionStuckBackend{seen: make(chan struct{}, 1), inference: inference, settled: settled}, nil, cfg)
+				out, err := Run(context.Background(), fourLogs, o)
+				wantOutcome, wantSteps, wantTokens, wantCost := Succeeded, 3, 2128, 0.005144
+				if limit < 4 {
+					wantOutcome = BudgetExhausted
+				}
+				if limit == 2 {
+					wantSteps, wantTokens, wantCost = 2, 1078, 0.002644
+				}
+				if err != nil || out.Outcome != wantOutcome || out.Steps != wantSteps || p.callCount() != wantSteps || out.Tokens.Total != wantTokens || out.CostUSD != wantCost {
+					t.Fatalf("out=%+v calls=%d err=%v; want %s, %d original turns, %d returned tokens, cost %g", out, p.callCount(), err, wantOutcome, wantSteps, wantTokens, wantCost)
+				}
+				if wantOutcome == Succeeded && out.Until != "4/4 minecraft:oak_log" {
+					t.Fatalf("original goal not independently verified: %+v", out)
+				}
+				for _, deadline := range p.deadlines {
+					if deadline.IsZero() || !deadline.Equal(p.deadlines[0]) {
+						t.Fatalf("continuation changed original deadline: %v", p.deadlines)
+					}
+				}
+			})
+		}
+	}
+}
+
+type writeFunc func([]byte) (int, error)
+
+func (f writeFunc) Write(b []byte) (int, error) { return f(b) }
+
 type actionStuckBackend struct {
 	seen      chan struct{}
 	inference <-chan struct{}
+	settled   chan<- struct{}
 }
 
 func (actionStuckBackend) Name() string { return "action-stuck" }
@@ -334,6 +408,12 @@ func (b actionStuckBackend) Ask(ctx context.Context, raw json.RawMessage, _ map[
 		reason = "stuck"
 		select {
 		case b.seen <- struct{}{}:
+		default:
+		}
+	}
+	if b.settled != nil && c.Action == nil && c.LastAction != nil && c.LastAction.Status == "aborted" {
+		select {
+		case b.settled <- struct{}{}:
 		default:
 		}
 	}

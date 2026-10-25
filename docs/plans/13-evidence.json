@@ -1,5 +1,27 @@
 {
   "baseline_source": "ddfb9ee6ac2ae756e1feed6c29c24fa59d70abf0",
+  "terminal_acceptance_fix_forward": {
+    "before_source": "9b0bb3b2fda4cef6f6e51224412de4945b822ff9",
+    "test": "harness/executor/executor_test.go:TestLateStuckBeforeTerminalAcceptance",
+    "test_file_sha256": "c48d732b5f4392426e9d4592c1ed15bdd2e3272f95b40fd312d389cce7c16a6e",
+    "method": "Copy identical new test into isolated git archive of before source. Block transcript emission after exploringProvider return; release stuck verdict; wait for a later serial judge tick proving successful stop callback completed; unblock transcript. Repeat unchanged test on fixed runtime.",
+    "terminal_reasons": ["end_turn", "refusal", "incomplete", "max_tokens"],
+    "before": {"cases": 12, "passed": 0, "outcome": "failed", "calls_each": 2, "synthetic_tokens_each": 1078},
+    "after": {
+      "cases": 12,
+      "passed": 12,
+      "limits": [
+        {"max_steps": 4, "outcome": "succeeded", "until": "4/4 minecraft:oak_log", "calls": 3, "synthetic_tokens": 2128, "synthetic_cost_usd": 0.005144},
+        {"max_steps": 3, "outcome": "budget_exhausted", "calls": 3, "synthetic_tokens": 2128, "synthetic_cost_usd": 0.005144, "last_tool_executed": false},
+        {"max_steps": 2, "outcome": "budget_exhausted", "calls": 2, "synthetic_tokens": 1078, "synthetic_cost_usd": 0.002644}
+      ],
+      "original_deadline_identical_on_every_call": true,
+      "original_goal_action_receipt_and_terminal_message_retained": true
+    },
+    "validation": "Body npm ci/test (26/26)/build/gen; harness build/vet/test/race/generate; focused action/terminal-acceptance race tests repeated 20 times; no generated drift. Sequential local Auto-review with no material finding. Exact-head CI is linked in implementation thread.",
+    "additional_paid_usage_usd": 0,
+    "limitations": "Deterministic HTTP-body/provider fixtures, not new paid-model or Minecraft capability trials. Prior model arms and moving-status negative predate this fix and are retained unchanged. Synthetic costs above are test assertions, not spend. Unreturned cancellation billing remains unknown. No dependency/model/settings, live world or deployment changes. Coordinator owns acceptance."
+  },
   "settings": {
     "model": "gpt-6.1-sol",
     "effort": "low",

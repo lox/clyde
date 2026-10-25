@@ -230,35 +230,68 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 	}
 	var usageMu sync.Mutex
 	logEvent := transcript(logw)
-	res, runErr := harness.Run(runCtx, &exploringProvider{Provider: o.Provider, tb: tb},
-		harness.WithSystem(o.System),
-		harness.WithMessages(harness.Message{Role: harness.RoleUser, Content: user}),
-		harness.WithTools(Harness(tb.Tools())...),
-		harness.WithModel(o.Model),
-		harness.WithReasoning(harness.ReasoningOptions{Effort: o.Effort}),
-		harness.WithMaxSteps(o.MaxSteps),
-		harness.WithAfterTool(func(context.Context, harness.ToolCall, *harness.ToolResult) error {
-			checkNow()
-			return nil
-		}),
-		harness.WithEventHandler(func(e harness.Event) {
-			usageMu.Lock()
-			defer usageMu.Unlock()
-			logEvent(e)
-			if e.Type == harness.EventToolStart && e.ToolCall.Name == "run_skill" {
-				var a struct {
-					Name string `json:"name"`
-				}
-				if json.Unmarshal(e.ToolCall.Arguments, &a) == nil {
-					if out.SkillCalls == nil {
-						out.SkillCalls = map[string]int{}
+	var res *harness.Result
+	var runErr error
+	messages := []harness.Message{{Role: harness.RoleUser, Content: user}}
+	completed := 0
+	for {
+		part, err := harness.Run(runCtx, &exploringProvider{Provider: o.Provider, tb: tb},
+			harness.WithSystem(o.System),
+			harness.WithMessages(messages...),
+			harness.WithTools(Harness(tb.Tools())...),
+			harness.WithModel(o.Model),
+			harness.WithReasoning(harness.ReasoningOptions{Effort: o.Effort}),
+			harness.WithMaxSteps(o.MaxSteps-completed),
+			harness.WithAfterTool(func(context.Context, harness.ToolCall, *harness.ToolResult) error {
+				checkNow()
+				return nil
+			}),
+			harness.WithEventHandler(func(e harness.Event) {
+				usageMu.Lock()
+				defer usageMu.Unlock()
+				e.Step += completed
+				logEvent(e)
+				if e.Type == harness.EventToolStart && e.ToolCall.Name == "run_skill" {
+					var a struct {
+						Name string `json:"name"`
 					}
-					out.SkillCalls[a.Name]++
+					if json.Unmarshal(e.ToolCall.Arguments, &a) == nil {
+						if out.SkillCalls == nil {
+							out.SkillCalls = map[string]int{}
+						}
+						out.SkillCalls[a.Name]++
+					}
 				}
+			}),
+		)
+		runErr = err
+		if part != nil {
+			messages = append(messages, part.Messages...)
+			if res != nil {
+				part.Messages = append(res.Messages, part.Messages...)
+				part.TotalUsage.Add(&res.TotalUsage)
+				part.CallUsage = append(res.CallUsage, part.CallUsage...)
+				part.Steps += res.Steps
 			}
-		}),
-	)
-	cancel(errRunEnded) // first cause wins; this only stops the watchers
+			res = part
+			completed = res.Steps
+		}
+		// The provider's version check cannot cover message/event emission inside
+		// harness.Run. Linearize terminal acceptance with conditional stop here.
+		// Cancelling while locked also rejects a judge callback queued behind us.
+		tb.controlMu.Lock()
+		if runErr == nil && runCtx.Err() == nil && res != nil && tb.planned != tb.version &&
+			(res.StopReason == harness.StopEndTurn || res.StopReason == harness.StopRefusal || res.StopReason == harness.StopIncomplete) {
+			if completed < o.MaxSteps {
+				tb.controlMu.Unlock()
+				continue // same history, cumulative usage/steps, original deadline
+			}
+			res.StopReason = harness.StopMaxSteps
+		}
+		cancel(errRunEnded) // first cause wins; this only stops the watchers
+		tb.controlMu.Unlock()
+		break
+	}
 	wg.Wait()
 	cause := context.Cause(runCtx)
 

@@ -165,9 +165,14 @@ separate decision.
   the same conversation. Failed/aborted tools also attach fresh state, including
   immediate failures. A stop during inference withholds that stale response,
   including an end-turn, while preserving returned usage and charging its
-  original turn. There is exactly one provider call per harness turn, no
-  nested retry loop and no new time/turn allowance. Danger, cancellation,
-  predicate success and exhaustion remain run-level controls.
+  original turn. Terminal acceptance also shares the conditional-stop lock:
+  a stop winning after provider return but before acceptance resumes the pinned
+  library loop with the complete conversation, accumulated usage/steps and only
+  the remaining turns, under the original context/deadline and watchers.
+  Acceptance winning cancels that context while locked; a queued stuck callback
+  then cannot stop an action. A stale last turn remains exhausted. There is
+  exactly one provider call per charged turn and no new time/turn allowance.
+  Danger, cancellation, predicate success and exhaustion remain run-level controls.
 - The card adds exactly twelve local contact cells: below, feet, head,
   overhead, and four cardinal feet/head neighbours. Names and actual collision
   boxes distinguish air, solid/partial collision and unknown/unloaded cells;
@@ -343,8 +348,42 @@ empty-token rejection. Full harness build/vet/test/race/generation and three
 executor race repetitions were rerun. These measured model arms precede that
 last narrow forwarding/description fix; none supplied an `act(stop)` token.
 The evidence separates measured-source and final-source hashes rather than
-claiming another model rerun. No material finding remains after the targeted
-recheck. No delegated review or new thread was used.
+claiming another model rerun. That recheck missed the later terminal-acceptance
+race described below. No delegated review or new thread was used.
+
+### Terminal-acceptance fix-forward
+
+Coordinator/Oracle review of `9b0bb3b` found a real gap between the provider's
+version check and the library accepting end-turn after emitting message/turn-end
+events. The deterministic public-executor regression blocks transcript emission
+after the wrapper has returned, releases a stuck verdict, and waits for a later
+serial judge tick proving conditional stop has completed before unblocking.
+The identical final test was run against an isolated `git archive 9b0bb3b`
+with only the new test file copied in: all twelve cases failed. End-turn,
+refusal, incomplete and max-token terminal responses each cover limits 4, 3, 2.
+
+With synchronized acceptance, all twelve pass. At limit4 the original four-log
+predicate independently verifies completion on turn3, with all 2,128 synthetic
+returned tokens and computed $0.005144 retained. At limit3 the next proposed
+tool is not executed on the last turn: exhausted at3 turns/2,128 tokens. At
+limit2 there is no third call: exhausted at2 turns/1,078 tokens/$0.002644.
+Every provider call has the exact same original deadline; continuation includes
+the original goal, prior action receipt, stale message and new stop evidence.
+These are deterministic HTTP-body/provider fixtures, not additional Minecraft
+or paid-model trials; their computed costs are not spend. The earlier failed
+moving-status return and all fixed model arms remain unchanged and predate
+this fix-forward. Returned experiment spend remains $1.342987860, with unknown
+unreturned billing; no general reliability or rollout claim is added.
+
+No dependency change was needed. Acceptance cancels under the same mutex as
+conditional stop, and stuck checks context cancellation under that mutex before
+contacting the body. This closes the gap rather than moving an unlocked check.
+Sequential local Auto-review traced stop-first/acceptance-first, resumed history,
+partial results, cancellation/danger, usage aggregation and remaining-step
+boundaries; no material finding remained. Body install/test (26/26)/build/gen,
+harness build/vet/test/race/generate and twenty repeated focused race runs pass;
+regeneration has no drift. Exact-head CI, including unchanged cheat scoreboard
+and five skill gates, is required before the implementation thread reports ready.
 
 Exact pushed source and CI confirmation are linked in the
 [implementation thread](https://ampcode.com/threads/T-01a171da-b4f8-70d6-b9ab-590c106c5878).
