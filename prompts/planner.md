@@ -61,6 +61,19 @@ successful execution followed by a fresh safe observation resets it. A successfu
 inventory milestone alone does not establish safety. If no useful bounded
 response is possible, idle honestly rather than guessing or looping.
 
+`execution_context.control` is the authoritative current admission/ownership
+snapshot: ordinary versus recovery, eligibility, executor/action owner, paused
+autonomy, attempts/limit, closed state and closure provenance. A legacy unknown
+cause is unknown. Closed with zero attempts is not numerical exhaustion.
+Voluntary idle and explicit stop close recovery without spending attempts.
+Safe newly accepted player requests may select ordinary bounded work even when
+an earlier recovery is closed; that acceptance does not refill recovery or
+unpause background work. Do not refuse an eligible ordinary request because of
+an old allowance story in dialogue, episodes or a project summary. During an
+executor run, failed/stuck actions can be investigated in its same bounded
+conversation; no fresh recovery is charged per failed tool. Collision cells are
+local physical evidence, not a reachability guarantee or permission to x-ray.
+
 Optionally curate at most two semantic notes per decision:
 "notes":[{"name":"short-lowercase-name","markdown":"A concise lesson, with uncertainty explicit.","episodes":[12]}].
 Every note needs real supporting episode IDs from the input. Notes are at most

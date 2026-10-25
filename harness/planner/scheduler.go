@@ -47,8 +47,15 @@ type Job struct {
 // RecoveryEpisode survives idle, exhaustion and restarts. Only a successful
 // execution followed by a safe observation resets it; notifications never do.
 type RecoveryEpisode struct {
-	Attempts int  `json:"attempts"`
-	Closed   bool `json:"closed"`
+	Attempts      int    `json:"attempts"`
+	Closed        bool   `json:"closed"`
+	ClosureReason string `json:"closure_reason,omitempty"`
+}
+
+func (r *RecoveryEpisode) close(reason string) {
+	if !r.Closed {
+		r.Closed, r.ClosureReason = true, reason
+	}
 }
 
 const maxRecovery = 2
@@ -82,6 +89,7 @@ type Checkpoint struct {
 	Started        bool             `json:"started"`
 	Danger         bool             `json:"danger"`
 	AutoPaused     bool             `json:"auto_paused"`
+	PauseReason    string           `json:"pause_reason,omitempty"`
 	NextID         uint64           `json:"next_id"`
 	AutonomousRuns int              `json:"autonomous_runs"`
 	Recovery       *RecoveryEpisode `json:"recovery,omitempty"`
@@ -168,7 +176,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 					return err
 				}
 				if len(judge.Dangers(card, judge.DefaultConfig().Prechecks)) == 0 {
-					state.Recovery, state.AutoPaused = nil, false
+					state.Recovery, state.AutoPaused, state.PauseReason = nil, false, ""
 				}
 				state.Jobs = append(state.Jobs[:i], state.Jobs[i+1:]...)
 				if state.Recovery == nil {
@@ -276,6 +284,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				j := &state.Jobs[idx]
 				if j.Goal != nil && j.Lane == "autonomous" && state.AutonomousRuns >= s.MaxAutonomous {
 					state.AutoPaused = true
+					state.PauseReason = "autonomous_goal_limit"
 					removeJob(&state, j.ID)
 					if err := commit(memory.Episode{Kind: "budget", Detail: "autonomous session goal budget reached"}); err != nil {
 						return fail(err)
@@ -314,7 +323,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 						state.Recovery = &RecoveryEpisode{}
 					}
 					if state.Recovery.Closed || state.Recovery.Attempts >= maxRecovery {
-						state.Recovery.Closed = true
+						state.Recovery.close("exhausted")
 						removeJob(&state, j.ID)
 						if err := commit(memory.Episode{Kind: "recovery_exhausted", Detail: "recovery allowance unavailable; idle until successful safe player work"}); err != nil {
 							return fail(err)
@@ -333,6 +342,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				if err != nil {
 					return fail(err)
 				}
+				job.Context = in.Context
 				workCtx, cancel := context.WithCancel(ctx)
 				if phase == "planning" {
 					cancel()
@@ -376,7 +386,7 @@ func (s *Scheduler) Run(ctx context.Context) error {
 				if stale == "" && r.err == nil && r.decision.Goal != nil && j.Context.Mode != "" && state.Recovery != nil && (state.Recovery.Closed || state.Recovery.Attempts >= maxRecovery) {
 					r.decision.Goal = nil
 					r.decision.Idle = true
-					r.decision.Reply = "Recovery allowance is exhausted; I need successful safe work before another recovery episode."
+					r.decision.Reply = fmt.Sprintf("Recovery admission unavailable (attempts %d/%d, closed=%t, closure=%s). A safe ordinary player request does not require recovery admission.", state.Recovery.Attempts, maxRecovery, state.Recovery.Closed, recoveryClosure(state.Recovery))
 				}
 				if stale == "" && r.err == nil && (r.decision.Work == "replace" || r.decision.Goal != nil) && runID != "" {
 					preempt = "player"
@@ -487,12 +497,15 @@ func (s *Scheduler) enqueue(st *Checkpoint, event string, postMortem bool) {
 }
 
 func (s *Scheduler) recover(st *Checkpoint, event string) {
+	if !st.AutoPaused {
+		st.PauseReason = event
+	}
 	st.AutoPaused = true
 	if st.Recovery == nil {
 		st.Recovery = &RecoveryEpisode{}
 	}
 	if st.Recovery.Attempts >= maxRecovery {
-		st.Recovery.Closed = true
+		st.Recovery.close("exhausted")
 	}
 	if st.Recovery.Closed {
 		return
@@ -562,7 +575,46 @@ func (s *Scheduler) input(ctx context.Context, j Job, card body.Card, st Checkpo
 			work = append(work, job)
 		}
 	}
+	j.Context.Control = s.control(j, card, st)
 	return Input{Context: j.Context, Event: j.Event, Request: j.Request, Dialogue: append([]Turn(nil), st.Dialogue...), Project: st.Project, Work: work, State: string(b), Episodes: episodes, Places: places, Semantic: semantic}, err
+}
+
+func recoveryClosure(r *RecoveryEpisode) string {
+	if r == nil || !r.Closed {
+		return "none"
+	}
+	if r.ClosureReason == "" {
+		return "unknown" // Do not retroactively label a legacy closed-zero episode.
+	}
+	return r.ClosureReason
+}
+
+func (s *Scheduler) control(j Job, card body.Card, st Checkpoint) *executor.ControlFacts {
+	f := &executor.ControlFacts{RequestID: j.ID, Admission: "ordinary", Limit: maxRecovery,
+		AutoPaused: st.AutoPaused, PauseReason: st.PauseReason, ClosureReason: recoveryClosure(st.Recovery)}
+	if st.AutoPaused && f.PauseReason == "" {
+		f.PauseReason = "unknown"
+	}
+	if st.Recovery != nil {
+		f.Attempts, f.Closed = st.Recovery.Attempts, st.Recovery.Closed
+	}
+	for _, job := range st.Jobs {
+		if job.Status == "running" {
+			f.ExecutorOwner = job.ID
+		}
+	}
+	if card.Action != nil {
+		f.ActionOwner = card.Action.Token
+	}
+	f.Eligible = !st.Danger && (j.Lane == "player" || (!st.AutoPaused && st.AutonomousRuns < s.MaxAutonomous))
+	if j.Context.Mode != "" {
+		f.Admission = "recovery"
+		f.Eligible = !f.Closed && f.Attempts < maxRecovery
+		if j.Status == "running" {
+			f.Admission, f.Eligible = "recovery_charged", true
+		}
+	}
+	return f
 }
 
 func dialogue(st *Checkpoint, turn Turn) {
@@ -751,7 +803,11 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 		}
 		if d.Goal == nil {
 			if st.Recovery != nil && (d.Work == "replace" || (job.Context.Mode != "" && job.PostMortem)) {
-				st.Recovery.Closed = true
+				reason := "voluntary_idle"
+				if d.Work == "replace" {
+					reason = "explicit_stop"
+				}
+				st.Recovery.close(reason)
 			}
 			// Persist terminal idle/refusal along with send intent. A crash after
 			// chat must not make the answered request eligible for replanning.
@@ -792,7 +848,7 @@ func (s *Scheduler) finish(ctx context.Context, st *Checkpoint, r workResult, pr
 					st.AutonomousRuns++
 				}
 				if !st.Danger {
-					st.Recovery, st.AutoPaused = nil, false
+					st.Recovery, st.AutoPaused, st.PauseReason = nil, false, ""
 					eps = append(eps, memory.Episode{Kind: "recovery_reset", Detail: "successful execution and fresh safe observation"})
 					s.enqueue(st, "goal_finished", false)
 				} else {

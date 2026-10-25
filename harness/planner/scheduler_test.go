@@ -136,6 +136,66 @@ func target(name string, n int) *goal.Goal {
 	return &goal.Goal{Description: name, Until: goal.Predicate{Items: &goal.ItemsPredicate{Item: "minecraft:oak_log", Count: n}}}
 }
 
+func TestSafeFollowUpRetainsLegacyClosureAndOrdinaryAdmission(t *testing.T) {
+	w := newWorld()
+	store := testStore(t)
+	legacy := planner.Checkpoint{Started: true, AutoPaused: true, Recovery: &planner.RecoveryEpisode{Closed: true}}
+	if err := store.Commit(context.Background(), legacy, nil); err != nil {
+		t.Fatal(err)
+	}
+	inputs := make(chan planner.Input, 2)
+	executed := make(chan executor.ExecutionContext, 1)
+	s := &planner.Scheduler{Memory: store, World: w, PollInterval: 5 * time.Millisecond,
+		Check: func(context.Context, goal.Goal) (bool, error) { return false, nil },
+		Plan: func(_ context.Context, in planner.Input) (planner.Decision, error) {
+			inputs <- in
+			return planner.Decision{Goal: target("safe follow-up", 8)}, nil
+		},
+		Execute: func(ctx context.Context, _ goal.Goal, c executor.ExecutionContext) (executor.Outcome, error) {
+			executed <- c
+			<-ctx.Done()
+			return executor.Outcome{Outcome: executor.Cancelled}, nil
+		},
+	}
+	stop := start(t, s)
+	w.event("whisper", "Alex", "Clear the leaves around you and finish gathering the eight birch logs.")
+	var in planner.Input
+	select {
+	case in = <-inputs:
+	case <-time.After(time.Second):
+		t.Fatal("follow-up not planned")
+	}
+	f := in.Context.Control
+	if f == nil || !f.Eligible || f.Admission != "ordinary" || !f.AutoPaused || !f.Closed || f.Attempts != 0 || f.ClosureReason != "unknown" || f.PauseReason != "unknown" {
+		t.Fatalf("legacy closure misrepresented: %+v", f)
+	}
+	select {
+	case c := <-executed:
+		if c.Mode != "" || c.Control == nil || !c.Control.Eligible || c.Control.Attempts != 0 || !c.Control.Closed || c.Control.ExecutorOwner == "" {
+			t.Fatalf("safe work not admitted ordinarily: %+v", c)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("safe follow-up not dispatched")
+	}
+	stop()
+	var got planner.Checkpoint
+	if err := store.Load(context.Background(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Recovery == nil || got.Recovery.Attempts != 0 || !got.Recovery.Closed || !got.AutoPaused || got.Recovery.ClosureReason != "" {
+		t.Fatalf("request refilled or relabelled legacy allowance: %+v", got)
+	}
+	// Restart must not periodically replan the closed episode or refill it.
+	stop = start(t, s)
+	time.Sleep(50 * time.Millisecond)
+	stop()
+	select {
+	case extra := <-inputs:
+		t.Fatalf("unexpected periodic planning: %+v", extra)
+	default:
+	}
+}
+
 func TestPlayerPreemptionWaitsForCleanupAndResumesAutonomous(t *testing.T) {
 	w := newWorld()
 	s := &planner.Scheduler{Memory: testStore(t), World: w, PollInterval: 5 * time.Millisecond, Check: func(context.Context, goal.Goal) (bool, error) { return false, nil }}
@@ -637,7 +697,7 @@ func TestRecoveryAllowancePersistsWithoutNotificationRefill(t *testing.T) {
 			eventually(t, func() bool { v, err := store.Semantic(); return err == nil && strings.Contains(v, "Do not repeat") })
 			eventually(t, func() bool {
 				var c planner.Checkpoint
-				return store.Load(context.Background(), &c) == nil && c.Recovery != nil && c.Recovery.Closed && c.Recovery.Attempts == 2
+				return store.Load(context.Background(), &c) == nil && c.Recovery != nil && c.Recovery.Closed && c.Recovery.Attempts == 2 && c.Recovery.ClosureReason == "exhausted"
 			})
 			before := plans.Load()
 			time.Sleep(60 * time.Millisecond)
@@ -727,7 +787,7 @@ func TestRecoveryCanChooseIdleOrChangedApproach(t *testing.T) {
 				t.Fatal(err)
 			}
 			if tc.idle {
-				if runs.Load() != 1 || plans.Load() != 2 || c.Recovery == nil || !c.Recovery.Closed || c.Recovery.Attempts != 0 {
+				if runs.Load() != 1 || plans.Load() != 2 || c.Recovery == nil || !c.Recovery.Closed || c.Recovery.Attempts != 0 || c.Recovery.ClosureReason != "voluntary_idle" {
 					t.Fatalf("idle loop/refill runs=%d plans=%d state=%+v", runs.Load(), plans.Load(), c)
 				}
 			} else if runs.Load() != 2 || plans.Load() != 3 || c.Recovery != nil || c.AutoPaused {
@@ -776,7 +836,7 @@ func TestRejectedPreserveDoesNotCancelChargedRecovery(t *testing.T) {
 			w.mu.Lock()
 			reply := w.replies[0]
 			w.mu.Unlock()
-			if !strings.Contains(reply, "Recovery allowance is exhausted") || got.Recovery == nil || got.Recovery.Attempts != 2 || runs.Load() != 1 {
+			if !strings.Contains(reply, "attempts 2/2") || got.Recovery == nil || got.Recovery.Attempts != 2 || runs.Load() != 1 {
 				t.Fatalf("invalid refusal/charge: reply=%q state=%+v runs=%d", reply, got, runs.Load())
 			}
 			if work == "preserve" && (cancelled.Load() != 0 || got.Recovery.Closed || len(got.Jobs) != 1 || got.Jobs[0].Status != "running") {
@@ -856,7 +916,13 @@ func TestRecoveryPreemptionPreservesChargedAllowance(t *testing.T) {
 			if err := store.Load(context.Background(), &got); err != nil {
 				t.Fatal(err)
 			}
-			if plans.Load() != 1 || runs.Load() != 1 || got.Recovery == nil || !got.Recovery.Closed || got.Recovery.Attempts != attempts+1 {
+			closure := "explicit_stop"
+			if attempts == 1 {
+				// New danger closed admission after execution two was charged,
+				// before the owner's stop. Preserve that first closure cause.
+				closure = "exhausted"
+			}
+			if plans.Load() != 1 || runs.Load() != 1 || got.Recovery == nil || !got.Recovery.Closed || got.Recovery.Attempts != attempts+1 || got.Recovery.ClosureReason != closure {
 				t.Fatalf("restart/notification reopened stopped recovery: plans=%d runs=%d state=%+v", plans.Load(), runs.Load(), got)
 			}
 		})
