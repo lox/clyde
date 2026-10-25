@@ -141,11 +141,12 @@ not Bonnie's live services, secret, identity or network.
   about1ms, planning3,045ms, send61ms. No tuning or general latency gain claimed;
   no startup replay/model usage. Disposable fixtures/resources were removed;
   private backup data remains on the host, not in this repository.
-- **Deployment accepted; owner client acceptance pending.** Java username,
-  version and approved online UUID are not yet verified. Neither actual
-  authenticated owner Java join/gameplay nor real Bedrock auth/UDP/gameplay
-  has passed. Whitelist was not broadened. Ask the owner to connect and report
-  the exact error if rejected; do not turn synthetic tests into a login claim.
+- **Deployment and owner Java login accepted.** The owner subsequently confirmed
+  real Java login and chatted with Clyde about gathering wood; the host observed
+  a human26.2 client. This is actual client evidence, not inferred from status
+  ping. No whitelist broadening was necessary. Real Bedrock auth/UDP/gameplay
+  remains unverified. Successful login is not a claim that Clyde completed the
+  wood task: that failure is the starting evidence for slice 13.
   Detailed acceptance, backup checksums and rollback are retained in the
   [host thread](https://ampcode.com/threads/T-01a14894-8624-72d8-af3c-2c59e8fb5d5b),
   `.amp/in/artifacts/clyde-slice12-rollout.md`. Reliable bot stop remains

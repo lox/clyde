@@ -163,11 +163,10 @@ Bonnie and its public proxies are not part of this rollout.
 
 Clyde source `7700696` is deployed there through `lox/selfhosted-ovh` PR 12.
 The host verified the image, memory continuity and one live model reply;
-real owner client gameplay remains unverified. Lachlan uses Java Edition,
-not Bedrock. Slice 12's proxies are deployed through infrastructure PR 13;
-the same world, player identities and bot memory are preserved. Owner Java
-username/version and real client acceptance remain pending. See slices 7/12
-and the host stop/rollback runbook.
+Lachlan subsequently confirmed actual Java login and conversation with Clyde.
+Slice 12's proxies are deployed through infrastructure PR 13; the same world,
+player identities and bot memory are preserved. Real Bedrock client gameplay
+remains unverified. See slices 7/12 and the host stop/rollback runbook.
 
 The previously implemented Bonnie route remains available for a later,
 separately approved deployment, without a Microsoft account:
@@ -209,12 +208,13 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 4 | Executor + MCP server (done) | `04-executor.md` | 1, 2, 3 |
 | 5 | Skills: loader, admission, five skills, multi-step gym tasks (done, `4c94e9a`) | `05-skills.md` | 4 |
 | 6 | Planner + memory (done, `a567305`) | `06-planner.md` | 4, 5 |
-| 7 | Simple deployment: separate play world live; real client join pending | `07-production.md` | 4 |
+| 7 | Simple deployment: separate play world live; owner Java joined | `07-production.md` | 4 |
 | 8 | Judge distillation: classifier backend from JSONL logs | `08-distill.md` | 3, 6 |
 | 9 | Harder gym curriculum and evidence-led capability improvements (done, `0787b89`) | `09-capability-curriculum.md` | 5, 6 |
 | 10 | Model-led recovery and judge evidence (done, `b2755c1`) | `10-model-led-recovery.md` | 6, 9 |
 | 11 | Multi-turn conversation and remembered projects (done, `c2d7442`) | `11-conversation-projects.md` | 6, 10 |
-| 12 | Authenticated Java access (deployed; owner login pending) | `12-java-access.md` | 7 |
+| 12 | Authenticated Java access (deployed; owner Java login confirmed) | `12-java-access.md` | 7 |
+| 13 | Bounded model-led exploration (approved for implementation) | `13-bounded-exploration.md` | 10, 11 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -314,9 +314,18 @@ choice and can be reversed by saying so.
   passed. Stopped whole-data/memory snapshots preceded cutover. The host
   verified bot identity/playerdata, all 1,611 historical episodes, memory files
   and places retained; only the bot Minecraft host changed, not image/settings.
-  All 25 untargeted containers stayed unchanged, including Bonnie. Authenticated
-  owner Java join and real Bedrock gameplay remain unverified. Do not mark
-  client acceptance complete until an actual client joins.
+  All 25 untargeted containers stayed unchanged, including Bonnie. The owner
+  subsequently confirmed actual Java login/chat; host observed client26.2.
+  Real Bedrock gameplay remains unverified.
+- Slice 13 approved by Lachlan following the wood-task failure and Oracle review:
+  keep failures inside the executor's existing 40-turn/300-second conversation;
+  make stuck action-local with incarnation-safe conditional cancellation, add
+  compact collision evidence and expose truthful admission/closure provenance.
+  The incident charged zero recoveries; an old voluntary closure is not
+  numerical exhaustion. Preserve danger/body safety and the outer two-recovery
+  policy for this first slice. A durable exploration allowance is deferred
+  until matched trials show that boundary blocks useful work. Implementation
+  and isolated validation are approved; no live changes or rollout authorized.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
