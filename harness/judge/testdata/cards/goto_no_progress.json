@@ -27,6 +27,7 @@
   },
   "action": {
     "id": 12,
+    "token": "fixture-stalled-12",
     "type": "goto",
     "params": {
       "x": 96,

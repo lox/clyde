@@ -48,7 +48,7 @@ func TestAdmissionExecutionAndPromotion(t *testing.T) {
 		t.Fatalf("Find: %v %v", hits, err)
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/eval" {
+		if r.URL.Path != "/eval" && r.URL.Path != "/action" {
 			t.Errorf("path %s", r.URL.Path)
 		}
 		var req struct {
@@ -61,7 +61,7 @@ func TestAdmissionExecutionAndPromotion(t *testing.T) {
 		if !strings.Contains(req.Code, `const args = {"item":"oak_planks"};`) || !strings.Contains(req.Code, "return args.item") || req.TimeoutMs != 3210 {
 			t.Errorf("request: %+v", req)
 		}
-		w.Write([]byte(`{"id":1,"type":"eval","status":"succeeded","elapsedMs":0,"startedAt":0,"params":{}}`))
+		w.Write([]byte(`{"id":1,"token":"skill-owner","type":"eval","status":"succeeded","elapsedMs":0,"startedAt":0,"params":{}}`))
 	}))
 	defer server.Close()
 	if _, err := s.Run(context.Background(), &body.Client{URL: server.URL}, "craft-item", json.RawMessage(`{"item":"oak_planks"}`), 3210); err != nil {

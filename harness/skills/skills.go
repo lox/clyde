@@ -173,17 +173,11 @@ func (s Store) Run(ctx context.Context, client *body.Client, name string, args j
 // Run executes this snapshot. Gate agents use it for an unadmitted candidate.
 // Cancellation also stops the body action: closing an HTTP request alone does not.
 func (k Skill) Run(ctx context.Context, client *body.Client, args json.RawMessage, timeoutMs int) (body.ActionStatus, error) {
-	if len(args) == 0 {
-		args = json.RawMessage(`{}`)
+	req, err := k.Action(args, timeoutMs)
+	if err != nil {
+		return body.ActionStatus{}, err
 	}
-	var object map[string]json.RawMessage
-	if err := json.Unmarshal(args, &object); err != nil || object == nil {
-		return body.ActionStatus{}, errors.New("skill args must be a JSON object")
-	}
-	if timeoutMs < 0 || timeoutMs > 600_000 {
-		return body.ActionStatus{}, errors.New("timeoutMs must be between 0 (default) and 600000")
-	}
-	status, err := client.Eval(ctx, "const args = "+string(args)+";\n"+k.Code, timeoutMs)
+	status, err := client.Eval(ctx, req.Code, timeoutMs)
 	if ctx.Err() != nil {
 		stop, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 		defer cancel()
@@ -192,6 +186,25 @@ func (k Skill) Run(ctx context.Context, client *body.Client, args json.RawMessag
 		}
 	}
 	return status, err
+}
+
+// Action prepares the same validated snapshot for asynchronous executor dispatch.
+func (k Skill) Action(args json.RawMessage, timeoutMs int) (body.EvalAction, error) {
+	if len(args) == 0 {
+		args = json.RawMessage(`{}`)
+	}
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(args, &object); err != nil || object == nil {
+		return body.EvalAction{}, errors.New("skill args must be a JSON object")
+	}
+	if timeoutMs < 0 || timeoutMs > 600_000 {
+		return body.EvalAction{}, errors.New("timeoutMs must be between 0 (default) and 600000")
+	}
+	req := body.EvalAction{Type: "eval", Code: "const args = " + string(args) + ";\n" + k.Code}
+	if timeoutMs > 0 {
+		req.TimeoutMs = timeoutMs
+	}
+	return req, nil
 }
 
 // Promote publishes an already gated candidate snapshot, including its receipt.

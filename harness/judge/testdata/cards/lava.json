@@ -27,6 +27,7 @@
   },
   "action": {
     "id": 9,
+    "token": "fixture-lava-9",
     "type": "collect",
     "params": {
       "block": "diamond_ore",

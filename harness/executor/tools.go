@@ -13,6 +13,7 @@ import (
 	harness "github.com/lox/agent-harness"
 
 	"github.com/lox/clyde/harness/body"
+	"github.com/lox/clyde/harness/judge"
 	"github.com/lox/clyde/harness/skills"
 )
 
@@ -64,6 +65,39 @@ type Toolbox struct {
 
 	mu        sync.Mutex
 	chatSince int
+
+	// Serialize only dispatch and conditional stop, never the wait for work.
+	controlMu sync.Mutex
+	version   uint64
+	planned   uint64
+	stall     string
+}
+
+func (tb *Toolbox) dispatch(ctx context.Context, req any) (*body.ActionStatus, error) {
+	tb.controlMu.Lock()
+	defer tb.controlMu.Unlock()
+	if tb.planned != tb.version {
+		return nil, fmt.Errorf("action-local interruption invalidated this plan: %s; observe and revise", tb.stall)
+	}
+	return tb.Body.Action(ctx, req)
+}
+
+// stuck applies only to the live incarnation the judge actually observed.
+func (tb *Toolbox) stuck(ctx context.Context, it judge.Interrupt) error {
+	if it.ActionToken == "" {
+		return nil
+	}
+	tb.controlMu.Lock()
+	defer tb.controlMu.Unlock()
+	stopped, err := tb.Body.StopAction(ctx, it.ActionToken)
+	if err != nil {
+		return err
+	}
+	if stopped != nil {
+		tb.version++
+		tb.stall = fmt.Sprintf("judge stopped only action %s (%s %s): %s. Same goal and run budget remain.", it.ActionToken, it.Source, it.Detail, statusJSON(stopped))
+	}
+	return nil
 }
 
 // pollInterval is how often act and observe re-read the card while waiting.
@@ -156,7 +190,7 @@ func (tb *Toolbox) observe(ctx context.Context, args json.RawMessage) (string, e
 			return "", err
 		}
 		if card.Action != nil {
-			if _, _, err := tb.waitAction(ctx, card.Action.ID, seconds(min(a.Wait, 30))); err != nil {
+			if _, _, err := tb.waitAction(ctx, card.Action.Token, seconds(min(a.Wait, 30))); err != nil {
 				return "", err
 			}
 		}
@@ -199,9 +233,9 @@ func (tb *Toolbox) newChat(ctx context.Context) ([]string, error) {
 	return lines, nil
 }
 
-// waitAction polls the card until action id is no longer running or wait
+// waitAction polls the card until the action token is no longer running or wait
 // passes. It returns the action's latest status and whether it finished.
-func (tb *Toolbox) waitAction(ctx context.Context, id int, wait time.Duration) (*body.ActionStatus, bool, error) {
+func (tb *Toolbox) waitAction(ctx context.Context, token string, wait time.Duration) (*body.ActionStatus, bool, error) {
 	deadline := time.Now().Add(wait)
 	for {
 		card, err := tb.Body.State(ctx)
@@ -209,11 +243,11 @@ func (tb *Toolbox) waitAction(ctx context.Context, id int, wait time.Duration) (
 			return nil, false, err
 		}
 		switch {
-		case card.Action != nil && card.Action.ID == id:
+		case card.Action != nil && card.Action.Token == token:
 			if !time.Now().Before(deadline) {
 				return card.Action, false, nil
 			}
-		case card.LastAction != nil && card.LastAction.ID == id:
+		case card.LastAction != nil && card.LastAction.Token == token:
 			return card.LastAction, true, nil
 		default:
 			// Replaced by an action someone else started, which has also finished.
@@ -265,12 +299,6 @@ func (tb *Toolbox) act(ctx context.Context, args json.RawMessage) (string, error
 	if !ok {
 		return "", fmt.Errorf("type must be one of %s, got %s", strings.Join(actionTypes(), ", "), fields["type"])
 	}
-	if typ == "stop" {
-		if err := tb.Body.Stop(ctx); err != nil {
-			return "", err
-		}
-		return "stopped", nil
-	}
 	// The flat tool schema lets models send fields of other types; keep only
 	// non-null ones, and let the generated type check the rest.
 	for k, v := range fields {
@@ -283,16 +311,37 @@ func (tb *Toolbox) act(ctx context.Context, args json.RawMessage) (string, error
 	if err := json.Unmarshal(raw, req); err != nil {
 		return "", fmt.Errorf("invalid %s action: %w", typ, err)
 	}
-	status, err := tb.Body.Action(ctx, req)
+	if typ == "stop" {
+		tb.controlMu.Lock()
+		defer tb.controlMu.Unlock()
+		if tb.planned != tb.version {
+			return "", fmt.Errorf("action-local interruption: %s; observe and revise", tb.stall)
+		}
+		if token := req.(*body.StopAction).Token; token != nil {
+			stopped, err := tb.Body.StopAction(ctx, *token)
+			if err != nil {
+				return "", err
+			}
+			if stopped == nil {
+				return "no matching live action; nothing stopped", nil
+			}
+			return tb.actionResult(ctx, stopped)
+		}
+		if err := tb.Body.Stop(ctx); err != nil {
+			return "", err
+		}
+		return "stopped", nil
+	}
+	status, err := tb.dispatch(ctx, req)
 	if err != nil {
 		return "", err
 	}
 	// Immediate non-replacing chat has its own receipt. It deliberately never
 	// occupies current/last exclusive-action state, so do not poll for it there.
 	if status.Status != "running" {
-		return statusJSON(status), nil
+		return tb.actionResult(ctx, status)
 	}
-	final, done, err := tb.waitAction(ctx, status.ID, seconds(wait))
+	final, done, err := tb.waitAction(ctx, status.Token, seconds(wait))
 	if err != nil {
 		return "", err
 	}
@@ -302,7 +351,20 @@ func (tb *Toolbox) act(ctx context.Context, args json.RawMessage) (string, error
 	if !done {
 		return fmt.Sprintf("still running after %gs (it keeps running; act again to replace it, or observe with wait): %s", wait, statusJSON(final)), nil
 	}
-	return statusJSON(final), nil
+	return tb.actionResult(ctx, final)
+}
+
+// Failures carry fresh physical evidence without requiring a wasted model turn.
+func (tb *Toolbox) actionResult(ctx context.Context, status *body.ActionStatus) (string, error) {
+	text := statusJSON(status)
+	if status.Status == body.ActionStatusStatusFailed || status.Status == body.ActionStatusStatusAborted {
+		state, err := tb.Body.StateText(ctx)
+		if err != nil {
+			return text + "\nfresh state unavailable: " + err.Error(), nil
+		}
+		text += "\nFresh state (failure is evidence, not a new allowance):\n" + state
+	}
+	return text, nil
 }
 
 // statusJSON renders an action status without the fields models do not
@@ -338,11 +400,29 @@ func (tb *Toolbox) evalJS(ctx context.Context, args json.RawMessage) (string, er
 	if strings.TrimSpace(a.Code) == "" {
 		return "", fmt.Errorf("code is required")
 	}
-	status, err := tb.Body.Eval(ctx, a.Code, a.TimeoutMs)
+	return tb.eval(ctx, body.EvalAction{Type: "eval", Code: a.Code, TimeoutMs: a.TimeoutMs})
+}
+
+func (tb *Toolbox) eval(ctx context.Context, req body.EvalAction) (string, error) {
+	timeout := 60_000
+	if req.TimeoutMs != 0 {
+		timeout = req.TimeoutMs
+	}
+	status, err := tb.dispatch(ctx, req)
 	if err != nil {
 		return "", err
 	}
-	return statusJSON(&status), nil
+	if status.Status != body.ActionStatusStatusRunning {
+		return tb.actionResult(ctx, status)
+	}
+	final, _, err := tb.waitAction(ctx, status.Token, time.Duration(timeout)*time.Millisecond+time.Second)
+	if err != nil {
+		return "", err
+	}
+	if final == nil {
+		return "action was replaced; observe before continuing", nil
+	}
+	return tb.actionResult(ctx, final)
 }
 
 // query runs read-only code that receives arg as the constant ARG.
@@ -450,12 +530,13 @@ func (tb *Toolbox) runSkill(ctx context.Context, raw json.RawMessage) (string, e
 	if err := decodeArgs(raw, &a); err != nil {
 		return "", err
 	}
-	status, err := (skills.Store{Dir: tb.SkillsDir}).Run(ctx, tb.Body, a.Name, a.Args, a.TimeoutMs)
+	k, err := (skills.Store{Dir: tb.SkillsDir}).Load(a.Name)
 	if err != nil {
 		return "", err
 	}
-	if status.Status != "succeeded" {
-		return "", fmt.Errorf("skill %s: %s", a.Name, statusJSON(&status))
+	req, err := k.Action(a.Args, a.TimeoutMs)
+	if err != nil {
+		return "", err
 	}
-	return statusJSON(&status), nil
+	return tb.eval(ctx, req)
 }

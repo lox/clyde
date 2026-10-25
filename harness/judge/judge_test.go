@@ -43,7 +43,7 @@ func TestRecoverySendsDangerChangesToModelAndRetainsStallGuard(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			start := initial
-			start.Action = &body.ActionStatus{ID: 1, Type: "eval", Status: "running", Params: map[string]any{}, StartedAt: start.Ts}
+			start.Action = &body.ActionStatus{ID: 1, Token: "recovery-owner", Type: "eval", Status: "running", Params: map[string]any{}, StartedAt: start.Ts}
 			next := start
 			next.Ts += 500
 			tc.change(&next)

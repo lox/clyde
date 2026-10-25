@@ -27,6 +27,7 @@
   },
   "action": {
     "id": 14,
+    "token": "fixture-collect-14",
     "type": "collect",
     "params": {
       "block": "oak_log",

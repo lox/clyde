@@ -64,8 +64,8 @@ type Prechecker struct {
 	seen   bool
 	lastTS int64
 
-	// Stall tracking for the running action; actionID is 0 when idle.
-	actionID      int
+	// Stall tracking resets across replacements and body incarnations.
+	actionToken   string
 	lastPos       body.Vec
 	lastProg      string
 	lastCollected int
@@ -193,7 +193,7 @@ func (p *Prechecker) stalled(card body.Card) Check {
 	ch := Check{Name: "stalled", Threshold: p.cfg.StuckAfter.Seconds()}
 	a := card.Action
 	if a == nil || a.Status != body.ActionStatusStatusRunning {
-		p.actionID = 0
+		p.actionToken = ""
 		ch.Detail = "no running action"
 		return ch
 	}
@@ -207,8 +207,8 @@ func (p *Prechecker) stalled(card body.Card) Check {
 	}
 	eps := p.cfg.MoveEpsilon
 
-	if a.ID != p.actionID {
-		p.actionID, p.lastPos, p.lastProg, p.lastCollected, p.bestDist, p.lastChange = a.ID, pos, prog, collected, dist, ts
+	if a.Token != p.actionToken || p.actionToken == "" {
+		p.actionToken, p.lastPos, p.lastProg, p.lastCollected, p.bestDist, p.lastChange = a.Token, pos, prog, collected, dist, ts
 	}
 	var progressed bool
 	if a.Type == body.ActionStatusTypeGoto && a.DistanceRemaining != nil {

@@ -21,13 +21,17 @@ import (
 // fakeBody is an httptest body: actions finish instantly, collect adds four
 // oak logs, and health is whatever the test sets.
 type fakeBody struct {
-	mu      sync.Mutex
-	health  float64
-	logs    int
-	nextID  int
-	last    map[string]any
-	actions []string
-	stops   int
+	mu           sync.Mutex
+	health       float64
+	logs         int
+	nextID       int
+	last         map[string]any
+	current      map[string]any
+	firstFailure string
+	holdFirst    bool
+	stopped      chan struct{}
+	actions      []string
+	stops        int
 }
 
 func (b *fakeBody) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +54,7 @@ func (b *fakeBody) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				"yaw": 0, "pitch": 0, "health": b.health, "food": 20, "oxygen": 20, "xpLevel": 0, "gameMode": "survival",
 				"onGround": true, "inWater": false, "inLava": false},
 			"world":      map[string]any{"timeOfDay": 6000, "phase": "day", "raining": false, "thundering": false},
-			"action":     nil,
+			"action":     b.current,
 			"lastAction": b.last,
 			"inventory":  map[string]any{"used": len(items), "total": 36, "held": nil, "items": items},
 			"entities":   map[string]any{"players": []any{}, "hostiles": []any{}, "passives": []any{}, "items": []any{}},
@@ -61,16 +65,40 @@ func (b *fakeBody) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var req map[string]any
 		json.NewDecoder(r.Body).Decode(&req)
 		typ, _ := req["type"].(string)
+		if typ == "stop" {
+			var stopped map[string]any
+			if b.current != nil && b.current["token"] == req["token"] {
+				stopped = b.current
+				stopped["status"], stopped["error"] = "aborted", "stop action"
+				b.last, b.current = stopped, nil
+				if b.stopped != nil {
+					close(b.stopped)
+					b.stopped = nil
+				}
+			}
+			reply(map[string]any{"stopped": stopped})
+			return
+		}
 		b.actions = append(b.actions, typ)
-		if typ == "collect" {
+		if typ == "collect" && !(b.nextID == 0 && (b.firstFailure != "" || b.holdFirst)) {
 			b.logs += 4
 		}
 		b.nextID++
-		status := map[string]any{"id": b.nextID, "type": typ, "params": map[string]any{}, "status": "running", "startedAt": 1, "elapsedMs": 0}
+		status := map[string]any{"id": b.nextID, "token": fmt.Sprintf("owner-%d", b.nextID), "type": typ, "params": map[string]any{}, "status": "running", "startedAt": 1, "elapsedMs": 0}
 		reply(status)
-		b.last = map[string]any{"id": b.nextID, "type": typ, "params": map[string]any{}, "status": "succeeded", "startedAt": 1, "elapsedMs": 5}
+		b.last = map[string]any{"id": b.nextID, "token": fmt.Sprintf("owner-%d", b.nextID), "type": typ, "params": map[string]any{}, "status": "succeeded", "startedAt": 1, "elapsedMs": 5}
+		if b.nextID == 1 && b.firstFailure != "" {
+			b.last["status"], b.last["error"] = "failed", b.firstFailure
+		}
+		if b.nextID == 1 && b.holdFirst {
+			b.current, b.last = status, nil
+		}
 	case "POST /stop":
 		b.stops++
+		if b.current != nil {
+			b.current["status"] = "aborted"
+			b.last, b.current = b.current, nil
+		}
 		reply(map[string]any{"stopped": nil})
 	case "GET /events":
 		reply(map[string]any{"events": []any{}, "latestSeq": 0, "missed": 0})
@@ -204,6 +232,115 @@ func TestJudgeInterruptCancelsAndStops(t *testing.T) {
 	}
 }
 
+// A real judge and tool loop over HTTP: a terminal failure must reach the next
+// model turn, while a live stall stops only its action, even after wait=0.
+func TestActionFailuresContinueInOriginalConversation(t *testing.T) {
+	for _, mode := range []string{"terminal", "live-waiting", "live-returned"} {
+		t.Run(mode, func(t *testing.T) {
+			stopped := make(chan struct{})
+			fb := &fakeBody{health: 13, holdFirst: mode != "terminal", stopped: stopped}
+			if mode == "terminal" {
+				fb.firstFailure = "Took to long to decide path to goal!"
+			}
+			seen := make(chan struct{}, 1)
+			var inference chan struct{}
+			if mode == "live-returned" {
+				inference = make(chan struct{})
+			}
+			p := &scripted{next: func(n int, params harness.ChatParams) *harness.ChatResult {
+				if n == 0 {
+					wait := 60
+					if mode == "live-returned" {
+						wait = 0
+					}
+					return toolCall(n, "act", fmt.Sprintf(`{"type":"collect","block":"oak_log","wait":%d}`, wait))
+				}
+				if mode == "terminal" && n == 1 {
+					select {
+					case <-seen:
+					case <-time.After(time.Second):
+						t.Error("terminal failure not judged")
+					}
+					time.Sleep(20 * time.Millisecond) // Let the verdict reach Run before the next action.
+				}
+				if mode == "live-returned" && n == 1 {
+					close(inference) // The verdict must arrive during this inference, not before it.
+					select {
+					case <-stopped:
+					case <-time.After(time.Second):
+						t.Error("live action not stopped")
+					}
+					res := say("stale end-turn must not end this goal")
+					res.Usage = &harness.Usage{InputTokens: 17, OutputTokens: 11}
+					return res
+				}
+				text, _ := json.Marshal(params.Messages)
+				if mode == "terminal" && !strings.Contains(string(text), fb.firstFailure) {
+					t.Error("actual error missing from conversation")
+				}
+				if mode != "terminal" && !strings.Contains(string(text), "Same goal and run budget remain") {
+					t.Error("stall reason missing from continuing conversation")
+				}
+				if !strings.Contains(string(text), "Current state") && !strings.Contains(string(text), "Fresh state") {
+					t.Error("fresh observation missing")
+				}
+				return toolCall(n, "act", `{"type":"collect","block":"oak_log"}`)
+			}}
+			o := setup(t, fb, p)
+			o.MaxSteps, o.MaxDuration = 40, 300*time.Second
+			cfg := judge.DefaultConfig()
+			cfg.Rate = 100
+			o.Judge = judge.New(judge.BodySource{URL: o.Body.URL}, actionStuckBackend{seen: seen, inference: inference}, nil, cfg)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			out, err := Run(ctx, fourLogs, o)
+			if err != nil || out.Outcome != Succeeded || out.Until != "4/4 minecraft:oak_log" {
+				t.Fatalf("out=%+v err=%v", out, err)
+			}
+			wantSteps, wantTokens := 2, 2100
+			if mode == "live-returned" {
+				wantSteps, wantTokens = 3, 2128
+			}
+			if out.Steps != wantSteps || p.callCount() != wantSteps {
+				t.Fatalf("conversation restarted or stale end-turn accepted: %+v calls=%d", out, p.callCount())
+			}
+			if out.Tokens.Total != wantTokens {
+				t.Fatalf("returned usage lost across continuation: %+v want %d", out.Tokens, wantTokens)
+			}
+		})
+	}
+}
+
+type actionStuckBackend struct {
+	seen      chan struct{}
+	inference <-chan struct{}
+}
+
+func (actionStuckBackend) Name() string { return "action-stuck" }
+func (b actionStuckBackend) Ask(ctx context.Context, raw json.RawMessage, _ map[string]judge.Question) (judge.Result, error) {
+	var c body.Card
+	if err := json.Unmarshal(raw, &c); err != nil {
+		return judge.Result{}, err
+	}
+	reason := "none"
+	if c.Action != nil || (c.LastAction != nil && c.LastAction.Status == "failed") {
+		if b.inference != nil {
+			select {
+			case <-b.inference:
+			case <-ctx.Done():
+				return judge.Result{}, ctx.Err()
+			}
+		}
+		reason = "stuck"
+		select {
+		case b.seen <- struct{}{}:
+		default:
+		}
+	}
+	confidence := 1.0
+	return judge.Result{Answers: map[string]judge.Answer{judge.InterruptQuestion: {Choice: reason, Confidence: &confidence}}}, nil
+}
+
 func TestRecoveryJudgeCanContinueOrInterruptFallingHealth(t *testing.T) {
 	for _, verdict := range []string{"none", "danger"} {
 		t.Run(verdict, func(t *testing.T) {
@@ -262,22 +399,69 @@ func (unusedBackend) Ask(context.Context, json.RawMessage, map[string]judge.Ques
 }
 
 func TestMaxStepsIsBudgetExhausted(t *testing.T) {
-	fb := &fakeBody{health: 20}
-	p := &scripted{next: func(n int, _ harness.ChatParams) *harness.ChatResult {
-		return toolCall(n, "observe", `{}`)
-	}}
-	o := setup(t, fb, p)
-	o.MaxSteps = 3
+	for _, stalled := range []bool{false, true} {
+		t.Run(fmt.Sprintf("stalled=%t", stalled), func(t *testing.T) {
+			fb := &fakeBody{health: 20}
+			if stalled {
+				fb.holdFirst = true
+			}
+			p := &scripted{next: func(n int, _ harness.ChatParams) *harness.ChatResult {
+				if stalled && n == 0 {
+					return toolCall(n, "act", `{"type":"goto","x":10,"y":64,"z":0,"wait":60}`)
+				}
+				return toolCall(n, "observe", `{}`)
+			}}
+			o := setup(t, fb, p)
+			o.MaxSteps = 3
+			if stalled {
+				cfg := judge.DefaultConfig()
+				cfg.Rate = 100
+				o.Judge = judge.New(judge.BodySource{URL: o.Body.URL}, actionStuckBackend{seen: make(chan struct{}, 1)}, nil, cfg)
+			}
 
-	out, err := Run(context.Background(), fourLogs, o)
-	if err != nil {
+			out, err := Run(context.Background(), fourLogs, o)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if out.Outcome != BudgetExhausted || out.Steps != 3 || out.Detail != "max steps 3" {
+				t.Fatalf("outcome = %+v, want budget_exhausted after 3 steps", out)
+			}
+			if _, stops := fb.snapshot(); stops != 1 {
+				t.Fatalf("%d stops, want 1", stops)
+			}
+		})
+	}
+}
+
+func TestActStopHonorsConditionalOwnership(t *testing.T) {
+	fb := &fakeBody{health: 20, holdFirst: true}
+	srv := httptest.NewServer(fb)
+	defer srv.Close()
+	client := &body.Client{URL: srv.URL}
+	tb := &Toolbox{Body: client}
+	var act Tool
+	for _, tool := range tb.Tools() {
+		if tool.Name == "act" {
+			act = tool
+		}
+	}
+	ctx := context.Background()
+	if _, err := act.Run(ctx, json.RawMessage(`{"type":"goto","x":10,"y":64,"z":0,"wait":0}`)); err != nil {
 		t.Fatal(err)
 	}
-	if out.Outcome != BudgetExhausted || out.Steps != 3 || out.Detail != "max steps 3" {
-		t.Fatalf("outcome = %+v, want budget_exhausted after 3 steps", out)
+	if _, err := act.Run(ctx, json.RawMessage(`{"type":"stop","token":"earlier-incarnation"}`)); err != nil {
+		t.Fatal(err)
 	}
-	if _, stops := fb.snapshot(); stops != 1 {
-		t.Fatalf("%d stops, want 1", stops)
+	card, err := client.State(ctx)
+	if err != nil || card.Action == nil || card.Action.Token != "owner-1" || card.Action.Status != "running" {
+		t.Fatalf("conditional mismatch stopped current owner: %+v err=%v", card.Action, err)
+	}
+	if _, err := act.Run(ctx, json.RawMessage(`{"type":"stop","token":"owner-1"}`)); err != nil {
+		t.Fatal(err)
+	}
+	card, err = client.State(ctx)
+	if err != nil || card.Action != nil || card.LastAction == nil || card.LastAction.Status != "aborted" {
+		t.Fatalf("matching token did not stop owner: %+v err=%v", card, err)
 	}
 }
 
@@ -288,6 +472,7 @@ func TestBadToolArgumentsAreToolErrors(t *testing.T) {
 		{"act", `{"type":"goto","x":1,"y":64}`, "field z in GotoAction: required"},
 		{"act", `{"type":"fly"}`, "type must be one of"},
 		{"act", `{"type":"collect","block":"oak_log","count":99}`, "count"},
+		{"act", `{"type":"stop","token":""}`, "invalid stop action"},
 		{"act", `not json`, "bad arguments"},
 		{"eval_js", `{}`, "code is required"},
 		{"run_skill", `{"name":"missing","args":{}}`, "no such file"},

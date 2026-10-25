@@ -2,6 +2,7 @@ package judge
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,7 +20,7 @@ func quiet() body.Card {
 }
 
 func running(c body.Card, id int, progress string) body.Card {
-	c.Action = &body.ActionStatus{ID: id, Type: "goto", Status: "running", Progress: &progress}
+	c.Action = &body.ActionStatus{ID: id, Token: fmt.Sprintf("owner-%d", id), Type: "goto", Status: "running", Progress: &progress}
 	return c
 }
 
@@ -98,6 +99,8 @@ func TestPrecheckStalled(t *testing.T) {
 		return c
 	}
 	start := at(running(quiet(), 1, "d=9"), 0)
+	restarted := at(running(quiet(), 1, "d=9"), 12_000)
+	restarted.Action.Token = "new-body-same-id"
 	cases := []struct {
 		name  string
 		cards []body.Card
@@ -107,6 +110,7 @@ func TestPrecheckStalled(t *testing.T) {
 		{"unchanged just under the threshold", []body.Card{start, at(running(quiet(), 1, "d=9"), 9_500)}, false},
 		{"progress text changed", []body.Card{start, at(running(quiet(), 1, "d=8"), 6_000), at(running(quiet(), 1, "d=8"), 12_000)}, false},
 		{"new action restarts the clock", []body.Card{start, at(running(quiet(), 2, "d=9"), 12_000)}, false},
+		{"body restart with reused ID restarts the clock", []body.Card{start, restarted}, false},
 		{"first sight of an old action is not stuck", []body.Card{start}, false},
 		{"moved at epsilon", []body.Card{start, moved(0.5)}, false},
 		{"moved under epsilon", []body.Card{start, moved(0.4)}, true},
@@ -138,7 +142,7 @@ func TestPrecheckStalledActionFields(t *testing.T) {
 		c.Ts = 100_000 + ms
 		c.Bot.Position.X = x
 		lm := 100_000 + movedAt
-		c.Action = &body.ActionStatus{ID: 1, Type: body.ActionStatusType(typ), Status: "running",
+		c.Action = &body.ActionStatus{ID: 1, Token: "walking", Type: body.ActionStatusType(typ), Status: "running",
 			Params: body.ActionStatusParams{"range": 3.0}, DistanceRemaining: &dist, LastMovedAt: &lm}
 		return c
 	}
@@ -146,7 +150,7 @@ func TestPrecheckStalledActionFields(t *testing.T) {
 		c := quiet()
 		c.Ts = 100_000 + ms
 		text := "collecting 4 oak_log"
-		c.Action = &body.ActionStatus{ID: 1, Type: "collect", Status: "running", Progress: &text, Collected: &collected}
+		c.Action = &body.ActionStatus{ID: 1, Token: "collecting", Type: "collect", Status: "running", Progress: &text, Collected: &collected}
 		return c
 	}
 	cases := []struct {

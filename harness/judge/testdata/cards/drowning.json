@@ -27,6 +27,7 @@
   },
   "action": {
     "id": 11,
+    "token": "fixture-drowning-11",
     "type": "goto",
     "params": {
       "x": 330,

@@ -27,6 +27,7 @@
   },
   "action": {
     "id": 15,
+    "token": "fixture-creeper-15",
     "type": "collect",
     "params": {
       "block": "oak_log",

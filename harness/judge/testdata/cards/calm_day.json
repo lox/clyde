@@ -28,6 +28,7 @@
   "action": null,
   "lastAction": {
     "id": 6,
+    "token": "fixture-calm-6",
     "type": "collect",
     "params": {
       "block": "oak_log",

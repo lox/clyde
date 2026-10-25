@@ -27,11 +27,12 @@ const (
 // Interrupt is the judge's verdict for one tick: a reason for the executor to
 // stop and replan, or "none".
 type Interrupt struct {
-	CardTS     int64    `json:"card_ts"`
-	Reason     string   `json:"reason"`
-	Source     string   `json:"source"`
-	Confidence *float64 `json:"confidence,omitempty"`
-	Detail     string   `json:"detail,omitempty"`
+	CardTS      int64    `json:"card_ts"`
+	ActionToken string   `json:"action_token,omitempty"` // only a live observed owner
+	Reason      string   `json:"reason"`
+	Source      string   `json:"source"`
+	Confidence  *float64 `json:"confidence,omitempty"`
+	Detail      string   `json:"detail,omitempty"`
 }
 
 // Record is one JSONL line per tick. It keeps the full card and full answers
@@ -93,7 +94,15 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 	defer cancel()
 
 	rec := Record{TS: start.UTC(), Backend: j.backend.Name(), ConfidenceCutoff: j.cfg.Decision.MinConfidence}
+	var card body.Card
 	finish := func() (Record, error) {
+		if rec.Interrupt.Reason == "stuck" {
+			if card.Action == nil || card.Action.Status != body.ActionStatusStatusRunning || card.Action.Token == "" {
+				rec.Interrupt.Reason, rec.Interrupt.Detail = NoInterrupt, "inapplicable stuck: no live action owner"
+			} else {
+				rec.Interrupt.ActionToken = card.Action.Token
+			}
+		}
 		rec.TickMs = ms(time.Since(start))
 		return rec, nil
 	}
@@ -110,7 +119,6 @@ func (j *Judge) Tick(ctx context.Context) (Record, error) {
 		return finish()
 	}
 	rec.Card = raw
-	var card body.Card
 	if err := json.Unmarshal(raw, &card); err != nil {
 		rec.Error = "decode card: " + err.Error()
 		rec.Interrupt = Interrupt{Reason: NoInterrupt, Source: SourceFallback, Detail: "undecodable state card"}

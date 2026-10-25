@@ -27,6 +27,7 @@
   },
   "action": {
     "id": 7,
+    "token": "fixture-zombie-7",
     "type": "goto",
     "params": {
       "x": 40,

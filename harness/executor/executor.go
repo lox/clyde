@@ -25,7 +25,7 @@ import (
 const (
 	Succeeded       = "succeeded"        // the until predicate held
 	Failed          = "failed"           // the model gave up, refused, or errored
-	Interrupted     = "interrupted"      // the judge raised danger or stuck
+	Interrupted     = "interrupted"      // the judge raised danger
 	BudgetExhausted = "budget_exhausted" // max steps or wall time
 	Cancelled       = "cancelled"        // the caller cancelled the run
 )
@@ -33,10 +33,26 @@ const (
 // ExecutionContext is harness-assigned intent, not model authority to bypass
 // safety. Its zero value is ordinary work, preserving run and MCP clients.
 type ExecutionContext struct {
-	Mode      string       `json:"mode,omitempty"` // empty, recovery, danger
-	Cause     string       `json:"cause,omitempty"`
-	Remaining int          `json:"remaining"`
-	Danger    judge.Danger `json:"danger,omitempty"`
+	Mode      string        `json:"mode,omitempty"` // empty, recovery, danger
+	Cause     string        `json:"cause,omitempty"`
+	Remaining int           `json:"remaining"`
+	Danger    judge.Danger  `json:"danger,omitempty"`
+	Control   *ControlFacts `json:"control,omitempty"`
+}
+
+// ControlFacts are a harness snapshot, never inferred from model-written memory.
+type ControlFacts struct {
+	RequestID     string `json:"request_id"`
+	ExecutorOwner string `json:"executor_owner,omitempty"`
+	ActionOwner   string `json:"action_owner,omitempty"`
+	Admission     string `json:"admission"` // ordinary or recovery
+	Eligible      bool   `json:"eligible"`
+	AutoPaused    bool   `json:"autonomy_paused"`
+	PauseReason   string `json:"pause_reason"`
+	Attempts      int    `json:"recovery_attempts"`
+	Limit         int    `json:"recovery_limit"`
+	Closed        bool   `json:"recovery_closed"`
+	ClosureReason string `json:"recovery_closure_reason"`
 }
 
 // Options configures one run. Provider, Model, Body, Observer, and Player
@@ -57,8 +73,8 @@ type Options struct {
 	MaxDuration   time.Duration // default 5m
 	CheckInterval time.Duration // how often to check until between tool calls; default 1s
 
-	// Judge, when set, runs beside the loop against the same body; a danger
-	// or stuck interrupt ends the run. Use a fresh judge per run.
+	// Judge runs beside the loop. Danger ends the run; stuck stops only its
+	// observed action, feeding evidence into the same conversation and budget.
 	Judge    *judge.Judge
 	JudgeLog io.Writer // JSONL tick log; default discard
 
@@ -191,9 +207,13 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 		}
 		wg.Go(func() {
 			err := o.Judge.Run(runCtx, jlog, func(it judge.Interrupt) {
-				if it.Reason == "danger" || it.Reason == "stuck" {
+				if it.Reason == "danger" {
 					fmt.Fprintf(logw, "judge: %s (%s %s)\n", it.Reason, it.Source, it.Detail)
 					cancel(&interruptError{it})
+				} else if it.Reason == "stuck" {
+					if err := tb.stuck(runCtx, it); err != nil && runCtx.Err() == nil {
+						cancel(fmt.Errorf("conditional stuck stop failed: %w", err))
+					}
 				}
 			})
 			if err != nil {
@@ -204,13 +224,13 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 
 	user := fmt.Sprintf("Goal: %s\n\nDone when (checked automatically; the run ends as soon as it holds): %s\n\nCurrent state:\n%s",
 		g.Description, until, first)
-	if o.Context.Mode != "" {
+	if o.Context.Mode != "" || o.Context.Control != nil {
 		intent, _ := json.Marshal(o.Context) // harness-owned finite check values
 		user += "\n\nHarness execution context: " + string(intent)
 	}
 	var usageMu sync.Mutex
 	logEvent := transcript(logw)
-	res, runErr := harness.Run(runCtx, o.Provider,
+	res, runErr := harness.Run(runCtx, &exploringProvider{Provider: o.Provider, tb: tb},
 		harness.WithSystem(o.System),
 		harness.WithMessages(harness.Message{Role: harness.RoleUser, Content: user}),
 		harness.WithTools(Harness(tb.Tools())...),
@@ -299,6 +319,41 @@ func Run(ctx context.Context, g goal.Goal, o Options) (Outcome, error) {
 	}
 	out.Seconds = time.Since(start).Seconds()
 	return out, nil
+}
+
+// The provider still makes exactly one call per harness turn. A stop arriving
+// during inference invalidates that response (including a premature end-turn),
+// not the conversation. Withheld calls and the next attempt consume the same
+// original turn/time allowance. Dispatch also checks this version atomically.
+type exploringProvider struct {
+	harness.Provider
+	tb *Toolbox
+}
+
+func (p *exploringProvider) Chat(ctx context.Context, params harness.ChatParams) (*harness.ChatResult, error) {
+	p.tb.controlMu.Lock()
+	version, stall := p.tb.version, p.tb.stall
+	p.tb.planned = version
+	p.tb.controlMu.Unlock()
+	if stall != "" {
+		state, err := p.tb.Body.StateText(ctx)
+		if err != nil {
+			state = "fresh state unavailable: " + err.Error()
+		}
+		params.Messages = append(params.Messages, harness.Message{Role: harness.RoleUser,
+			Content: "Harness notice (most recent action-local stop, not a new allowance): " + stall + "\nCurrent state:\n" + state})
+	}
+	res, err := p.Provider.Chat(ctx, params)
+	p.tb.controlMu.Lock()
+	changed := version != p.tb.version
+	p.tb.controlMu.Unlock()
+	if err == nil && res != nil && changed {
+		copy := *res // Preserve returned usage, never retry inside the provider.
+		copy.Message = harness.Message{Role: harness.RoleAssistant, Content: "[Harness withheld a stale response after an action-local stop; fresh evidence follows.]"}
+		copy.FinishReason = harness.FinishReasonContinuation
+		return &copy, nil
+	}
+	return res, err
 }
 
 func finalText(msgs []harness.Message) string {

@@ -60,9 +60,6 @@ func flattenActions(schemaJSON []byte) (json.RawMessage, string) {
 		}
 		sort.Strings(params)
 		desc := def.Description
-		if typ == "stop" {
-			desc = "Abort the running action and stand still."
-		}
 		lines = append(lines, fmt.Sprintf("- %s(%s): %s", typ, strings.Join(params, ", "), desc))
 	}
 	sort.Strings(types)
