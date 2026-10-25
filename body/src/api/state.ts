@@ -40,6 +40,28 @@ export interface StateCard {
    * The most recently finished exclusive action (never chat), or null.
    */
   lastAction: ActionStatus | null
+  /**
+   * Local contact cells only: feet, head, below, overhead and four cardinal feet/head neighbours. Not a reachability/resource scan. Missing on older bodies.
+   *
+   * @maxItems 12
+   */
+  collision?: {
+    position: Vec
+    /**
+     * Null means unloaded/unknown, never air.
+     */
+    name: string | null
+    /**
+     * Actual block-local collision boxes [minX,minY,minZ,maxX,maxY,maxZ]. Empty means no solid collision, null means unknown.
+     *
+     * @maxItems 16
+     */
+    shapes: [number, number, number, number, number, number][] | null
+    /**
+     * More than sixteen collision boxes; do not assume omitted space is clear.
+     */
+    truncated: boolean
+  }[]
   inventory: {
     /**
      * Occupied slots.
@@ -89,6 +111,10 @@ export interface Vec {
 }
 export interface ActionStatus {
   id: number
+  /**
+   * Opaque per-action owner, unique across body restarts. IDs alone are not ownership.
+   */
+  token: string
   type: 'goto' | 'follow' | 'collect' | 'dig' | 'place' | 'chat' | 'eval'
   /**
    * The request without its type.
@@ -116,6 +142,7 @@ export interface ActionStatus {
    * collect: blocks broken so far.
    */
   collected?: number
+  target?: Vec1
   /**
    * Action-specific result on success.
    */
@@ -123,6 +150,14 @@ export interface ActionStatus {
     [k: string]: unknown
   }
   error?: string
+}
+/**
+ * Actual most recently attempted path/dig target, when known; not proof of reachability.
+ */
+export interface Vec1 {
+  x: number
+  y: number
+  z: number
 }
 export interface NearbyEntity {
   /**

@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { randomUUID } from 'node:crypto'
 import type { Bot } from 'mineflayer'
 import type { Block } from 'prismarine-block'
 import pathfinderPkg from 'mineflayer-pathfinder'
@@ -25,7 +26,7 @@ type Goal = Goals.Goal
 export type { ActionStatus }
 export type RunnableAction = Exclude<ActionRequest, StopAction>
 type ActionState = ActionStatus['status']
-type Progress = Partial<Pick<ActionStatus, 'progress' | 'distanceRemaining' | 'lastMovedAt' | 'collected'>>
+type Progress = Partial<Pick<ActionStatus, 'progress' | 'distanceRemaining' | 'lastMovedAt' | 'collected' | 'target'>>
 
 export interface ActionContext {
   bot: Bot
@@ -91,18 +92,35 @@ export class ActionRunner {
     const reason = () => new Error(`refused: ${actionSignal.getStore()?.reason?.message ?? 'its action was aborted'}`)
     const pf = this.bot.pathfinder
     const { setGoal, goto } = pf
+    const target = (value: unknown) => {
+      const owner = this.current
+      if (!owner || actionSignal.getStore() !== owner.controller.signal) return
+      const v = value as { x?: unknown; y?: unknown; z?: unknown } | null
+      if (v && typeof v.x === 'number' && typeof v.y === 'number' && typeof v.z === 'number') {
+        owner.status.target = { x: v.x, y: v.y, z: v.z }
+      }
+    }
     // Ignored rather than thrown: a throw from a stale timer callback would
     // be an uncaught exception.
     pf.setGoal = (goal, dynamic) => {
       if (!stale()) setGoal.call(pf, goal, dynamic)
     }
-    pf.goto = (goal) => (stale() ? Promise.reject(reason()) : goto.call(pf, goal))
+    pf.goto = (goal) => {
+      if (stale()) return Promise.reject(reason())
+      target((goal as Goal & { pos?: Vec3 }).pos ?? goal)
+      return goto.call(pf, goal)
+    }
     const dig = this.bot.dig
-    this.bot.dig = ((...args: Parameters<Bot['dig']>) => (stale() ? Promise.reject(reason()) : dig.apply(this.bot, args))) as Bot['dig']
+    this.bot.dig = ((...args: Parameters<Bot['dig']>) => {
+      if (stale()) return Promise.reject(reason())
+      target(args[0].position)
+      return dig.apply(this.bot, args)
+    }) as Bot['dig']
   }
 
-  /** Aborts the running action, if any, and stops all movement and digging. */
-  stop(reason = 'stop requested'): ActionStatus | null {
+  /** Conditional mismatches have no side effects, including on controls. */
+  stop(reason = 'stop requested', token?: string): ActionStatus | null {
+    if (token !== undefined && this.current?.status.token !== token) return null
     const aborted = this.abortCurrent(reason)
     this.halt()
     this.events.push('stop', reason)
@@ -113,8 +131,9 @@ export class ActionRunner {
   start(request: RunnableAction): { status: ActionStatus; done: Promise<ActionStatus> } {
     const { type, ...params } = request
     const id = this.nextId++
+    const token = randomUUID()
     if (request.type === 'chat') {
-      const status: ActionStatus = { id, type, params, status: 'running', startedAt: Date.now(), elapsedMs: 0 }
+      const status: ActionStatus = { id, token, type, params, status: 'running', startedAt: Date.now(), elapsedMs: 0 }
       this.events.push('action.start', `#${id} chat`, { id, type, params })
       try {
         this.bot.chat(request.message)
@@ -128,7 +147,7 @@ export class ActionRunner {
     this.halt()
 
     const controller = new AbortController()
-    const status: ActionStatus = { id, type, params, status: 'running', startedAt: Date.now(), elapsedMs: 0 }
+    const status: ActionStatus = { id, token, type, params, status: 'running', startedAt: Date.now(), elapsedMs: 0 }
     this.current = { status, controller, placements: 0 }
     this.events.push('action.start', `#${id} ${type} ${describe(params)}`.trimEnd(), { id, type, params })
 
@@ -196,13 +215,13 @@ export class ActionRunner {
     status.elapsedMs = status.endedAt - status.startedAt
     if (extra.result !== undefined) status.result = extra.result as ActionStatus['result']
     if (extra.error !== undefined) status.error = extra.error
-    if (this.current?.status.id === status.id) {
+    if (this.current?.status.token === status.token) {
       const { controller } = this.current
       this.current = null
-      // Eval can start detached plugin/timer work. Its ownership expires on
-      // completion and timeout too, not only on explicit preemption.
-      if (status.type === 'eval' && state !== 'aborted') {
-        controller.abort(new Error(`eval ${state}`))
+      // Every terminal owner expires its detached work, not just eval. Abort
+      // cleanup is synchronous in stop/start, before a replacement can start.
+      if (state !== 'aborted') {
+        controller.abort(new Error(`${status.type} ${state}`))
         this.halt()
       }
     }
@@ -211,8 +230,10 @@ export class ActionRunner {
     if (status.type !== 'chat') this.last = status
     this.events.push(`action.${state}`, `#${status.id} ${status.type} ${state}${status.error ? `: ${status.error}` : ''}`, {
       id: status.id,
+      token: status.token,
       type: status.type,
       elapsedMs: status.elapsedMs,
+      ...(status.target !== undefined && { target: status.target }),
       ...(status.result !== undefined && { result: status.result }),
       ...(status.error !== undefined && { error: status.error }),
     })

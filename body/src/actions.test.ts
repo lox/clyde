@@ -119,6 +119,51 @@ test('stop aborts the running action and halts movement and digging', async () =
   assert.equal((await within(50, running.done)).status, 'aborted')
 })
 
+test('conditional stop cannot touch a terminal, replaced or restarted action', async (t) => {
+  const { runner, calls } = setup()
+  t.after(() => runner.stop())
+  const terminal = await runner.start({ type: 'eval', code: 'return 1' }).done
+  const running = runner.start({ type: 'goto', x: 10, y: 64, z: 0 })
+  calls.length = 0
+  assert.equal(runner.stop('late verdict', terminal.token), null)
+  assert.deepEqual(calls, [])
+  assert.equal(runner.currentStatus?.token, running.status.token)
+
+  const restarted = setup()
+  t.after(() => restarted.runner.stop())
+  const reused = restarted.runner.start({ type: 'goto', x: 20, y: 64, z: 0 })
+  assert.equal(reused.status.id, terminal.id)
+  assert.notEqual(reused.status.token, terminal.token)
+  restarted.calls.length = 0
+  assert.equal(restarted.runner.stop('old incarnation', terminal.token), null)
+  assert.deepEqual(restarted.calls, [])
+  assert.equal(runner.stop('live stall', running.status.token)?.token, running.status.token)
+  assert.equal((await running.done).status, 'aborted')
+  assert.equal(runner.stop('duplicate verdict', running.status.token), null)
+  restarted.runner.stop()
+  await reused.done
+})
+
+test('terminal movement failure expires detached work and clears controls before another action starts', async (t) => {
+  const { runner, bot, calls } = setup()
+  t.after(() => runner.stop())
+  runner.guardStaleCode()
+  bot.pathfinder.goto = async () => {
+    setTimeout(() => bot.pathfinder.setGoal({ stale: true }), 30)
+    throw new Error('path search timed out')
+  }
+  calls.length = 0
+  const failed = await runner.start({ type: 'goto', x: 7, y: 64, z: -3 }).done
+  assert.equal(failed.status, 'failed')
+  assert.equal(failed.error, 'path search timed out')
+  assert.equal(calls.filter((c) => c === 'clearControlStates').length, 2, 'start and terminal cleanup both halt')
+  const next = runner.start({ type: 'eval', code: 'await sleep(60000)' })
+  await new Promise((r) => setTimeout(r, 70))
+  assert.equal(runner.currentStatus?.token, next.status.token)
+  assert.ok(!calls.includes('setGoal(Object)'), `failed action retained control: ${calls}`)
+  runner.stop()
+})
+
 test('eval returns its value and logs, and fails with the message from eval code', async () => {
   const { runner } = setup()
   const ok = await runner.start({ type: 'eval', code: 'log("hello", { a: 1 }); return { sum: 1 + 2 }' }).done

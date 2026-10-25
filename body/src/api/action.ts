@@ -68,8 +68,9 @@ export interface EvalAction {
   timeoutMs?: number
 }
 /**
- * Abort the running action and stand still. Same as POST /stop.
+ * Abort and halt only the matching current token, or stop unconditionally when token is omitted. POST /stop remains unconditional.
  */
 export interface StopAction {
   type: 'stop'
+  token?: string
 }

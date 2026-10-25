@@ -123,6 +123,7 @@ export function buildStateCard({ bot, action, lastAction, events, scanRadius, no
     },
     action,
     lastAction,
+    collision: collisionCells(bot),
     inventory: {
       used: bot.inventory.items().length,
       total: bot.inventory.inventoryEnd - bot.inventory.inventoryStart,
@@ -136,6 +137,25 @@ export function buildStateCard({ bot, action, lastAction, events, scanRadius, no
 }
 
 const FACES = [new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 1, 0), new Vec3(0, -1, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)]
+
+/** Twelve contact cells, not a volume scan through walls or buried resources. */
+function collisionCells(bot: Bot): NonNullable<StateCard['collision']> {
+  const feet = bot.entity.position.floored()
+  const offsets = [new Vec3(0, -1, 0), new Vec3(0, 0, 0), new Vec3(0, 1, 0), new Vec3(0, 2, 0)]
+  for (const [x, z] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    offsets.push(new Vec3(x, 0, z), new Vec3(x, 1, z))
+  }
+  return offsets.map((offset) => {
+    const position = feet.plus(offset)
+    const block = bot.blockAt(position)
+    return {
+      position: vec(position),
+      name: block?.name ?? null,
+      shapes: block?.shapes?.slice(0, 16) ?? null,
+      truncated: (block?.shapes?.length ?? 0) > 16,
+    }
+  })
+}
 
 /** Air, water, grass, glass, leaves, and the like. */
 function seeThrough(block: Block): boolean {
@@ -223,6 +243,11 @@ export function renderCard(card: StateCard): string {
   if (card.lastAction && card.lastAction.id !== card.action?.id) {
     lines.push(`last action: ${renderAction(card.lastAction, card.ts)}`)
   }
+  if (card.collision) {
+    lines.push('local collision (block-local boxes; not reachability): ' + card.collision.map((c) =>
+      `${c.position.x},${c.position.y},${c.position.z} ${c.name ?? 'unknown'} ${c.shapes === null ? 'unknown collision' : JSON.stringify(c.shapes)}${c.truncated ? ' (truncated)' : ''}`,
+    ).join('; '))
+  }
   const inv = card.inventory
   lines.push(
     `inventory (${inv.used}/${inv.total} slots, holding ${inv.held ?? 'nothing'}): ` +
@@ -259,7 +284,8 @@ function renderAction(a: ActionStatus | null, now: number): string {
   const params = Object.entries(a.params)
     .map(([k, v]) => `${k}=${typeof v === 'string' && v.length > 60 ? v.slice(0, 60) + '…' : String(v)}`)
     .join(' ')
-  let s = `${a.type} ${params} [${a.status}, ${(a.elapsedMs / 1000).toFixed(1)}s]`
+  let s = `${a.type} ${params} [${a.status}, ${(a.elapsedMs / 1000).toFixed(1)}s] owner=${a.token}`
+  if (a.target) s += ` target=${a.target.x},${a.target.y},${a.target.z}`
   if (a.status === 'running') {
     if (a.progress) s += ` ${a.progress}`
     if (a.distanceRemaining !== undefined) s += ` | ${a.distanceRemaining}m to go`

@@ -105,6 +105,19 @@ func (c *Client) Stop(ctx context.Context) error {
 	return c.do(ctx, http.MethodPost, "/stop", nil, nil)
 }
 
+// StopAction atomically halts only the matching live owner. A nil result means
+// no match, and must never be retried as an unconditional stop.
+func (c *Client) StopAction(ctx context.Context, token string) (*ActionStatus, error) {
+	if token == "" {
+		return nil, fmt.Errorf("body: conditional stop requires an action token")
+	}
+	var res struct {
+		Stopped *ActionStatus `json:"stopped"`
+	}
+	err := c.do(ctx, http.MethodPost, "/action", map[string]any{"type": "stop", "token": token}, &res)
+	return res.Stopped, err
+}
+
 func evalRequest(code string, timeoutMs int) map[string]any {
 	req := map[string]any{"code": code}
 	if timeoutMs > 0 {

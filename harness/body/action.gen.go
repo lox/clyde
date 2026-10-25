@@ -332,8 +332,12 @@ func (j *PlaceAction) UnmarshalJSON(value []byte) error {
 	return nil
 }
 
-// Abort the running action and stand still. Same as POST /stop.
+// Abort and halt only the matching current token, or stop unconditionally when
+// token is omitted. POST /stop remains unconditional.
 type StopAction struct {
+	// Token corresponds to the JSON schema field "token".
+	Token *string `json:"token,omitempty,omitzero"`
+
 	// Type corresponds to the JSON schema field "type".
 	Type interface{} `json:"type"`
 }
@@ -351,6 +355,9 @@ func (j *StopAction) UnmarshalJSON(value []byte) error {
 	var plain Plain
 	if err := json.Unmarshal(value, &plain); err != nil {
 		return err
+	}
+	if plain.Token != nil && utf8.RuneCountInString(string(*plain.Token)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "token", 1)
 	}
 	*j = StopAction(plain)
 	return nil

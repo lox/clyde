@@ -5,6 +5,7 @@ package body
 import "encoding/json"
 import "fmt"
 import "reflect"
+import "unicode/utf8"
 
 type ActionStatus struct {
 	// collect: blocks broken so far.
@@ -42,6 +43,14 @@ type ActionStatus struct {
 
 	// Status corresponds to the JSON schema field "status".
 	Status ActionStatusStatus `json:"status"`
+
+	// Actual most recently attempted path/dig target, when known; not proof of
+	// reachability.
+	Target *Vec `json:"target,omitempty,omitzero"`
+
+	// Opaque per-action owner, unique across body restarts. IDs alone are not
+	// ownership.
+	Token string `json:"token"`
 
 	// Type corresponds to the JSON schema field "type".
 	Type ActionStatusType `json:"type"`
@@ -148,6 +157,9 @@ func (j *ActionStatus) UnmarshalJSON(value []byte) error {
 	if _, ok := raw["status"]; raw != nil && !ok {
 		return fmt.Errorf("field status in ActionStatus: required")
 	}
+	if _, ok := raw["token"]; raw != nil && !ok {
+		return fmt.Errorf("field token in ActionStatus: required")
+	}
 	if _, ok := raw["type"]; raw != nil && !ok {
 		return fmt.Errorf("field type in ActionStatus: required")
 	}
@@ -167,6 +179,9 @@ func (j *ActionStatus) UnmarshalJSON(value []byte) error {
 	}
 	if 1 > plain.ID {
 		return fmt.Errorf("field %s: must be >= %v", "id", 1)
+	}
+	if utf8.RuneCountInString(string(plain.Token)) < 1 {
+		return fmt.Errorf("field %s length: must be >= %d", "token", 1)
 	}
 	*j = ActionStatus(plain)
 	return nil
@@ -280,6 +295,11 @@ type StateCard struct {
 
 	// Bot corresponds to the JSON schema field "bot".
 	Bot StateCardBot `json:"bot"`
+
+	// Local contact cells only: feet, head, below, overhead and four cardinal
+	// feet/head neighbours. Not a reachability/resource scan. Missing on older
+	// bodies.
+	Collision []StateCardCollisionElem `json:"collision,omitempty,omitzero"`
 
 	// Nearby entities within the scan radius, nearest first, at most eight per group.
 	Entities StateCardEntities `json:"entities"`
@@ -460,6 +480,55 @@ func (j *StateCardBot) UnmarshalJSON(value []byte) error {
 		return fmt.Errorf("field %s: must be >= %v", "xpLevel", 0)
 	}
 	*j = StateCardBot(plain)
+	return nil
+}
+
+type StateCardCollisionElem struct {
+	// Null means unloaded/unknown, never air.
+	Name StateCardCollisionElemName `json:"name"`
+
+	// Position corresponds to the JSON schema field "position".
+	Position Vec `json:"position"`
+
+	// Actual block-local collision boxes [minX,minY,minZ,maxX,maxY,maxZ]. Empty means
+	// no solid collision, null means unknown.
+	Shapes *StateCardCollisionElemShapes `json:"shapes"`
+
+	// More than sixteen collision boxes; do not assume omitted space is clear.
+	Truncated bool `json:"truncated"`
+}
+
+// Null means unloaded/unknown, never air.
+type StateCardCollisionElemName *string
+
+// Actual block-local collision boxes [minX,minY,minZ,maxX,maxY,maxZ]. Empty means
+// no solid collision, null means unknown.
+type StateCardCollisionElemShapes [][]float64
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (j *StateCardCollisionElem) UnmarshalJSON(value []byte) error {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(value, &raw); err != nil {
+		return err
+	}
+	if _, ok := raw["name"]; raw != nil && !ok {
+		return fmt.Errorf("field name in StateCardCollisionElem: required")
+	}
+	if _, ok := raw["position"]; raw != nil && !ok {
+		return fmt.Errorf("field position in StateCardCollisionElem: required")
+	}
+	if _, ok := raw["shapes"]; raw != nil && !ok {
+		return fmt.Errorf("field shapes in StateCardCollisionElem: required")
+	}
+	if _, ok := raw["truncated"]; raw != nil && !ok {
+		return fmt.Errorf("field truncated in StateCardCollisionElem: required")
+	}
+	type Plain StateCardCollisionElem
+	var plain Plain
+	if err := json.Unmarshal(value, &plain); err != nil {
+		return err
+	}
+	*j = StateCardCollisionElem(plain)
 	return nil
 }
 
@@ -742,6 +811,9 @@ func (j *StateCard) UnmarshalJSON(value []byte) error {
 	var plain Plain
 	if err := json.Unmarshal(value, &plain); err != nil {
 		return err
+	}
+	if len(plain.Collision) > 12 {
+		return fmt.Errorf("field %s length: must be <= %d", "collision", 12)
 	}
 	*j = StateCard(plain)
 	return nil

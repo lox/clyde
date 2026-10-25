@@ -47,6 +47,27 @@
       "description": "The most recently finished exclusive action (never chat), or null.",
       "oneOf": [{ "$ref": "#/definitions/ActionStatus" }, { "type": "null" }]
     },
+    "collision": {
+      "type": "array",
+      "maxItems": 12,
+      "description": "Local contact cells only: feet, head, below, overhead and four cardinal feet/head neighbours. Not a reachability/resource scan. Missing on older bodies.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["position", "name", "shapes", "truncated"],
+        "properties": {
+          "position": { "$ref": "#/definitions/Vec" },
+          "name": { "type": ["string", "null"], "description": "Null means unloaded/unknown, never air." },
+          "shapes": {
+            "type": ["array", "null"],
+            "maxItems": 16,
+            "description": "Actual block-local collision boxes [minX,minY,minZ,maxX,maxY,maxZ]. Empty means no solid collision, null means unknown.",
+            "items": { "type": "array", "minItems": 6, "maxItems": 6, "items": { "type": "number" } }
+          },
+          "truncated": { "type": "boolean", "description": "More than sixteen collision boxes; do not assume omitted space is clear." }
+        }
+      }
+    },
     "inventory": {
       "type": "object",
       "additionalProperties": false,
@@ -142,9 +163,10 @@
       "title": "ActionStatus",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "params", "status", "startedAt", "elapsedMs"],
+      "required": ["id", "token", "type", "params", "status", "startedAt", "elapsedMs"],
       "properties": {
         "id": { "type": "integer", "minimum": 1 },
+        "token": { "type": "string", "minLength": 1, "description": "Opaque per-action owner, unique across body restarts. IDs alone are not ownership." },
         "type": { "type": "string", "enum": ["goto", "follow", "collect", "dig", "place", "chat", "eval"] },
         "params": { "type": "object", "additionalProperties": true, "description": "The request without its type." },
         "status": { "type": "string", "enum": ["running", "succeeded", "failed", "aborted"] },
@@ -155,6 +177,7 @@
         "distanceRemaining": { "type": "number", "minimum": 0, "description": "goto and follow: blocks to the target." },
         "lastMovedAt": { "type": "integer", "description": "goto and follow: when the bot last moved at least half a block." },
         "collected": { "type": "integer", "minimum": 0, "description": "collect: blocks broken so far." },
+        "target": { "$ref": "#/definitions/Vec", "description": "Actual most recently attempted path/dig target, when known; not proof of reachability." },
         "result": { "type": "object", "additionalProperties": true, "description": "Action-specific result on success." },
         "error": { "type": "string" }
       }

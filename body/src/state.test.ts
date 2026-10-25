@@ -36,7 +36,7 @@ function fixtureBot(): Bot {
   const blockAt = (p: Vec3) => {
     const name = blocks[`${p.x},${p.y},${p.z}`] ?? (p.y <= 55 ? 'stone' : 'air')
     const empty = name === 'air' || name === 'water'
-    return { name, type: name, position: p, boundingBox: empty ? 'empty' : 'block', transparent: empty }
+    return { name, type: name, position: p, boundingBox: empty ? 'empty' : 'block', transparent: empty, shapes: empty ? [] : [[0, 0, 0, 1, 1, 1]] }
   }
   const candidates = [new Vec3(3, 64, 0), new Vec3(3, 65, 0), new Vec3(-5, 60, 2), new Vec3(-2, 50, 0), new Vec3(-3, 50, 4), new Vec3(10, 55, 0), new Vec3(10, 54, 0)]
   return {
@@ -81,6 +81,7 @@ function fixtureBot(): Bot {
 
 const running: ActionStatus = {
   id: 4,
+  token: 'running-owner',
   type: 'goto',
   params: { x: 10, y: 64, z: -20, range: 1 },
   status: 'running',
@@ -93,6 +94,7 @@ const running: ActionStatus = {
 
 const failed: ActionStatus = {
   id: 3,
+  token: 'failed-owner',
   type: 'dig',
   params: { x: 3, y: 64, z: 0 },
   status: 'failed',
@@ -137,13 +139,15 @@ test('the state card built from a bot validates against api/state.schema.json', 
 })
 
 test('renderCard renders the fixture card', () => {
+  const card = fixtureCard()
+  delete card.collision // Checked separately below, including partial and unknown shapes.
   assert.equal(
-    renderCard(fixtureCard()),
+    renderCard(card),
     [
       'bot Clyde | overworld | pos (0.5, 64, 0.5) | health 18.5/20 | food 17/20 | xp 2 | survival',
       'world: dusk (t=12500), raining',
-      'action: goto x=10 y=64 z=-20 range=1 [running, 4.2s] walking to 10,64,-20 | 12.3m to go | last moved 0.8s ago',
-      'last action: dig x=3 y=64 z=0 [failed, 1.0s] error: refused: break at 3,64,0 is inside protected region spawn',
+      'action: goto x=10 y=64 z=-20 range=1 [running, 4.2s] owner=running-owner walking to 10,64,-20 | 12.3m to go | last moved 0.8s ago',
+      'last action: dig x=3 y=64 z=0 [failed, 1.0s] owner=failed-owner error: refused: break at 3,64,0 is inside protected region spawn',
       'inventory (3/36 slots, holding dirt): dirt x12, oak_log x5',
       'players: Bonnie 10m S +1y hp20',
       'hostiles: zombie 5m NE hp20',
@@ -154,4 +158,33 @@ test('renderCard renders the fixture card', () => {
       '  -1.0s action.start: #4 goto x=10 y=64 z=-20 range=1',
     ].join('\n'),
   )
+})
+
+test('local collision distinguishes air, canopy, partial shapes and unknown without a volume scan', () => {
+  const bot = fixtureBot()
+  const at = bot.blockAt.bind(bot)
+  bot.blockAt = ((p: Vec3) => {
+    if (p.equals(new Vec3(0, 66, 0))) return { ...at(p), name: 'birch_leaves', shapes: [[0, 0, 0, 1, 1, 1]] }
+    if (p.equals(new Vec3(1, 64, 0))) return { ...at(p), name: 'stone_slab', shapes: [[0, 0, 0, 1, 0.5, 1]] }
+    if (p.equals(new Vec3(0, 65, 1))) return { ...at(p), shapes: Array.from({ length: 17 }, () => [0, 0, 0, 1, 1, 1]) }
+    if (p.equals(new Vec3(-1, 65, 0))) return null
+    return at(p)
+  }) as Bot['blockAt']
+  const card = buildStateCard({ bot, action: null, lastAction: failed, events: [], scanRadius: 24 })
+  const cells = card.collision!
+  assert.equal(cells.length, 12)
+  assert.deepEqual(cells.find((c) => c.position.x === 1 && c.position.y === 64)?.shapes, [[0, 0, 0, 1, 0.5, 1]])
+  assert.deepEqual(cells.find((c) => c.position.x === 0 && c.position.y === 64)?.shapes, [])
+  assert.equal(cells.find((c) => c.position.x === -1 && c.position.y === 65)?.name, null)
+  assert.equal(cells.find((c) => c.position.x === -1 && c.position.y === 65)?.shapes, null)
+  assert.equal(cells.find((c) => c.position.y === 66)?.name, 'birch_leaves')
+  const truncated = cells.find((c) => c.position.z === 1 && c.position.y === 65)!
+  assert.equal(truncated.shapes?.length, 16)
+  assert.equal(truncated.truncated, true)
+  assert.ok(cells.every((c) => Math.abs(c.position.x) + Math.abs(c.position.z) <= 1))
+  assert.ok(!cells.some((c) => c.name === 'diamond_ore'))
+  const text = renderCard(card)
+  assert.match(text, /stone_slab \[\[0,0,0,1,0.5,1\]\]/)
+  assert.match(text, /unknown unknown collision/)
+  assert.match(text, /birch_leaves/)
 })

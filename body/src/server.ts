@@ -47,7 +47,7 @@ export function createServer({ runner, events, card }: ServerDeps): http.Server 
     'POST /action': async (req) => {
       ready()
       const action = validate(await readJson(req))
-      if (action.type === 'stop') return { stopped: runner.stop('stop action') }
+      if (action.type === 'stop') return { stopped: runner.stop('stop action', action.token) }
       return runner.start(action).status
     },
     'POST /eval': async (req) => {

@@ -105,12 +105,13 @@
     },
     "StopAction": {
       "title": "StopAction",
-      "description": "Abort the running action and stand still. Same as POST /stop.",
+      "description": "Abort and halt only the matching current token, or stop unconditionally when token is omitted. POST /stop remains unconditional.",
       "type": "object",
       "additionalProperties": false,
       "required": ["type"],
       "properties": {
-        "type": { "const": "stop" }
+        "type": { "const": "stop" },
+        "token": { "type": "string", "minLength": 1 }
       }
     }
   }

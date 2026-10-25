@@ -12,6 +12,7 @@ for (const name of ['state', 'action']) {
     cwd: apiDir,
     bannerComment: `// Generated from api/${name}.schema.json by body/scripts/gen-types.mjs. Do not edit.`,
     additionalProperties: false,
+    maxItems: 6,
     style: { semi: false, singleQuote: true, printWidth: 120 },
   })
   await writeFile(`${outDir}${name}.ts`, ts)
