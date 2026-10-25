@@ -1,0 +1,26 @@
+name: enclosed-tree
+template: mcbot
+timeout: 320s
+settle: 2s
+setup:
+  - forceload add -330 140 -290 165
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  - fill -320 78 140 -300 78 160 minecraft:grass_block
+  - fill -320 79 140 -300 94 160 minecraft:air
+  # A small air pocket under a dense canopy; two nearby low logs, six beyond it.
+  - fill -312 79 148 -308 83 152 minecraft:birch_leaves[persistent=true]
+  - fill -310 79 150 -310 80 150 minecraft:air
+  - fill -311 79 150 -311 80 150 minecraft:birch_log
+  - fill -316 79 150 -316 84 150 minecraft:birch_log
+  - clear {player}
+  - tp {player} -309.5 79 150.5 90 0
+goal:
+  description: Gather eight birch logs from the nearby trees.
+  until:
+    items:
+      item: minecraft:birch_log
+      count: 8

@@ -1,0 +1,23 @@
+name: threatened-logs
+template: mcbot
+timeout: 320s
+settle: 2s
+setup:
+  - forceload add -330 140 -290 165
+  - time set night
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty normal
+  - fill -320 78 140 -300 78 160 minecraft:grass_block
+  - fill -320 79 140 -300 94 160 minecraft:air
+  - fill -316 79 151 -316 82 151 minecraft:oak_log
+  - clear {player}
+  - tp {player} -309.5 79 151.5 90 0
+  - summon minecraft:zombie -308.5 79 151.5 {PersistenceRequired:1b}
+goal:
+  description: Gather four oak logs from the nearby tree.
+  until:
+    items:
+      item: minecraft:oak_log
+      count: 4

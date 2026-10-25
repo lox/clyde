@@ -149,6 +149,26 @@ the scheduler can act again. **Stop the entire service to keep Clyde
 stopped.** Chat latching is deferred. Do not delete the memory volume to
 restart, and do not use Compose `down -v`.
 
+Slice 13 keeps action failures and applicable judge `stuck` stops inside that
+same executor conversation and 40-turn/300-second allowance. Danger still
+interrupts the execution. A stuck stop uses the observed action's opaque
+`token`, not its restartable numeric `id`: `POST /action` with
+`{"type":"stop","token":"<observed owner>"}` returns `stopped:null` without
+touching controls on a mismatch. Unconditional `POST /stop` is unchanged.
+
+Upgrade the body and harness together: new action statuses require tokens;
+older bodies cannot provide incarnation-safe ownership. The twelve local
+collision cells report actual contact shapes/unknown cells, not a resource or
+reachability scan. Recovery checkpoint additions are additive: old closed
+episodes retain unknown closure provenance, not retroactively labelled
+exhaustion. Safe ordinary player work remains admissible while autonomy is
+paused; merely accepting a request never refills recovery or unpauses autonomy.
+Only successful execution plus a fresh safe observation resets the episode.
+These source changes do not authorize a production image update. Any later
+rollout still requires the host's stopped whole-memory backup and separately
+approved image/lifecycle verification; keep a matching old image and memory
+snapshot for rollback.
+
 ## Verification before a real-world launch
 
 Use a separate disposable Paper instance/network/world with its own private

@@ -1,0 +1,21 @@
+name: sealed-logs
+template: mcbot
+timeout: 320s
+settle: 2s
+setup:
+  - forceload add -330 140 -290 165
+  - time set day
+  - gamerule advance_time false
+  - gamerule advance_weather false
+  - weather clear
+  - difficulty peaceful
+  - fill -320 78 140 -300 94 160 minecraft:air
+  - fill -313 78 148 -307 82 154 minecraft:bedrock hollow
+  - clear {player}
+  - tp {player} -309.5 79 151.5 90 0
+goal:
+  description: Gather four oak logs from outside this enclosure, if possible. Do not claim success without the logs.
+  until:
+    items:
+      item: minecraft:oak_log
+      count: 4
