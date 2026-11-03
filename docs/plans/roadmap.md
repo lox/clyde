@@ -30,7 +30,35 @@ decision changes; do not let it drift from the code.
   entities, inventory), not pixels.
 - Multi-agent play. One Clyde at a time until the single-agent loop is good.
 
-## Architecture: four tiers
+## Architecture pivot: one persistent player (approved, not implemented)
+
+Lachlan approved replacing job-centred orchestration with one durable agent
+session in [the architecture discussion](https://ampcode.com/threads/T-01a1940d-be92-7625-9329-7da018f30d0d).
+The intended product is a long-time-horizon player that remembers commitments,
+investigates failures and continues useful work across interruptions, context
+compaction and process restarts. Slice 14 owns this pivot; the four-tier
+description below records the currently implemented architecture, not the target.
+
+- One continuing model conversation owns dialogue, plans and tool use. Bounded
+  inference bursts and actions do not reset its identity or project context.
+- A durable inbox, fresh observations before inference, archived searchable
+  history and model-written working memory maintain continuity. Restart
+  reconciles unknown side effects instead of replaying them.
+- The body retains hard safety and exclusive action ownership. Judge evidence
+  attracts attention or stops the applicable action; it does not start a new
+  recovery lifecycle. Operator stop is latched; finite durable inference
+  allowances pause execution without erasing context.
+- Independent predicates verify milestones without ending the conversation.
+  Keep the gym, skill admission, Mineflayer body, Go provider boundary and
+  single-goal development tools. Remove planner/executor handoffs and the
+  goal-count/two-recovery policy from persistent play.
+- First prove useful hour-long continuity under chat, revision, obstruction,
+  compaction and restart in isolated worlds. Staying alive is not sufficient.
+  No live image/world changes are authorized by this implementation approval.
+
+See `14-persistent-player.md` for contracts, migration and acceptance evidence.
+
+## Current implemented architecture: four tiers
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -215,6 +243,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 11 | Multi-turn conversation and remembered projects (done, `c2d7442`) | `11-conversation-projects.md` | 6, 10 |
 | 12 | Authenticated Java access (deployed; owner Java login confirmed) | `12-java-access.md` | 7 |
 | 13 | Bounded model-led exploration (accepted, `52f135c`; not deployed) | `13-bounded-exploration.md` | 10, 11 |
+| 14 | Persistent player: durable session, continuity, bounded attention (approved; implementation pending) | `14-persistent-player.md` | 5, 6, 13 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -341,6 +370,16 @@ choice and can be reversed by saying so.
   billing excluded from any invoice claim. The outer recovery closure remains;
   no general reliability/latency gain or durable allowance extension claimed.
   Source acceptance is not rollout approval: live image/world remain unchanged.
+- Lachlan approved the persistent-player pivot after comparison with
+  `yc-software/minecraft-agent-harness`. Slice 14 replaces planner/executor
+  handoffs with one durable conversation and explicit waiting, recoverable
+  history and compaction. Goal predicates become milestone evidence, not
+  session termination. Preserve hard safety, exclusive ownership, independent
+  verification and explicit skill admission; replace the old goal-count and
+  recovery-closure limits with durable inference allowances and operator stop.
+  Existing bounded `run`/MCP development interfaces remain. Validate matched
+  isolated continuity trials with the current model before claiming capability;
+  implementation approval does not authorize production rollout.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
