@@ -30,14 +30,15 @@ decision changes; do not let it drift from the code.
   entities, inventory), not pixels.
 - Multi-agent play. One Clyde at a time until the single-agent loop is good.
 
-## Architecture pivot: one persistent player (approved, not implemented)
+## Architecture: one persistent player
 
 Lachlan approved replacing job-centred orchestration with one durable agent
 session in [the architecture discussion](https://ampcode.com/threads/T-01a1940d-be92-7625-9329-7da018f30d0d).
 The intended product is a long-time-horizon player that remembers commitments,
 investigates failures and continues useful work across interruptions, context
-compaction and process restarts. Slice 14 owns this pivot; the four-tier
-description below records the currently implemented architecture, not the target.
+compaction and process restarts. Slice 14 implements this in source through
+`4fd3d1e`, accepted with exact-head CI green. The deployed service still uses
+the earlier planner/executor architecture; no rollout is authorized here.
 
 - One continuing model conversation owns dialogue, plans and tool use. Bounded
   inference bursts and actions do not reset its identity or project context.
@@ -50,38 +51,43 @@ description below records the currently implemented architecture, not the target
   allowances pause execution without erasing context.
 - Independent predicates verify milestones without ending the conversation.
   Keep the gym, skill admission, Mineflayer body, Go provider boundary and
-  single-goal development tools. Remove planner/executor handoffs and the
-  goal-count/two-recovery policy from persistent play.
-- First prove useful hour-long continuity under chat, revision, obstruction,
-  compaction and restart in isolated worlds. Staying alive is not sufficient.
-  No live image/world changes are authorized by this implementation approval.
+  single-goal development tools. Persistent play has no planner/executor
+  handoff, completed-goal cap or two-recovery closure.
+- Matched hour-long attended trials verified requirements and construction
+  through native compaction/restart. They did not demonstrate better general
+  gameplay, latency or cost; autonomous days-long play remains unproven.
 
 See `14-persistent-player.md` for contracts, migration and acceptance evidence.
 
-## Current implemented architecture: four tiers
+### Persistent session (`harness/session`)
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│ Tier 3  Planner (frontier model, slow, event-triggered)              │
-│   goals, curriculum, post-mortems, skill authoring, memory curation   │
-├──────────────────────────────────────────────────────────────────────┤
-│ Tier 2  Executor (Go, mid model, stateless per goal, tool loop)      │
-│   tools: observe, act, eval_js, find_skill, recipes_for, lookup       │
-│   also an MCP server so Amp threads can drive the bot directly        │
-├──────────────────────────────────────────────────────────────────────┤
-│ Tier 1  Judge (Go, Jev or other System-1 backend, 2–4 Hz)            │
-│   danger? stuck? progressing? interrupt? — on a structured state card │
-├──────────────────────────────────────────────────────────────────────┤
-│ Tier 0  Body (TypeScript, mineflayer, HTTP API)                      │
-│   GET /state, POST /action, POST /eval, GET /events; hard safety      │
-└──────────────────────────────────────────────────────────────────────┘
-```
+`clyde serve` owns a durable inbox, provider-compatible conversation, original
+searchable history and model-written working notes. Each model call receives
+fresh observations. Action tools return promptly with identity/status; chat
+and read-only tools do not replace useful movement. The same session handles
+results, player revisions and failure investigation. Explicit `wait` yields
+until an event or model-selected deadline without frontier polling.
 
-### Tier 0: body (`body/`)
+Compaction retains complete recent exchanges and archived originals, then
+resets provider continuation onto notes plus retained native history. Incoming
+chat supersedes compaction without latching an operator-only pause. Genuine
+compactor failures retain history and pause rather than retrying indefinitely.
+Restart stops stale work, observes live state and records ambiguous outcomes
+without replaying mutations/chat. At-most-once attempts are not delivery proof.
+
+Default limits are 240 durable reservations shared by inference, compaction
+and event-driven judge ticks, 45s frontier deadlines, 4096 output tokens and
+128KiB active-history compaction pressure. These are not hard dollar limits.
+Reservations survive restart and cancellation; only local operator controls
+extend them. `control stop` latches across restart, `resume` grants no requests,
+and `extend` does not clear stop. Local advisory leases exclude other local
+controllers; remote/aliased body controllers remain an operator responsibility.
+
+### Body (`body/`)
 
 mineflayer bot wrapped in a small HTTP server. The body owns everything that
 must be fast and deterministic: pathfinding, block interaction, inventory,
-combat reflexes, and hard safety limits.
+and hard safety limits.
 
 - `GET /state`: the state card as JSON (position, health, hunger, time, biome,
   nearby notable blocks, entities classified hostile/passive/player, inventory,
@@ -99,56 +105,38 @@ combat reflexes, and hard safety limits.
   start/finish, with `since` cursor.
 - Hard safety lives here, not in prompts: never break blocks inside protected
   regions, never attack players, hard cap on blocks broken per minute, and a
-  kill switch (`POST /stop` plus a chat command for ops).
+  body action stop (`POST /stop` plus a chat command for ops). Trusted eval
+  runs in-process, not in a malicious-code security sandbox. The persistent
+  session's operator stop additionally prevents automatic attention/actions.
 
-### Tier 1: judge (`harness/judge`)
+### Attention and judge (`harness/judge`)
 
-A ticking loop that asks a cheap, fast model a fixed set of questions about
-the structured state card and emits interrupts. It never chooses actions; the
-herobrine benchmarks show action-menu confidence is poor (0.48 over 28
-options) while yes/no and scored judgements are cheap and reliable.
+The judge supplies evidence, never Minecraft tactics. Persistent play polls
+deterministic danger/stall checks every 500ms and runs Jev before frontier
+attention, not as paid idle polling. A first danger transition stops the
+observed action once; persistent danger does not repeatedly veto its own
+response. Stuck cancellation is action-incarnation-specific.
 
 - Contract: `choice`, `score`, `noul` questions (Jev's native shapes).
-- Backends: `jev` (typesafe.ai `POST /v1/systemone`), `logprob` (any
-  OpenAI-compatible model with logprobs), `classifier` (fine-tuned local model,
-  later), `replay` (fixture-driven, for tests).
+- Implemented backends: `jev` (typesafe.ai `POST /v1/systemone`) and `replay`
+  (fixture-driven tests). Classifier distillation remains deferred.
 - Cheap code pre-checks run first every tick (health below threshold, hostile
   within N blocks, no progress for M seconds); the model is asked only when
   code cannot decide.
 - Every tick is logged as JSONL (state card, questions, answers, latency,
-  cost) so a classifier can later be distilled from Jev's labels.
+  cost). Each persistent-session tick conservatively reserves a request even
+  when prechecks answer without calling a provider.
 
-### Tier 2: executor (`harness/executor`)
+### Bounded development tools (`harness/executor`, `harness/mcp`)
 
-Stateless per goal. Receives a typed goal, runs a tool loop with a
-mid-tier model, and returns when the goal's `until` predicate holds or the
-judge interrupts. Tools: `observe`, `act`, `eval_js`, `find_skill`,
-`recipes_for`, `lookup` (minecraft-data queries). No recipe prerequisites
-are hand-coded; the model asks `recipes_for` and reasons.
+`clyde run` retains the single-goal executor for gym comparisons. Its body and
+skill tools are reused by the persistent session; no recipe prerequisites are
+hand-coded. MCP exposes development tools and `run_goal`. These interfaces
+must not compete with a running persistent player for the body.
 
-The executor is also exposed as an MCP server so an Amp thread can drive
-Clyde interactively during development.
-
-### Tier 3: planner (`harness/planner`)
-
-A frontier model invoked on events (goal finished, goal failed, player
-request, death, long idle), not on a cadence. It writes goals, maintains the
-curriculum, runs post-mortems on failures, authors and revises skills, and
-curates `memory/*.md`. Bounded addressed dialogue and one durable model-owned
-project intent accompany goal context. A read-only planner call may answer
-beside the exclusive executor; the scheduler serializes accepted decisions.
-Models choose whether to preserve or replace work. Replacement waits for joined
-cleanup; stale decisions are discarded with bounded replanning. Project intent
-is not verified progress, and reply intents guarantee at-most-once attempts,
-not delivery.
-
-### Priority lanes
-
-Two lanes feed the executor: `player` work has priority over `autonomous`
-(planner goals). An addressed chat turn first goes to the model: conversation
-can preserve running work, a new goal can suspend it, and explicit replacement
-discards superseded work. Suspended goals are re-queued, not lost. Danger still
-preempts ordinary execution; bounded recovery uses its own judge context.
+The legacy `harness/planner` scheduler remains in source but is not on the
+`serve` path; shared candidate-staging utilities are still used. Historical
+slices document the prior hierarchy, priority lanes and recovery lifecycle.
 
 ## Contracts (`api/`)
 
@@ -156,21 +144,28 @@ preempts ordinary execution; bounded recovery uses its own judge context.
   types for the body and Go types for the harness. Jev receives structured
   JSON; LLMs receive a rendered text card from the same data.
 - Typed goals with machine-checkable `until` predicates: `items`, `delivered`,
-  `arrived`, `built`, `judged`. The same predicates are the gym checkers.
+  `arrived`, `built`; `judged` is reserved and unsupported. The same predicates
+  are gym checkers and the persistent player's `verify` evidence tool.
 
 ## Skills (`skills/`)
 
 `skills/<name>/{skill.md,index.js,test.yaml}`. `skill.md` is the
 model-facing description (when to use, preconditions, failure modes);
 `index.js` runs via `POST /eval`; `test.yaml` is a gym task that must pass
-before the skill is admitted. The planner authors skills; the gym gates them.
+before the skill is admitted. The player can stage model-authored proposals;
+operators explicitly gate and promote them. Play never admits its own code.
 
 ## Memory (`memory/`, runtime data)
 
-- Episodic: SQLite, written by the harness (goals, outcomes, deaths, chat).
-- Spatial: maintained by code, not the model (POIs, last-seen players, home,
-  resource locations).
-- Semantic: `memory/*.md` curated by the planner and injected into prompts.
+- Current session: versioned SQLite `player_*` tables for native messages,
+  original history, inbox, action intents/results, waits and accounting.
+- Working memory: model-written compaction notes plus bounded history search;
+  intent and summaries never certify verified world progress.
+- Legacy episodes, code-observed places and semantic notes remain readable
+  through `memory`; legacy project/dialogue/jobs import once as unverified
+  commitments. Old recovery closures do not govern the new session.
+- Migration leaves old records intact. Rollback requires the matching stopped
+  whole-memory backup and binary; do not downgrade against upgraded memory.
 
 ## Gym (`gym/`)
 
@@ -243,7 +238,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 11 | Multi-turn conversation and remembered projects (done, `c2d7442`) | `11-conversation-projects.md` | 6, 10 |
 | 12 | Authenticated Java access (deployed; owner Java login confirmed) | `12-java-access.md` | 7 |
 | 13 | Bounded model-led exploration (accepted, `52f135c`; not deployed) | `13-bounded-exploration.md` | 10, 11 |
-| 14 | Persistent player: durable session, continuity, bounded attention (approved; implementation pending) | `14-persistent-player.md` | 5, 6, 13 |
+| 14 | Persistent player: durable session, continuity, bounded attention (accepted, `4fd3d1e`; not deployed) | `14-persistent-player.md` | 5, 6, 13 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -380,6 +375,30 @@ choice and can be reversed by saying so.
   Existing bounded `run`/MCP development interfaces remain. Validate matched
   isolated continuity trials with the current model before claiming capability;
   implementation approval does not authorize production rollout.
+- Persistent-player source accepted at `4fd3d1e`, exact-head body/harness/gym
+  and security checks green. One attended hour per matched arm verified revised
+  destination, table placement, eight-plank delivery and the three-block birch
+  row. Candidate native compaction and restart preserved requirements; both
+  four-minute quiet-wait probes made zero frontier calls. Candidate initially
+  missed supplies, later recovered, and gathered only three of six requested
+  new logs after earlier work consumed part of the trunk. Status/revision
+  latency rose from 2.746/4.342s to 3.693/7.327s; returned full-arm usage cost
+  rose from $0.374 to $2.441. This accepts the continuity architecture, not a
+  general capability, latency, cost or days-long-autonomy improvement.
+  Unchanged executor controls were 12/12 both arms; shared skill gates 5/5.
+  Coordinator review found chat-during-compaction could latch an operator-only
+  pause; the fix preserves history and charged usage while handling the new
+  message without resume. Requested/automatic cases failed before and passed
+  after; true provider/deadline/empty-summary controls still pause. Coordinator
+  reran those tests ten times under race detection, changed-package race tests
+  three times, full build/vet/tests, body 26/26/build and generation checks.
+  Last-reservation withholding, history paging and compaction supersession
+  have deterministic regression evidence, not rerun hour-long paid trials.
+  Returned usage including smokes/controls was $3.976797222; unreturned billing
+  remains unknown. Upstream native-history fix `582660e` is pinned from the
+  published agent-harness PR 13, still unmerged after review-app failure/403;
+  its test CI and Clyde's real provider reset/continuation passed. No live
+  image, memory or world changes; rollout remains separately authorized.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
@@ -423,17 +442,18 @@ choice and can be reversed by saying so.
 - The judge flags new chat only on the first tick that sees it; the executor
   reads chat it must answer from `GET /events`, not from judge interrupts
   (default).
-- Planner replies use a durable send intent: at-most-once send attempts,
-  not exactly-once delivery. A crash after intent can lose a reply. Restart
-  reconciles in-flight goals by live predicates, not by replaying side effects.
-- Planner-authored skills remain staged candidates. Operators explicitly
+- Replies use a durable send intent: at-most-once send attempts, not
+  exactly-once delivery. A crash after intent can lose a reply. Persistent
+  play reconciles uncertain outcomes with fresh state, never blind replay.
+- Model-authored skills remain staged candidates. Operators explicitly
   gate them on an isolated gym and promote through the shared skill Store;
   ordinary play never resets a world or automatically promotes code.
 - No x-ray: the state card lists only blocks exposed to air, so Clyde knows
   what a player could see (default).
-- The chat kill switch currently stops only the action, not the scheduler.
-  A latched chat stop/resume is deferred beyond the initial attended launch;
-  stop the whole service when Clyde must stay stopped.
+- The chat kill switch stops only the body action. Source `serve` has a
+  latched local `control stop/resume`; untrusted chat cannot grant resume.
+  The older deployed service still requires stopping the whole service when
+  Clyde must stay stopped. Chat operator authentication remains deferred.
 - The body exits on disconnect and its supervisor restarts it; no in-process
   reconnect (default).
 - Gym observes the server over RCON, not through a second bot, and agents
