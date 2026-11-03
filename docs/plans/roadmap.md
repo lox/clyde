@@ -239,7 +239,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 12 | Authenticated Java access (deployed; owner Java login confirmed) | `12-java-access.md` | 7 |
 | 13 | Bounded model-led exploration (accepted, `52f135c`; not deployed) | `13-bounded-exploration.md` | 10, 11 |
 | 14 | Persistent player: durable session, continuity, bounded attention (accepted, `4fd3d1e`; not deployed) | `14-persistent-player.md` | 5, 6, 13 |
-| 15 | Local survival during frontier latency (approved; isolated implementation next) | `15-local-survival.md` | 5, 14 |
+| 15 | Local survival during frontier latency (audit/baseline published, `b0dbaf9`; blocked on pathfinder drain contract) | `15-local-survival.md` | 5, 14 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -410,6 +410,19 @@ choice and can be reversed by saying so.
   delays. Preserve failures and test stale controllers, operator stop,
   blocked routes and false activation. No new model tier, automatic admission
   or production changes. See `15-local-survival.md` for the bounded contract.
+- Slice 15 audit/baseline evidence is published at `b0dbaf9`, exact-head CI
+  green. Six unchanged-source trials survived and reached the fixture-selected
+  refuge in 2/2 cases at 5s delay (health 2), but 0/4 at 15/30s. These small
+  trials are not a general survival-rate estimate. Real-plugin probes and
+  separate rechecks confirmed late digging/placement after replacement,
+  operator stop and eval timeout; exported idle flags cannot prove quiescence.
+  Installed pathfinder 2.4.5 has no public cancellation-and-drain boundary for
+  private asynchronous controller chains. A verified drain/generation contract
+  is a prerequisite for safe arming, not an optional enhancement. The
+  coordinator recommends upstream work rather than blocking every handoff
+  during asynchronous navigation; opening that third-party work awaits the
+  user. No runtime fix, arming, dependency change, candidate trial or paid call
+  has occurred. Evidence-only source is accepted; the survival slice is blocked.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
@@ -432,9 +445,11 @@ choice and can be reversed by saying so.
 - The executor checks goals over RCON when it has it (the gym, a dev
   server); without RCON the bot's own card answers `items` and `arrived`
   only (default).
-- Code an aborted action started (eval code, plugin loops) cannot set
-  pathfinder goals or dig; the body tracks each action's async context to
-  refuse it (default).
+- The body refuses late pathfinder goals/digs attributed to an aborted
+  action's async context. Slice 15 demonstrates that pathfinder physics
+  callbacks and their delayed continuations can escape that attribution;
+  these guards are not a complete controller-drain guarantee. The upstream
+  prerequisite above remains unresolved.
 - Issue tracking: GitHub issues on this repo (default).
 - Delivery: commit to `main` (Amp merge-to-main), no pull requests; Auto-review
   runs locally before every ship; no Codex.
