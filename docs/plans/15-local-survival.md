@@ -5,12 +5,12 @@ Lachlan approved this slice in
 Implement and validate in disposable worlds only. This is not permission to
 deploy, change production memory/worlds, or enable new live background behaviour.
 
-**Blocked on a third-party controller cancellation/drain contract.** The audit
-and unchanged-source reproduction below are complete. No production code,
-dependency, schema, prompt or admitted skill changed. The coordinator accepted
-the controller-handoff prerequisite but will seek the user's decision before
-opening upstream work. Do not implement arming or weaken exclusive ownership
-while that decision is outstanding. Paid authoring/integration/judge calls: **0**.
+**Next: approved model-free cancellation experiment after oracle review.** The
+audit and unchanged-source reproduction below are complete. They establish a
+cancellation defect, not that an upstream pathfinder drain API is the smallest
+or sufficient fix. Test the narrower movement-only navigation and collection
+boundary below before choosing a dependency project or arming API. No runtime
+fix has been accepted; paid authoring/integration/judge calls remain **0**.
 
 ## Problem and first outcome
 
@@ -250,38 +250,78 @@ the aborted signal. Merely wrapping the next `bot.dig`/`placeBlock` call would
 still leave private `resetPath`, locks, `placing`, `returningPos` and related
 continuations live. Idle flags and a resolved `goto` cannot prove a drain.
 
-### Required prerequisite contract; upstream decision pending
+### Oracle correction and approved cancellation experiment
 
-The coordinator approved a separate correctness-preserving prerequisite commit,
-but **no fix has been implemented or accepted**. The necessary contract is:
+The user requested an independent oracle review and approved its narrower
+next step. The local-response direction remains justified, but a pathfinder
+stop-and-drain API is neither proven necessary nor sufficient. The oracle
+reproduced direct Mineflayer `dig` issuing a start packet after operator stop
+when its internal `lookAt` promise was released. This used the real body runner
+and digging implementation with an in-memory bot, not a live world. Placement
+also awaits looking before sending, equip can span inventory transactions, and
+collectblock owns separate equip/dig/drop/pickup work. Those boundaries need
+testing independently of pathfinder's private continuations.
 
-1. Revoking a controller incarnation synchronously prevents it from initiating
-   more movement, digging, placement or item use. Every post-await mutation and
-   shared-state cleanup is generation-bound, including physics-event work.
-2. Stop-and-drain returns a promise covering every controller-owned asynchronous
-   chain through its final shared-state cleanup, not only the current `goto`
-   receipt or wrapped primitive promise. No new owner is admitted before that
-   promise establishes quiescence. Cancellation must not depend on another
-   goal's events to settle.
-3. A bounded body handoff deadline **fails closed**. Expiry is not successful
-   drain; pending actions are refused and ownership remains unavailable until
-   quiescence is verified or the body process is restarted. Stop, timeout and
-   disconnect cannot reopen admission or silently transfer ownership.
-4. Tests must release delayed equip both before and after cancellation, exercise
-   delayed dig/place/shared-state cleanup, operator stop and eval expiry, and
-   retain an uncooperative continuation past the deadline. Prove no world
-   mutation/new movement while revoked or draining, successful handoff only
-   after actual drain, and no delayed cleanup cancelling the new owner's goal.
+The required invariant is **no residual conflicting authority at handoff**:
+old work must not issue conflicting commands or modify the new owner's goal,
+controls, locks or collector targets. Already-sent requests can produce later
+server effects; stop cannot undo them, prevent knockback or promise an instantly
+unchanged world. Define which already-entered operations are noninterruptible
+and await their bounded completion with admission closed. Reconcile ambiguous
+effects from observations. A timeout never proves safe handoff. Harmless
+observers with revoked mutation authority need not all settle.
 
-The installed public pathfinder API has no such join or generation primitive.
-The coordinator chose pursuing an upstream stop-and-drain contract over
-rejecting all handoffs once navigation has entered an asynchronous mutation;
-the latter would not deliver gathering-to-retreat survival. Opening that
-third-party work awaits the user. Do not fork/replace pathfinder, patch caches
-or treat a quiet interval as proof of quiescence. No async-hook framework was
-introduced as a substitute for the missing dependency contract.
-After that boundary is sound, resume the original single-response plan and
-its unchanged paid-request caps; no arming API is selected yet.
+Run this model-free experiment before designing an arming API:
+
+1. Convert the retained capture cases into assertion-bearing conformance
+   checks, preserving original failure evidence. Add direct dig with delayed
+   look, placement with delayed look, non-hotbar equip, active digging,
+   collector drop/pickup waits, and late success/error cleanup. Include stop,
+   replacement, timeout and disconnect; release blocked continuations afterward
+   to detect delayed effects. Use real implementations at the risky boundary.
+2. Try an explicit movement-only navigation profile for **both** collection
+   navigation and retreat: disable navigation-owned digging, scaffolding and
+   door use while retaining movement/parkour. Collectblock installs its own
+   Movements, so changing only retreat's configuration is insufficient. Keep
+   resource digging explicit and test its cancellation; do not claim this
+   profile alone fixes lower Mineflayer operations. Do not silently impose
+   permanent restrictions on all existing actions.
+3. Exercise actual collect-to-retreat handoffs at controlled collection phases
+   in the frozen arena. A single foreground skill/fixture may compose the
+   response if that avoids a background arming framework. Fixture tactics
+   remain gym-only; model-authored admission is a later gate. Integrate or
+   account for ordinary danger preemption rather than disabling it globally.
+4. Separately measure local trigger, revocation, safe handoff, first commanded
+   movement, first observed movement and independent server outcome. Retain
+   threat timing, equipment, arena and the original six baseline runs.
+
+Freeze these preliminary go/no-go criteria before candidate trials:
+
+- No new unauthorized effectful operations after revocation except explicitly
+  documented completion of already-entered noninterruptible operations. No
+  replacement while they can conflict; no stale cleanup stealing new ownership.
+- Stop, deadline and disconnect remain closed with uncooperative continuations.
+  Uncertain timeout is a failure, never a successful drain. No raw-packet or
+  arbitrary trusted-JavaScript sandbox guarantee is implied.
+- In each preliminary arena run, safe handoff within **500ms** and first
+  commanded defensive movement within **1s** of the local trigger. These are
+  proposed engineering acceptance thresholds, not established guarantees.
+- Only after conformance passes, require survival and independently verified
+  refuge arrival for three repeats of each 5/15/30s delay and threat-position
+  cell. Preserve all failures; these 18 candidate trials are still not a
+  general survival-rate estimate. Disclose any changed navigation capability
+  and add matched controls when needed to attribute the result.
+
+Use existing body/skill ownership mechanisms and make only narrow local changes
+needed to test this supported boundary. No paid calls, dependency additions,
+fork/cache patches, upstream PR, general reaction framework or production
+changes are part of this experiment. A remaining candidate ownership escape,
+unworkable route, stale cleanup or excessive handoff latency is a no-go for
+that candidate, not grounds to skip the other bounded experiments. Identify
+the responsible layer and recommend the smallest fix from its failing tests;
+do not assume pathfinder is that layer. The coordinator reviews the outcome
+before resuming model-authored response admission and the previously bounded
+paid trials.
 
 ### Reproduction commands
 
@@ -310,10 +350,10 @@ done
 
 Restart the body after instrumentation probes; cleanup restores bot methods
 but does not certify that the vulnerable plugin's private state is clean.
-When implementing the upstream fix, adapt the probe to release blocked equip
-while a stop/drain request is pending, then assert **unchanged** server blocks
-and admission ordering. Do not reinterpret the current capture-only probe's
-exit code as a regression-test pass.
+When evaluating a cancellation candidate, adapt the probe to release blocked
+equip while cancellation is pending, then assert **unchanged** server blocks
+for operations not yet issued and verify admission ordering. Do not
+reinterpret the current capture-only probe's exit code as a regression pass.
 
 ### Evidence-only publication checks
 

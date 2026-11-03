@@ -239,7 +239,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 12 | Authenticated Java access (deployed; owner Java login confirmed) | `12-java-access.md` | 7 |
 | 13 | Bounded model-led exploration (accepted, `52f135c`; not deployed) | `13-bounded-exploration.md` | 10, 11 |
 | 14 | Persistent player: durable session, continuity, bounded attention (accepted, `4fd3d1e`; not deployed) | `14-persistent-player.md` | 5, 6, 13 |
-| 15 | Local survival during frontier latency (audit/baseline published, `b0dbaf9`; blocked on pathfinder drain contract) | `15-local-survival.md` | 5, 14 |
+| 15 | Local survival during frontier latency (audit/baseline `b0dbaf9`; narrower cancellation experiment approved) | `15-local-survival.md` | 5, 14 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -417,12 +417,20 @@ choice and can be reversed by saying so.
   separate rechecks confirmed late digging/placement after replacement,
   operator stop and eval timeout; exported idle flags cannot prove quiescence.
   Installed pathfinder 2.4.5 has no public cancellation-and-drain boundary for
-  private asynchronous controller chains. A verified drain/generation contract
-  is a prerequisite for safe arming, not an optional enhancement. The
-  coordinator recommends upstream work rather than blocking every handoff
-  during asynchronous navigation; opening that third-party work awaits the
-  user. No runtime fix, arming, dependency change, candidate trial or paid call
-  has occurred. Evidence-only source is accepted; the survival slice is blocked.
+  private asynchronous controller chains. Evidence-only source is accepted;
+  no runtime fix, arming, dependency change, candidate trial or paid call has
+  occurred. The initial upstream-first recommendation is superseded below.
+- Oracle review supported local reactions but found that pathfinder-only
+  cancellation is insufficient: real direct Mineflayer digging can issue a
+  start packet after stop while an internal look promise settles. The user
+  approved a narrower model-free experiment before an upstream project:
+  assertion-bearing controller/primitive cancellation probes, movement-only
+  navigation for both collection and retreat, and bounded collect-to-retreat
+  handoffs in the frozen arena. No residual conflicting command authority or
+  stale cleanup may survive handoff; already-sent world effects are reconciled,
+  not promised away. Establish the responsible layer and the smallest fix
+  from failing tests. No general arming API, paid trials, new dependency or
+  production change in this experiment; see `15-local-survival.md` for gates.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
