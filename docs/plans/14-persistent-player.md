@@ -186,6 +186,85 @@ real smoke/scoreboards; then rebase onto `origin/main`, ship logical commits to
 `main` and confirm exact-head CI. Include evidence in commit messages. Update
 this plan with actual decisions/results; the coordinator owns roadmap acceptance.
 
+## Implementation prerequisite: replayable provider history
+
+Initial inspection at `666ea86d0bae50df44a8c75ae27a26ca25375331` found an
+upstream contract gap in the pinned agent-harness
+`v0.3.1-0.20261017002310-8117cc9dbc59`. Provider-independent journal and restart
+reconciliation are implemented locally; the serve loop and paid trials have
+not started. This is not acceptance evidence for persistent play.
+
+The OpenAI adapter's `convertResponse` retains only `response_id` in
+`Message.ProviderData`, not native output/reasoning items. `buildRequest`
+automatically selects the latest retained assistant response ID and sends only
+the messages after it. A locally compacted prefix therefore does not replace
+the provider's previous context. Setting `Options["previous_response_id"]` to
+an empty string disables that selection, but `convertMessages` then reconstructs
+only text/function calls/results; the native reasoning is already lost.
+
+A temporary public-API `httptest` probe returned a synthetic reasoning item
+with encrypted content and a function call, JSON-serialized/restored the
+assistant message, and submitted working notes plus the retained exchange.
+`go test ./llm -run TestContinuityProbe -v -count=1` produced:
+
+```text
+persisted provider_data: {"response_id":"resp_before_compaction"}
+automatic continuation: previous_response_id=true compacted_notes=false native_reasoning=false
+explicit empty continuation: previous_response_id=false compacted_notes=true native_reasoning=false
+PASS (diagnostic execution, not a passing continuity contract)
+```
+
+The probe used a local HTTP fixture, no provider credentials or paid inference.
+Its source is attached in the
+[implementation thread](https://ampcode.com/threads/T-01a19f2c-7b41-7474-aff7-9c2cbc8338df).
+This demonstrates request construction and information loss, not a live API
+rejection. OpenAI's [reasoning guide](https://platform.openai.com/docs/guides/reasoning)
+documents preserving native output items for manual replay, including reasoning
+and assistant phase; text/tool reconstruction is not equivalent native history.
+
+Before wiring durable compaction, obtain and pin an upstream contract for
+explicit full-history/reset replay that preserves native response items, or a
+supported compaction/rebase operation. Verify JSON round-trip, new notes plus
+complete retained exchanges, absence of the pre-compaction continuation anchor,
+and replay of native reasoning. Do not strip opaque data in Clyde or patch the
+module cache. The coordinator has been notified to arrange the upstream fix or
+resolve a contract-preserving alternative. Roadmap, model/effort, production
+image, memory and world remain unchanged.
+
+## Implementation progress: durable journal foundation
+
+`harness/session` adds versioned tables alongside existing memory, leaving the
+legacy checkpoint, episodes and places intact. Active messages retain opaque
+`ProviderData`; original history has stable IDs and paginated search. A single
+transaction publishes checkpoint changes, history, consumed inbox IDs and usage
+receipts. Duplicate source keys cannot re-enter the conversation after restart.
+The eventual event loop remains responsible for bounded/coalesced ingestion and
+bounded rendered search output.
+
+Inference and compaction reserve the same finite request allowance before
+dispatch. Reservations survive missing receipts and restart; returned usage
+and unknown billing remain distinct. Operator stop and explicit extensions use
+separate SQL columns, so stale runtime checkpoints cannot overwrite them. The
+provider path must disable hidden SDK retries when wired. These are request
+limits, not a dollar cap; per-call output limits still need runtime wiring.
+
+Restart reconciliation stops the body and obtains a fresh observation before
+publishing any state. Started tools without receipts become explicitly unknown;
+unstarted calls receive withheld results. Neither replays, and the original
+assistant message stays intact. Quiet waits survive; interrupted work wakes for
+attention while the operator stop remains latched. Failed stop/read prevents
+reconciliation. This currently has HTTP-fixture coverage, not Minecraft evidence.
+
+Validation: harness build/vet/tests passed; `go test -race ./session -count=10`
+passed. Regressions cover journal restart/atomic publication, old memory retention,
+duplicate events, history retrieval after active-context replacement, operator
+stop persistence, durable accounting, concurrent allowance exhaustion, incompatible
+versions, and unknown/withheld tool results without replay. The context replacement
+test validates storage only, not production model compaction. Local Auto-review
+found no material issue in this foundation; the complete slice remains blocked
+on the approved upstream pin and requires runtime, CLI, migration and real-world
+continuity validation before shipping. No production entry point uses this code yet.
+
 ## Boundaries
 
 No production rollout, multi-agent system, new vision stack, provider switch,
