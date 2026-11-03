@@ -108,7 +108,7 @@ Package entry points for other harness callers:
 - `Store.RecordGate` is receipt plumbing for the gym, not a manual promotion
   API. Only feed it independent checker results.
 
-## Isolate candidate worlds from the live planner
+## Isolate candidate worlds from the live player
 
 `PAPER_DIR` alone is **not isolation**. Use distinct service names, Minecraft
 and RCON ports, world/template directories, and body ports. The same existing

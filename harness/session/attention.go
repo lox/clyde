@@ -41,6 +41,13 @@ func (p *Player) compact(ctx context.Context, s *Snapshot) error {
 		}
 		u.Entries = append(u.Entries, e)
 	}
+	if errors.Is(err, errAttentionChanged) || ctx.Err() != nil {
+		// Supersession is not a compactor outage. Keep the original exchange and
+		// charge the receipt, then consume new events. Context pressure may still
+		// require a fresh compaction that includes those events before inference.
+		u.State.ForceCompact = false
+		return p.save(context.WithoutCancel(ctx), s, u)
+	}
 	if err != nil || stale || result == nil || strings.TrimSpace(result.Message.Content) == "" || len(result.Message.Content) > 12000 || len(result.Message.ToolCalls) > 0 {
 		u.State.Pause = fmt.Sprintf("compaction failed; history retained, operator resume required (stale=%t error=%v)", stale, err)
 	} else {

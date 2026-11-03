@@ -227,9 +227,13 @@ func TestPlayerWaitRestartStopAndExhaustion(t *testing.T) {
 }
 
 func TestPlayerCompactionPreservesCompleteExchangeAndFailures(t *testing.T) {
-	for _, fail := range []bool{false, true} {
-		t.Run(fmt.Sprint(fail), func(t *testing.T) {
+	for _, outcome := range []string{"success", "provider-error", "deadline", "empty-summary"} {
+		t.Run(outcome, func(t *testing.T) {
+			fail := outcome != "success"
 			p, j := newPlayer(t, &playerBody{}, 10)
+			if outcome == "deadline" {
+				p.CallTimeout = 20 * time.Millisecond
+			}
 			s, _ := j.Load(context.Background())
 			old := agent.Message{Role: agent.RoleUser, Content: "old requirement: birch only " + strings.Repeat("x", 9000) + " archived tail marker"}
 			native := calls(call("retained", "observe", `{}`)).Message
@@ -244,11 +248,18 @@ func TestPlayerCompactionPreservesCompleteExchangeAndFailures(t *testing.T) {
 				t.Fatal(err)
 			}
 			var count atomic.Int64
-			p.Provider = playerProvider(func(_ context.Context, params agent.ChatParams) (*agent.ChatResult, error) {
+			p.Provider = playerProvider(func(ctx context.Context, params agent.ChatParams) (*agent.ChatResult, error) {
 				n := count.Add(1)
 				if n == 1 {
 					if params.Options["previous_response_id"] != "" {
 						t.Error("compactor did not reset")
+					}
+					if outcome == "deadline" {
+						<-ctx.Done()
+						return nil, ctx.Err()
+					}
+					if outcome == "empty-summary" {
+						return &agent.ChatResult{Message: agent.Message{Role: agent.RoleAssistant, Content: " "}}, nil
 					}
 					if fail {
 						return nil, errors.New("fixture unavailable")
@@ -293,6 +304,88 @@ func TestPlayerCompactionPreservesCompleteExchangeAndFailures(t *testing.T) {
 			original, _ := json.Marshal(old)
 			if err != nil || len(history) == 0 || string(history[0].Data) != string(original) {
 				t.Fatalf("original history lost or changed: %v", err)
+			}
+		})
+	}
+}
+
+func TestPlayerChatSupersedesCompactionWithoutOperatorResume(t *testing.T) {
+	for _, automatic := range []bool{false, true} {
+		t.Run(fmt.Sprint(automatic), func(t *testing.T) {
+			b := &playerBody{}
+			p, j := newPlayer(t, b, 10)
+			p.ContextBytes = 16384
+			s, _ := j.Load(context.Background())
+			old := agent.Message{Role: agent.RoleUser, Content: "Remember birch only."}
+			if automatic {
+				old.Content += strings.Repeat("x", 17000)
+			}
+			s.State.Messages = []agent.Message{old, {Role: agent.RoleAssistant, Content: "Remembered."}, {Role: agent.RoleUser, Content: "Continue the workshop."}}
+			s.State.ForceCompact = !automatic
+			var entries []session.Entry
+			for _, m := range s.State.Messages {
+				entries = append(entries, messageEntry(t, m))
+			}
+			if _, err := j.Commit(context.Background(), s.Revision, session.Update{State: s.State, Entries: entries}); err != nil {
+				t.Fatal(err)
+			}
+			entered := make(chan struct{})
+			var count atomic.Int64
+			p.Provider = playerProvider(func(ctx context.Context, params agent.ChatParams) (*agent.ChatResult, error) {
+				if count.Add(1) == 1 {
+					close(entered)
+					<-ctx.Done()
+					return &agent.ChatResult{Message: agent.Message{Role: agent.RoleAssistant, Content: "Obsolete notes"}, Usage: &agent.Usage{InputTokens: 31, OutputTokens: 7}}, ctx.Err()
+				}
+				found, remembered := false, false
+				for _, m := range params.Messages {
+					found = found || strings.Contains(m.Content, "Bring the revised materials")
+					remembered = remembered || strings.Contains(m.Content, "Remember birch only")
+					if strings.Contains(m.Content, "Obsolete notes") {
+						t.Error("superseded summary entered active context")
+					}
+				}
+				if !found || !remembered {
+					t.Error("continuation lost the incoming message or earlier requirement")
+				}
+				if len(params.Tools) == 0 {
+					return &agent.ChatResult{Message: agent.Message{Role: agent.RoleAssistant, Content: "Remember birch only; handle the revised materials."}, Usage: &agent.Usage{InputTokens: 23, OutputTokens: 5}}, nil
+				}
+				return calls(call("reply", "act", `{"type":"chat","message":"I will bring the revised materials."}`), call("wait", "wait", `{"reason":"revision handled"}`)), nil
+			})
+			stop := runPlayer(t, p)
+			select {
+			case <-entered:
+			case <-time.After(time.Second):
+				t.Fatal("compaction did not start")
+			}
+			accept(t, j, "player", "Bring the revised materials, then wait.")
+			await(t, func() bool { s, _ := j.Load(context.Background()); return s.State.Wait != nil })
+			stop()
+			s, _ = j.Load(context.Background())
+			want := int64(2)
+			wantInput, wantOutput := 48, 10
+			if automatic {
+				want++ // context pressure still needs a fresh compaction
+				wantInput, wantOutput = 71, 15
+			}
+			if s.State.Pause != "" || s.Used != want || s.Limit != 10 {
+				t.Fatalf("supersession paused or changed accounting: %+v", s)
+			}
+			b.mu.Lock()
+			actions := b.actions
+			b.mu.Unlock()
+			if actions != 1 {
+				t.Fatalf("incoming chat produced %d replies, want 1", actions)
+			}
+			history, err := j.History(context.Background(), "Remember birch only.", 0, 10)
+			raw, _ := json.Marshal(old)
+			if err != nil || len(history) == 0 || string(history[0].Data) != string(raw) {
+				t.Fatal("supersession lost original history")
+			}
+			account, err := j.Accounting(context.Background())
+			if err != nil || account.Unknown != 0 || account.Usage.InputTokens != wantInput || account.Usage.OutputTokens != wantOutput {
+				t.Fatalf("cancelled compaction receipt lost: %+v %v", account, err)
 			}
 		})
 	}

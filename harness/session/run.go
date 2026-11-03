@@ -17,6 +17,8 @@ import (
 	"github.com/lox/clyde/harness/llm"
 )
 
+var errAttentionChanged = errors.New("session: attention superseded by an event or operator stop")
+
 // Run keeps one durable conversation. Inference bursts yield to inbox/control
 // polling; only explicit waiting pauses attention. Nothing terminates a project
 // merely because a tool failed, a milestone held, or an assistant ended a turn.
@@ -423,6 +425,7 @@ func (p *Player) infer(ctx context.Context, s *Snapshot, purpose, system string,
 			}
 			if urgent || s.Stopped {
 				stale = true
+				pollErr = errors.Join(pollErr, errAttentionChanged)
 				cancel()
 			}
 		case <-cctx.Done():

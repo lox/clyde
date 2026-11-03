@@ -7,4 +7,7 @@ measure progress.
 - Design and sequencing: [docs/plans/roadmap.md](docs/plans/roadmap.md)
 - Working conventions for agents and humans: [AGENTS.md](AGENTS.md)
 
-Status: bootstrap. Nothing plays Minecraft yet.
+`clyde serve` runs one persistent player conversation; `run` and MCP retain
+bounded development interfaces. See the [local harness runbook](harness/README.md)
+and [slice 14 evidence](docs/plans/14-persistent-player.md). Source implementation
+and isolated validation do not authorize a production rollout.

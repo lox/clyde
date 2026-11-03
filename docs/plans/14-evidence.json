@@ -14,8 +14,18 @@
   "measured_candidate_hashes": "7be001bdf3e8a99cdd48b9cc1de52691aacd2b4588140bdf339301419948a734  harness/session/attention.go\n51302a35b4e94146b01d1e7e800037d223265db9edc6f8d05447f3a152e44583  harness/session/player.go\ndf891195a8fc5f4660ef2d84f381a35268521466236fc332332c37009e364161  harness/session/player_test.go\n03884b40022deec6e08653bf80a857c26864e76de239efd7a3668f7dd8eb5c7d  harness/session/run.go\nb56f8d551f415eda2f2f9210c410522bec9381e1214aeb559b5fc336faa76bad  harness/session/run_test.go\nbb59df0c04efca16ee7d469194c99f57c8843891f34dc43f40b07735627c2364  harness/session/store.go\nfa91128e14b74a72a4af7593182c17a0f82032fe8a25b4f5965acbbb0bc7f670  harness/session/store_test.go\n8f0b22162d66604f831520c48f3f8b9dded2a1427d807d67bf9bdd5c891553db  harness/session/tools.go\n75957f1eb35bdb35720ca99f89923e8c91d965237fa4b9e4ae9751f47c90d75a  harness/cmd/clyde/main.go\n3cd8351e78d9c792df9fd50f8cc853b97e7d649722692972b9ebe670f629ecdd  harness/cmd/clyde/serve.go\n231596bc2fccffb0666b82d1c73035d5490dd5a80d4c5e325c6caa6eeb314ef6  harness/executor/tools.go\nd567df8e72e0b2396dce2c2f9945c043c41c12b37c6cd752747ed4df002ed414  harness/llm/llm.go\nc984d26e860e022c5968daaf065c438f7c65a2f196847517ad3adbc10ea910cd  prompts/player.md\n6165fdbd4d1acc141d1cfa0ca0b165e22e4c30f5e8dd913f2a37ddaf8fdf0fff  gym/continuity.mjs\n",
   "final_code_deltas_after_candidate_freeze": [
     "Withhold actions returned by the last reserved inference when allowance is exhausted.",
-    "Allow byte-offset pagination beyond truncated archived history records."
+    "Allow byte-offset pagination beyond truncated archived history records.",
+    "Treat attention-cancelled compaction as supersession, preserving history and receipts without operator pause or allowance refill."
   ],
+  "compaction_supersession_followup": {
+    "scope": "Public runtime regression with fixture providers; not part of the frozen hour-long candidate binary or paid trials.",
+    "test": "TestPlayerChatSupersedesCompactionWithoutOperatorResume",
+    "before": "Requested and automatic cases both failed: condition did not arrive.",
+    "after": "Both cases reply once and wait without operator resume; preserve birch requirement and original archive, exclude superseded notes, settle cancelled usage, and keep limit 10.",
+    "requested": { "requests": 2, "input_tokens": 48, "output_tokens": 10 },
+    "automatic": { "requests": 3, "input_tokens": 71, "output_tokens": 15 },
+    "failure_controls": "Provider error, deadline and empty summary retain history and pause after one attempt."
+  },
   "scope": "Disposable local Paper worlds only; no production rollout or roadmap acceptance.",
   "pricing": "Repository Sol 6.1 rates: ordinary input $2/M, cached $0.10/M, cache-write $2.50/M, output $10/M; returned usage estimate, not invoice/hard dollar cap.",
   "arms": {

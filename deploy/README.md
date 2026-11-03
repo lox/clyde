@@ -154,8 +154,10 @@ Use `command: [--request-limit, "240", --call-timeout, 45s,
 --max-output-tokens, "4096"]` for initial configuration. The stored allowance
 wins on restart. `--context-bytes` defaults to 131072 serialized active-history
 bytes, not a token cap. Compaction retains the complete current exchange and
-archives originals; failure pauses with an explicit reason, without retrying
-forever. Read status/history before deciding to resume. Legacy serve flags
+archives originals. New attention supersedes cancelled compaction without an
+operator pause or refund; real provider/invalid-summary failure pauses with an
+explicit reason, without retrying forever. Read status/history before deciding
+to resume. Legacy serve flags
 (`--max-autonomous`, `--planner-time`, `--planner-prompt`, `--max-steps`,
 `--max-time`) are rejected; `run`/MCP retain their bounded development contracts.
 

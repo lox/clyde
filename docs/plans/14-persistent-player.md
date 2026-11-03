@@ -299,8 +299,9 @@ Roadmap acceptance remains with the coordinator.
 - Operator `control status|stop|resume|extend|compact` uses local filesystem
   authority. Stop is independent of runtime checkpoints; dispatch intents are
   serialized against it. Extension does not clear stop. Resume clears an error
-  pause without granting requests. Compaction failure preserves history and
-  pauses instead of automatically retrying forever.
+  pause without granting requests. Real compaction failure preserves history
+  and pauses instead of automatically retrying forever. Attention cancellation
+  supersedes compaction without pausing or refunding the charged request.
 - New version-2 `player_*` tables retain legacy memory. Project/dialogue/jobs
   import once as unverified context; recovery closure is not imported as policy.
   No historical executor messages are fabricated. Runbooks require a stopped
@@ -343,10 +344,10 @@ contains the frozen scenario/source/binary hashes, request/response metadata,
 timestamped chat, independent RCON evidence, milestones, compaction notes,
 usage and scoreboards. The runner was formatted after launch; its original
 and formatted hashes are retained, with no scenario changes. Final source
-adds two safeguards after the candidate binary was frozen: last-reservation
-action withholding and history byte-offset paging. They have public regression
-coverage, not a second paid hour-long run. The added retry regression changes
-tests only.
+adds three safeguards after the candidate binary was frozen: last-reservation
+action withholding, history byte-offset paging and attention-safe compaction
+supersession. They have public regression coverage, not a second paid hour-long
+run. The added retry regression changes tests only.
 
 | Check | Baseline | Persistent player |
 |---|---|---|
@@ -410,6 +411,38 @@ disturbances; actual provider model/effort is recorded per request. Run controls
 on a third disposable server so world resets cannot contaminate either arm.
 Roadmap acceptance and any separately authorized host rollout remain with the
 coordinator.
+
+## Coordinator follow-up: compaction supersession
+
+The coordinator found that an addressed message during compaction latched an
+operator-only pause. Inference now distinguishes attention cancellation from
+provider/deadline failure. Superseded compaction preserves the original active
+history and archived partial response, settles its receipt, and consumes pending
+events without operator resume. Automatic pressure may require another charged
+compaction with those events before continuing. No allowance is refunded or
+extended; operator stop remains authoritative.
+
+`TestPlayerChatSupersedesCompactionWithoutOperatorResume` failed before the fix
+for both requested and automatic compaction (`condition did not arrive`). After
+the fix, both modes reply once and enter explicit waiting, retain the earlier
+birch requirement and original archive, exclude the stale summary, and keep the
+limit at 10. Requested compaction charges 2 requests and 48 input/10 output
+tokens; automatic compaction charges 3 requests and 71 input/15 output tokens,
+including the cancelled receipt. The existing failure regression now also
+checks deadline and empty-summary cases: each retains history and pauses after
+one attempt. These are public runtime tests with fixture providers, not paid
+model observations or additions to the frozen hour-long scoreboard.
+
+Validation: `go test -race ./session -run Compaction -count=10` passes, as do
+full harness build/vet/tests and changed-package race tests (`session`,
+`cmd/clyde`, `llm`, `executor`) ten times. Body tests remain 26/26 and its build
+passes; generation has no drift. Local Auto-review of the follow-up, including
+its final targeted recheck, found no remaining material findings.
+
+The local harness runbook/package map now describes the persistent player and
+accepted startup flags, controls and migration boundaries. Root/skill/deployment
+docs agree; historical slice plans are unchanged. No production changes or
+roadmap acceptance are implied.
 
 ## Boundaries
 
