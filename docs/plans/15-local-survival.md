@@ -5,12 +5,14 @@ Lachlan approved this slice in
 Implement and validate in disposable worlds only. This is not permission to
 deploy, change production memory/worlds, or enable new live background behaviour.
 
-**Next: approved model-free cancellation experiment after oracle review.** The
-audit and unchanged-source reproduction below are complete. They establish a
-cancellation defect, not that an upstream pathfinder drain API is the smallest
-or sufficient fix. Test the narrower movement-only navigation and collection
-boundary below before choosing a dependency project or arming API. No runtime
-fix has been accepted; paid authoring/integration/judge calls remain **0**.
+**Blocked: the model-free cancellation experiment fails admission gates.**
+Movement-only navigation and a serialized foreground fixture can reach the
+refuge, but native collection, replacement during equip, and ordinary danger
+preemption remain incompatible with that candidate. The responsible layers and
+the smallest proposed next boundary are recorded below; an upstream pathfinder
+drain is neither proven necessary nor sufficient. No runtime fix, arming API or
+model-authored response has been accepted. The 18 candidate survival trials
+were not run; paid authoring/integration/judge calls remain **0**.
 
 ## Problem and first outcome
 
@@ -224,11 +226,12 @@ trials used fresh 64-reservation journals, no extensions and no paid judge.
 
 ### Real-plugin probes invalidate the existing handoff guarantee
 
-The probe delays completion of `bot.equip` while **the real pathfinder physics
-callback** navigates through a wall or builds a bridge. The real equip/dig/place
-functions remain in use. After stopping/replacing the action, it releases the
-old equip continuation and records the goal at the late mutation. RCON checks
-the changed block independently of bot events.
+The probe pauses **before calling the original `bot.equip`**, while **the real
+pathfinder physics callback** navigates through a wall or builds a bridge.
+It does not pause inside Mineflayer's inventory implementation. The real
+equip/dig/place functions remain in use. After stopping/replacing the action,
+it releases the old equip continuation and records the goal at the late
+mutation. RCON checks the changed block independently of bot events.
 
 - Replacement: the old route dug stone `(2,81,0)` under the new refuge goal.
 - Operator `POST /stop`: releasing the old equip still dug `(2,81,0)` with
@@ -237,7 +240,8 @@ the changed block independently of bot events.
   `(2,81,0)` under the replacement goal.
 - Placement: after stop, **goal=null, moving=false, mining=false,
   building=false, targetDigBlock=null**. Nevertheless, releasing old equip
-  placed dirt at `(2,79,0)` under the replacement goal.
+  placed dirt at `(2,79,0)` under the replacement goal. The release occurred
+  **after installing that replacement**, not while the idle snapshot held.
 
 All four server assertions returned `Test passed` for the **unwanted** world
 mutation. These are failures of cancellation, not passing survival gates.
@@ -379,3 +383,200 @@ the evidence JSON and the standalone capture runner. Existing model-free CI
 gym/skill gates still apply to the pushed evidence commit. The original six
 baseline transcripts remain unchanged; `probe_rechecks` records the separate
 verification captures instead of replacing earlier evidence.
+
+## Narrow cancellation experiment (2026-11-03)
+
+Runtime source is unchanged from `3c65a5a5abca9071c7b11b7fcab6d325eca09b7f`.
+The new standalone `gym/cancellation.go` and embedded
+`gym/cancellation-fixture.js` exercise the real HTTP ActionRunner, Mineflayer,
+pathfinder and collectblock in disposable Paper. They instrument bot instances,
+not dependency files, and restart the body between cases. They are not loaded
+by production or admitted as skills. Unlike the original capture runner, a
+failed conformance assertion exits **1**. A missed fixture phase is inconclusive
+and also exits 1; it must not be counted as passing cancellation.
+
+New evidence is separate in [15-cancellation-evidence.json](15-cancellation-evidence.json).
+It retains assertions, command/packet timestamps, independent server outcomes
+and hashes of new transcripts. The original six baseline runs and all original
+controller evidence are unchanged. These are phase-controlled mechanics
+experiments, **not** the gated 18 delayed-inference survival trials.
+
+The final matrix is **12/30 passing, 18/30 no-go**, plus **2/2** targeted
+disconnect-alone rechecks. Three further collector rechecks after `npm ci`
+still failed exact replacement-target preservation. Forty-two development
+captures are retained but not pooled into those totals. Five no-threat local
+handoff phases reached the server-verified refuge with health 20:
+
+| Revoked collection phase | Handoff ms | First command ms | First observed movement ms |
+|---|---:|---:|---:|
+| Navigation | 1 | 6 | 134 |
+| Explicit look | 200 | 207 | 253 |
+| Active dig | 1 | 8 | 126 |
+| Drop wait | 183 | 319 | 364 |
+| Entered equip | 236 | 276 | 373 |
+
+Times start at the local phase trigger, not hostile observation. First movement
+is a bot physics sample more than 0.2 blocks from the handoff position; RCON
+checks final arrival independently. No-threat phase success is not survival
+evidence. The uncooperative-look control remained closed before and after late
+release, failed the latency/arrival gates, and was not counted as a success.
+
+### What the narrower experiment establishes
+
+- **Pathfinder:** the four original escape cases still fail assertion-bearing
+  checks. Late dig/place packets and unwanted server block changes occur after
+  stop, replacement or timeout. Movement-only navigation separately reaches
+  the east-side test destination around the wall and across the three-block
+  gap without world/inventory mutation packets. Parkour remains enabled;
+  digging, scaffolding, towers and door use are disabled. This removes the
+  exercised navigation-owned mutation chains without modifying pathfinder.
+- **Mineflayer:** direct `dig` and `placeBlock` still issue packets after their
+  internal `lookAt` completion is held, the owner is revoked, and the promise
+  is released. The probe first calls the real look; it holds its completion
+  inside the real primitive. Active digging with `dig(block, 'ignore')` stops
+  without a late start/finish or server block removal. This distinction is why
+  a pathfinder-only fix cannot establish primitive cancellation.
+- **Inventory:** non-hotbar equip sends its source-slot click, then resumes its
+  private `moveSlotItem`/`clickWindow` sequence after stop or replacement. The
+  probe sets `lastDigTime=Date.now()` immediately after the first real click to
+  exercise inventory's existing recent-dig wait before the hotbar click. It
+  does not replace equip or clickWindow. This is an injected clock boundary,
+  not evidence of natural 500ms equip latency: digging currently writes
+  `performance.now()` while inventory compares against wall time. Ordinary
+  26.1 inventory clicks otherwise often complete through microtasks without
+  waiting for server acknowledgements.
+- **Collectblock compatibility:** setting **both** navigation profiles to
+  movement-only also prevents explicit harvesting: `mineBlock` consults
+  `movements.safeToBreak`, which returns false when `canDig=false`. The real
+  body `collect` fails with zero harvested blocks. No global action
+  restriction or private-policy override was introduced to hide this result.
+- **Collector cleanup:** the real body `collect` is stopped in its ten-tick
+  drop wait or after tool selection, then a replacement installs a sentinel
+  target and retreats. Resuming ticks or rejecting the held tool continuation
+  clears that replacement target. A real collector entity-pickup wait, invoked
+  through eval because the body collect action accepts blocks, has the same
+  shared-target failure after the unpickable item is removed. The sentinel
+  measures shared-state interference; it is not a second full collection job.
+  The drop probe holds `physicsTick` delivery after real digging completion,
+  then resumes it; no claim is made that this delay is naturally occurring.
+- **Disconnect:** the production body exits on connection end; the orb
+  supervisor restarts an empty body. A release scheduled on the old instance
+  does not survive that process boundary. Test restart state and unchanged
+  server blocks, not permanent HTTP unavailability. Earlier experimental
+  captures incorrectly treated the supervised restart as a failure; they are
+  retained separately. Final disconnect rechecks do not send operator stop
+  first, so they test disconnect alone.
+
+### A foreground fixture works locally, but is not admission-ready
+
+The smallest tested composition retains one ordinary eval owner. It uses
+movement-only navigation, explicit tool equip, an explicit awaited look,
+`signal.throwIfAborted()`, then `dig(block, 'ignore')`. That last call installs
+dig cancellation synchronously rather than awaiting another look before the
+first dig packet. It waits for entered operations before moving to the refuge.
+The trigger is an external gym phase control; the refuge is fixture-selected.
+This is a collection-phase fixture, not a complete replacement collector or
+a model-authored skill.
+
+The proposed noninterruptible boundary is an **already-entered inventory equip
+sequence**, including its remaining clicks and cursor cleanup. That sequence
+may finish after collection revocation, but the fixture does not grant retreat
+until equip settles. Already-sent world effects are not undone. Explicit look
+completion must be followed by a cancellation check before a new dig; active
+dig cancellation is awaited; drop observers cannot dispatch new work after
+revocation. The fixture rejects handoff after its 500ms allowance, including
+after a deliberately uncooperative look is finally released. Passing that
+fail-closed check does not pass the handoff-latency or survival gates.
+
+Remaining candidate no-go cases are independent:
+
+1. **Body ownership:** replacing this same fixture during the entered equip
+   grants a new ActionRunner owner before the old click sequence settles.
+   A single well-behaved eval cannot close admission to arbitrary subsequent
+   body actions. Do not describe eval's abort-race completion as a drain.
+2. **Harness coordination:** a conditional danger stop for the still-current
+   eval token cancels its retreat too. The control summons the same adult
+   zombie and explicitly calls the same `StopAction(token)` used by session;
+   it does not run a second full session or measure threat-detection latency.
+   The response does not reach the refuge. Danger checks were not disabled.
+3. **Collector API:** movement-only `canDig=false` cannot be used unchanged
+   with native collectblock harvesting; late shared-target cleanup also needs
+   to settle or be isolated before another collector can own those targets.
+
+**Recommendation for coordinator decision:** pursue a narrowly scoped body
+operation/ownership boundary for explicit collection primitives before an
+upstream navigation project. The new tests must prove that an entered equip
+has bounded completion with replacement admission closed, and that timeout or
+disconnect never converts an unresolved operation into permission to mutate.
+An unresolved timeout must leave admission closed until quiescence is proved
+or the body is restarted; returning an error alone does not revoke a callback.
+Pair an explicit look/check/dig boundary with movement-only navigation. Keep
+existing general actions available outside that opt-in contract. A local
+activation also needs a new action incarnation, so a danger verdict observing
+the old collection cannot cancel its replacement; a verdict actually observing
+the response still requires the existing safety policy. No generic danger
+exemption or self-reported "handled" flag is justified by these results.
+
+This is a proposed next contract, not implemented source or permission for a
+broader arming framework. No third-party change has been shown necessary for
+this smaller composition. Model-authored admission remains with the coordinator
+after the failures above are resolved and conformance is rerun.
+
+### Repeat the conformance matrix
+
+Use the same isolated Paper/body startup commands above. Each invocation resets
+the arena and consumes **zero provider requests**. Restart the instrumented body
+between cases. Do not reuse output directories. The loop intentionally keeps
+going after no-go results and prints each exit code; its own exit status is not
+an aggregate pass. No candidate survival runs are launched automatically.
+
+```sh
+export PATH="$HOME/tools/go/bin:$PATH"
+(cd harness && go build -race -o /tmp/cancellation ../gym/cancellation.go)
+for spec in \
+  'path-dig stop' 'path-dig replace' 'path-dig timeout' 'path-place replace' \
+  'path-dig-movement complete' 'path-place-movement complete' \
+  'dig-look stop' 'dig-look replace' 'dig-look timeout' \
+  'place-look stop' 'place-look replace' 'equip stop' 'equip replace' \
+  'active-dig stop' 'collector-profile complete' 'collector-drop replace' \
+  'collector-pickup replace' 'collector-error replace' \
+  'local-navigation local' 'local-look local' 'local-dig local' \
+  'local-drop local' 'local-equip local' 'local-equip replace' \
+  'local-look stop' 'local-look timeout' 'local-stuck local' \
+  'local-dig danger' 'dig-look disconnect' 'local-look disconnect'; do
+  set -- $spec
+  amp orb service restart survival-body
+  sleep 3
+  /tmp/cancellation "$1" "$2" ".amp/in/survival/new-run/$1-$2"
+  echo "exit=$? $spec"
+done
+```
+
+### Narrow experiment publication checks
+
+- `cd body && npm ci --no-audit --no-fund && npm test && npm run build && npm run gen`:
+  **26/26 tests**, build and generation passed. Lockfile versions remain
+  Mineflayer 4.39.0, pathfinder 2.4.5, collectblock 1.6.0, tool 1.2.0 and
+  physics 1.11.1 on protocol 26.1. Reinstallation confirms no dependency/cache
+  patch is required by the probes.
+- `cd harness && go build ./... && go test ./... && go vet ./... && go test -race ./session ./skills ./executor && go generate ./...`:
+  passed. Existing admission/executor controls are unchanged.
+- `go vet ../gym/cancellation.go` and `go build -race -o /tmp/cancellation ../gym/cancellation.go`
+  from `harness`: passed. The final matrix and disconnect rechecks used the
+  race-built probe with no race report; intentional no-go exits are retained.
+- Generated-file diffs are empty; original six transcript hashes match, and
+  `15-evidence.json`, `gym/local-survival.go` and the coordinator-owned roadmap
+  are unchanged. All disposable services were stopped after verification.
+- Local Auto-review used ship-risk and simplicity lenses. Tightened assertions
+  to use the body's actual terminal timestamp rather than an HTTP marker,
+  checked allowed equip completion precedes handoff and exact replacement
+  target identity, added independent server block checks, and corrected
+  disconnect checks for supervisor restart. The targeted recheck found no
+  remaining material issue in this evidence-only publication. Runtime
+  conformance remains **blocked**, not approved.
+
+No paid curriculum, model authoring, skill admission, upstream project,
+dependency change or production action was performed. The original request
+caps remain untouched: 12 authoring, 24 integration, 64 shared reservations
+for a later approved attended session. CI gym/skill gates are model-free;
+exact-head CI must be confirmed after this evidence is pushed.
