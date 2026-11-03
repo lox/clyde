@@ -239,6 +239,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 12 | Authenticated Java access (deployed; owner Java login confirmed) | `12-java-access.md` | 7 |
 | 13 | Bounded model-led exploration (accepted, `52f135c`; not deployed) | `13-bounded-exploration.md` | 10, 11 |
 | 14 | Persistent player: durable session, continuity, bounded attention (accepted, `4fd3d1e`; not deployed) | `14-persistent-player.md` | 5, 6, 13 |
+| 15 | Local survival during frontier latency (approved; isolated implementation next) | `15-local-survival.md` | 5, 14 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -396,9 +397,19 @@ choice and can be reversed by saying so.
   have deterministic regression evidence, not rerun hour-long paid trials.
   Returned usage including smokes/controls was $3.976797222; unreturned billing
   remains unknown. Upstream native-history fix `582660e` is pinned from the
-  published agent-harness PR 13, still unmerged after review-app failure/403;
-  its test CI and Clyde's real provider reset/continuation passed. No live
+  published agent-harness PR 13, merged after the review check recovered;
+  its checks and Clyde's real provider reset/continuation passed. No live
   image, memory or world changes; rollout remains separately authorized.
+- Lachlan approved one local survival slice before any general reaction
+  framework. Audit existing Mineflayer controllers/plugins, reproduce a
+  hostile interrupting collection under delayed frontier inference, then
+  implement one admitted model-authored response to a model-selected refuge.
+  Reuse local pathfinding; keep tactical trigger/response decisions in skills
+  and exclusive ownership, cancellation, deadlines and hard safety in code.
+  Measure matched survival, damage and actual movement latency under 5/15/30s
+  delays. Preserve failures and test stale controllers, operator stop,
+  blocked routes and false activation. No new model tier, automatic admission
+  or production changes. See `15-local-survival.md` for the bounded contract.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
