@@ -17,7 +17,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const journalVersion = 1
+const journalVersion = 2
 
 var (
 	ErrConflict  = errors.New("session: checkpoint changed")
@@ -41,12 +41,18 @@ type PendingTool struct {
 // State is the bounded working checkpoint, separate from append-only history.
 // Resource controls live in SQL columns that checkpoint writes cannot overwrite.
 type State struct {
-	Messages    []agent.Message `json:"messages,omitempty"`
-	Pending     []PendingTool   `json:"pending,omitempty"`
-	ActionToken string          `json:"action_token,omitempty"`
-	Wait        *Wait           `json:"wait,omitempty"`
-	Cursor      int             `json:"cursor"`
-	CursorTS    int64           `json:"cursor_ts"`
+	Messages     []agent.Message `json:"messages,omitempty"`
+	Pending      []PendingTool   `json:"pending,omitempty"`
+	ActionToken  string          `json:"action_token,omitempty"`
+	Wait         *Wait           `json:"wait,omitempty"`
+	Cursor       int             `json:"cursor"`
+	CursorTS     int64           `json:"cursor_ts"`
+	Profile      string          `json:"profile,omitempty"`
+	Reset        bool            `json:"reset,omitempty"`
+	ForceCompact bool            `json:"force_compact,omitempty"`
+	Pause        string          `json:"pause,omitempty"`
+	DangerActive bool            `json:"danger_active,omitempty"`
+	Turns        int64           `json:"turns"`
 }
 
 // Snapshot includes authoritative controls and a checkpoint revision for CAS.
@@ -78,17 +84,19 @@ type Input struct {
 // Receipt records a completed provider request. Nil usage means unknown billing,
 // including requests cancelled or failed without returned usage.
 type Receipt struct {
-	ID    int64
-	Usage *agent.Usage
+	ID      int64
+	Usage   *agent.Usage
+	CostUSD float64
 }
 
 // Update publishes state, original history, event consumption and a request
 // receipt in one transaction. An error publishes none of them.
 type Update struct {
-	State   State
-	Entries []Entry
-	Applied []int64
-	Receipt *Receipt
+	State    State
+	Entries  []Entry
+	Applied  []int64
+	Receipt  *Receipt
+	Dispatch bool // serialize a tool's dispatch intent with operator stop
 }
 
 // Accounting separates returned token counts from calls with unknown billing.
@@ -96,6 +104,7 @@ type Update struct {
 type Accounting struct {
 	Usage   agent.Usage
 	Unknown int64
+	CostUSD float64
 }
 
 // Journal uses independent tables in the existing memory database. Legacy
@@ -126,7 +135,7 @@ CREATE TABLE IF NOT EXISTS player_inbox (
  kind TEXT NOT NULL, text TEXT NOT NULL, applied INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS player_requests (
  id INTEGER PRIMARY KEY, at TEXT NOT NULL, purpose TEXT NOT NULL,
- observation TEXT NOT NULL, completed INTEGER NOT NULL DEFAULT 0, usage BLOB);`)
+ observation TEXT NOT NULL, completed INTEGER NOT NULL DEFAULT 0, usage BLOB, cost REAL NOT NULL DEFAULT 0);`)
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -191,6 +200,15 @@ func (j *Journal) Commit(ctx context.Context, revision int64, update Update) (Sn
 		return Snapshot{}, err
 	}
 	defer tx.Rollback()
+	if update.Dispatch {
+		s, err := load(ctx, tx)
+		if err != nil {
+			return Snapshot{}, err
+		}
+		if s.Stopped {
+			return Snapshot{}, ErrStopped
+		}
+	}
 	r, err := tx.ExecContext(ctx, `UPDATE player_state SET state=?,revision=revision+1 WHERE id=1 AND version=? AND revision=?`, raw, journalVersion, revision)
 	if err != nil {
 		return Snapshot{}, err
@@ -226,7 +244,7 @@ func (j *Journal) Commit(ctx context.Context, revision int64, update Update) (Sn
 				return Snapshot{}, err
 			}
 		}
-		r, err := tx.ExecContext(ctx, `UPDATE player_requests SET completed=1,usage=? WHERE id=? AND completed=0`, usage, receipt.ID)
+		r, err := tx.ExecContext(ctx, `UPDATE player_requests SET completed=1,usage=?,cost=? WHERE id=? AND completed=0`, usage, receipt.CostUSD, receipt.ID)
 		if err != nil {
 			return Snapshot{}, err
 		}
@@ -298,7 +316,7 @@ func (j *Journal) Pending(ctx context.Context, after int64, limit int) ([]Input,
 // error or cancellation never refunds it. No provider SDK retries may hide
 // additional requests behind one reservation.
 func (j *Journal) Reserve(ctx context.Context, purpose, observation string) (int64, error) {
-	if purpose != "inference" && purpose != "compaction" {
+	if purpose != "inference" && purpose != "compaction" && purpose != "monitor" {
 		return 0, errors.New("session: invalid request purpose")
 	}
 	tx, err := j.db.BeginTx(ctx, nil)
@@ -334,6 +352,16 @@ func (j *Journal) Reserve(ctx context.Context, purpose, observation string) (int
 // Control is an operator-only operation, never exposed as a model tool. A
 // resume does not refill requests. Extension and latch changes are audited.
 func (j *Journal) Control(ctx context.Context, stopped bool, extra int64) error {
+	return j.control(ctx, &stopped, extra)
+}
+
+// Extend adds requests without changing the stop latch, even when an operator
+// concurrently stops the session. Extension alone does not wake a quiet wait.
+func (j *Journal) Extend(ctx context.Context, extra int64) error {
+	return j.control(ctx, nil, extra)
+}
+
+func (j *Journal) control(ctx context.Context, stopped *bool, extra int64) error {
 	if extra < 0 {
 		return errors.New("session: allowance extension cannot be negative")
 	}
@@ -342,7 +370,7 @@ func (j *Journal) Control(ctx context.Context, stopped bool, extra int64) error 
 		return err
 	}
 	defer tx.Rollback()
-	r, err := tx.ExecContext(ctx, `UPDATE player_state SET stopped=?,request_limit=request_limit+? WHERE id=1 AND version=? AND request_limit<=?`, stopped, extra, journalVersion, math.MaxInt64-extra)
+	r, err := tx.ExecContext(ctx, `UPDATE player_state SET stopped=coalesce(?,stopped),request_limit=request_limit+? WHERE id=1 AND version=? AND request_limit<=?`, stopped, extra, journalVersion, math.MaxInt64-extra)
 	if err != nil {
 		return err
 	}
@@ -350,7 +378,7 @@ func (j *Journal) Control(ctx context.Context, stopped bool, extra int64) error 
 		return err
 	}
 	raw, err := json.Marshal(struct {
-		Stopped bool  `json:"stopped"`
+		Stopped *bool `json:"stopped,omitempty"`
 		Extra   int64 `json:"extra_requests"`
 	}{stopped, extra})
 	if err != nil {
@@ -359,13 +387,19 @@ func (j *Journal) Control(ctx context.Context, stopped bool, extra int64) error 
 	if _, err := tx.ExecContext(ctx, `INSERT INTO player_history(at,kind,data) VALUES(?,?,?)`, time.Now().UTC().Format(time.RFC3339Nano), "operator_control", raw); err != nil {
 		return err
 	}
+	if stopped != nil && !*stopped {
+		now := time.Now().UTC().Format(time.RFC3339Nano)
+		if _, err := tx.ExecContext(ctx, `INSERT INTO player_inbox(key,at,kind,text) VALUES(?,?,?,?)`, "operator-resume:"+now, now, "operator_resume", "Operator resumed; allowance unchanged except explicit extension."); err != nil {
+			return err
+		}
+	}
 	return tx.Commit()
 }
 
 // Accounting sums returned usage; every unreceipted or usage-less request stays
 // explicitly unknown, including after restart.
 func (j *Journal) Accounting(ctx context.Context) (Accounting, error) {
-	rows, err := j.db.QueryContext(ctx, `SELECT usage FROM player_requests`)
+	rows, err := j.db.QueryContext(ctx, `SELECT usage,cost FROM player_requests`)
 	if err != nil {
 		return Accounting{}, err
 	}
@@ -373,9 +407,11 @@ func (j *Journal) Accounting(ctx context.Context) (Accounting, error) {
 	var out Accounting
 	for rows.Next() {
 		var raw []byte
-		if err := rows.Scan(&raw); err != nil {
+		var cost float64
+		if err := rows.Scan(&raw, &cost); err != nil {
 			return out, err
 		}
+		out.CostUSD += cost
 		if len(raw) == 0 {
 			out.Unknown++
 			continue

@@ -17,7 +17,7 @@ services:
       - clyde-memory:/opt/clyde/memory
     networks: [minecraft_bonnie_net]
     # Optional CLI budget overrides, not a second controller:
-    # command: [--max-autonomous, "10", --max-steps, "40", --max-time, 5m]
+    # command: [--request-limit, "240", --call-timeout, 45s, --max-output-tokens, "4096"]
     # No ports, HTTP MCP, Docker socket, or server.properties mount.
 volumes:
   clyde-memory:

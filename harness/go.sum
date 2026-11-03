@@ -34,8 +34,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=
 github.com/invopop/jsonschema v0.14.0/go.mod h1:ygm6C2EaVNMBDPpaPlnOA2pFAxBnxGjFlMZABxm9n2I=
-github.com/lox/agent-harness v0.3.1-0.20261017002310-8117cc9dbc59 h1:oqUCYA4pVxa5NwyKTpGTqaSseq57fDhltgmw3xfzwzg=
-github.com/lox/agent-harness v0.3.1-0.20261017002310-8117cc9dbc59/go.mod h1:PVT6JzJjc42MvVk+0KlOTZWyxUsbv/ltRqv9yNIGbBU=
+github.com/lox/agent-harness v0.3.1-0.20261103022158-582660e24f37 h1:iWvhAS1svA/gbepJaQ9lQ6yQLPLGAmaMXiiKUeu/YKI=
+github.com/lox/agent-harness v0.3.1-0.20261103022158-582660e24f37/go.mod h1:PVT6JzJjc42MvVk+0KlOTZWyxUsbv/ltRqv9yNIGbBU=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mitchellh/go-wordwrap v1.0.1 h1:TLuKupo69TCn6TQSyGxwI1EblZZEsQ0vMlAFQflz0v0=

@@ -199,6 +199,9 @@ func TestDurableReservationsAndOperatorControls(t *testing.T) {
 	if _, err := j.Reserve(ctx, "inference", ""); !errors.Is(err, session.ErrStopped) {
 		t.Fatalf("stopped reserve=%v", err)
 	}
+	if _, err := j.Commit(ctx, s.Revision, session.Update{State: s.State, Dispatch: true}); !errors.Is(err, session.ErrStopped) {
+		t.Fatalf("stale checkpoint dispatched after operator stop: %v", err)
+	}
 	// A stale runtime checkpoint cannot overwrite an operator stop or extension.
 	s, err = j.Commit(ctx, s.Revision, session.Update{State: s.State})
 	if err != nil || !s.Stopped || s.Limit != 5 || s.Used != 2 {

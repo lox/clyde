@@ -2,7 +2,8 @@
 //
 //	clyde run --goal goal.json   run one goal; prints the outcome as JSON
 //	clyde mcp                    serve the body tools over MCP (stdio, or --http)
-//	clyde serve                  run the durable planner and player-first scheduler
+//	clyde serve                  run one durable player session
+//	clyde control                local operator stop/resume/allowance controls
 //
 // Both talk to a running body (--body, default $CLYDE_BODY_URL or
 // http://127.0.0.1:7777). The model comes from CLYDE_EXECUTOR_PROVIDER,
@@ -45,8 +46,8 @@ const exitNotSucceeded = 2
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if len(os.Args) < 2 || (os.Args[1] != "run" && os.Args[1] != "mcp" && os.Args[1] != "skill" && os.Args[1] != "serve") {
-		fmt.Fprintln(os.Stderr, "usage: clyde run --goal goal.json [flags] | clyde mcp [flags] | clyde serve [flags] | clyde skill gate|promote|verify [flags] name...")
+	if len(os.Args) < 2 || (os.Args[1] != "run" && os.Args[1] != "mcp" && os.Args[1] != "skill" && os.Args[1] != "serve" && os.Args[1] != "control") {
+		fmt.Fprintln(os.Stderr, "usage: clyde run --goal goal.json [flags] | clyde mcp [flags] | clyde serve [flags] | clyde control status|stop|resume|extend|compact [flags] | clyde skill gate|promote|verify [flags] name...")
 		os.Exit(2)
 	}
 	cmd, args := os.Args[1], os.Args[2:]
@@ -57,6 +58,8 @@ func main() {
 		err = skillCmd(ctx, args)
 	} else if cmd == "serve" {
 		err = serveCmd(ctx, args)
+	} else if cmd == "control" {
+		err = controlCmd(ctx, args)
 	} else {
 		err = mcpCmd(ctx, args)
 	}

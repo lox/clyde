@@ -1,7 +1,7 @@
 # Full Clyde, simple private deployment
 
-One container runs the compiled Node body and existing `clyde serve`: Sol 6.1
-low planner **and** executor, Jev judge, SQLite/semantic/spatial memory, and
+One container runs the compiled Node body and `clyde serve`: one durable Sol 6.1
+low player conversation, Jev judge, SQLite/semantic/spatial memory, and
 all five admitted bundled skills. No new controller, public API/MCP port,
 dashboard, automatic image updater or production-world skill gate.
 Host integration/startup belongs to `lox/selfhosted-ovh`, not this repository.
@@ -90,10 +90,10 @@ The service must share only the private `minecraft_bonnie_net` network:
   `clyde.private.env`, outside Git and the Docker context. Jev is explicit
   (`--judge jev`); a missing key fails startup, not a silent judge-off mode.
   Alternative providers use the existing `ANTHROPIC_API_KEY` contract.
-- Models remain configurable independently through
-  `CLYDE_PLANNER_{PROVIDER,MODEL,EFFORT}` and
-  `CLYDE_EXECUTOR_{PROVIDER,MODEL,EFFORT}`. Both default to OpenAI
-  `gpt-6.1-sol`, `low`. No packaging-specific cap or fallback model.
+- The single player uses `CLYDE_EXECUTOR_{PROVIDER,MODEL,EFFORT}`, defaulting
+  to OpenAI `gpt-6.1-sol`, `low`. Remove `CLYDE_PLANNER_*` overrides: `serve`
+  rejects them rather than silently changing models. Model/effort and runtime
+  limits are recorded with the session; incompatible startup settings fail.
 - Safety uses existing `BODY_MAX_BREAKS_PER_MIN`,
   `BODY_PROTECTED_REGIONS` (JSON array of inclusive min/max coordinates and
   optional dimension), `BODY_OPS` and `BODY_SCAN_RADIUS`. Choose real
@@ -131,43 +131,69 @@ docker compose -f deploy/compose.example.yaml stop clyde
 docker compose -f deploy/compose.example.yaml --profile clyde up -d --no-deps clyde
 ```
 
-Wait for `body ready; starting planner`, then the `clyde serve:` model/memory
+Wait for `body ready; starting persistent player`, then the `clyde serve:` model/memory
 line. Body readiness requires a successful `/state` after Minecraft spawn,
 not merely an open TCP listener. Unexpected exit of either child fails the
-service and stops the other. SIGTERM cancels/joins the planner first while
+service and stops the other. SIGTERM cancels/joins the player first while
 the body is still available for stop cleanup, then terminates the body.
-The entrypoint allows 35 seconds for planner shutdown and 5 for body exit;
+The entrypoint allows 35 seconds for player shutdown and 5 for body exit;
 Compose's 50-second grace plus `init: true` bounds cleanup and reaps children.
 
-Existing default budgets remain: 40 executor turns, 5 minutes per goal,
-30 seconds per planning event and 10 durable autonomous completed goals.
-Use the Compose `command` array to override existing serve flags, e.g.
-`[--max-autonomous, "20", --max-time, 10m]`. A restart does not reset the
-autonomous cap. This is not a hard dollar cap; player events/post-mortems
-can make more calls. `Clyde stop` chat/`POST /stop` stops an action only:
-the scheduler can act again. **Stop the entire service to keep Clyde
-stopped.** Chat latching is deferred. Do not delete the memory volume to
-restart, and do not use Compose `down -v`.
+The initial allowance defaults to **240 durable reservations**, shared by
+frontier inference, compaction and Jev attention ticks. Each Jev tick reserves
+one conservatively even when deterministic prechecks avoid a model request.
+Jev runs before frontier attention, not as paid idle polling; local hard
+prechecks continue every 500ms. Frontier calls have a 45-second deadline and
+4096 output-token cap; SDK retries are disabled for persistent play. Tool
+dispatch has a 12-second deadline and body actions retain their existing
+timeouts. Returned usage/cost and unknown billing are reported separately;
+these are request/output limits, **not a hard dollar cap**. Exhaustion stops
+owned work and pauses the same session. Restart/chat/compaction never refill it.
 
-Slice 13 keeps action failures and applicable judge `stuck` stops inside that
-same executor conversation and 40-turn/300-second allowance. Danger still
-interrupts the execution. A stuck stop uses the observed action's opaque
-`token`, not its restartable numeric `id`: `POST /action` with
-`{"type":"stop","token":"<observed owner>"}` returns `stopped:null` without
-touching controls on a mismatch. Unconditional `POST /stop` is unchanged.
+Use `command: [--request-limit, "240", --call-timeout, 45s,
+--max-output-tokens, "4096"]` for initial configuration. The stored allowance
+wins on restart. `--context-bytes` defaults to 131072 serialized active-history
+bytes, not a token cap. Compaction retains the complete current exchange and
+archives originals; failure pauses with an explicit reason, without retrying
+forever. Read status/history before deciding to resume. Legacy serve flags
+(`--max-autonomous`, `--planner-time`, `--planner-prompt`, `--max-steps`,
+`--max-time`) are rejected; `run`/MCP retain their bounded development contracts.
 
-Upgrade the body and harness together: new action statuses require tokens;
-older bodies cannot provide incarnation-safe ownership. The twelve local
-collision cells report actual contact shapes/unknown cells, not a resource or
-reachability scan. Recovery checkpoint additions are additive: old closed
-episodes retain unknown closure provenance, not retroactively labelled
-exhaustion. Safe ordinary player work remains admissible while autonomy is
-paused; merely accepting a request never refills recovery or unpauses autonomy.
-Only successful execution plus a fresh safe observation resets the episode.
-These source changes do not authorize a production image update. Any later
-rollout still requires the host's stopped whole-memory backup and separately
-approved image/lifecycle verification; keep a matching old image and memory
-snapshot for rollback.
+Local operator controls require filesystem/container access. They are never
+model tools or chat commands. On an authorized running host:
+
+```sh
+docker compose exec clyde clyde control status
+docker compose exec clyde clyde control stop
+docker compose exec clyde clyde control extend --requests 100
+docker compose exec clyde clyde control resume
+docker compose exec clyde clyde control compact
+```
+
+`stop` survives restart; `extend` does not clear it. `resume` clears the stop
+and error pause but grants no requests. An in-flight request remains charged;
+tools with no committed receipt remain uncertain after a crash and are not
+replayed. Ordinary chat cannot resume or grant allowance. Body `Clyde stop`
+chat/`POST /stop` still stops only an action; use operator control or stop the
+whole service for a durable stop. Do not delete memory or use `down -v`.
+
+### Upgrade and rollback require stopped whole-memory copies
+
+Stop the old service and back up the entire memory directory, including
+SQLite/WAL/SHM, semantic files, places, skill candidates and admission evidence.
+Verify the backup before starting the new binary. New versioned `player_*`
+tables preserve old episodes/places/checkpoints. Legacy project, dialogue and
+pending jobs import once as **unverified context**, never commands to replay.
+Historical executor transcripts do not exist; old recovery closures have no
+authority over the new player. The native session journal must not be flattened
+or edited by hand. Incompatible journal versions fail startup.
+
+Rollback requires the **old image plus its matching stopped whole-memory
+snapshot**; never run the old binary against upgraded memory alone. Keep the
+new stopped snapshot separately for investigation. Upgrade body and harness
+together for incarnation-safe action tokens. These source/runbook changes are
+not rollout approval; host changes still require separate authorization through
+`lox/selfhosted-ovh`. Production memory and worlds are not validation fixtures.
 
 ## Verification before a real-world launch
 
@@ -177,17 +203,19 @@ needed: use `docker exec` loopback requests/stdio tools. Preserve a transcript
 of the image ID, model slots, gate scoreboard and these checks:
 
 1. Normal image startup reaches spawned `/state` before `serve`. Confirm
-   Sol 6.1 low for both slots, Jev, no host port bindings and writable memory.
+   Sol 6.1 low for the single player, Jev, no host port bindings and writable memory.
 2. In a **separate temporary container with entrypoint overridden**, start
    only the body, supply three oak logs on the disposable server, and use
    `clyde mcp` over stdio to call `find_skill` then
    `run_skill({"name":"craft-item","args":{"item":"oak_planks","count":9}})`.
    Independently check at least nine planks over RCON. Stop this container
-   before the full service; do not compete with its planner.
+   before the full service; do not compete with its persistent player.
 3. Run full `serve`, give a modest player request (e.g. craft a table from
-   supplied logs), check the outcome over RCON and the persisted episode.
+   supplied logs), check the outcome over RCON and the persisted milestone history.
    Stop/start with the **same memory volume**. Check old episode IDs/content,
-   semantic/home data and usage remain, with no duplicate player reply.
+   semantic/home data, native session history and usage remain, with no duplicate
+   player reply. Exercise `control stop`, restart, ordinary chat (must not resume),
+   then explicit `control resume`; confirm allowance is unchanged.
 4. `docker stop --time 50` exits without a forced runtime kill; Minecraft
    `list` shows Clyde offline and no body remains. In disposable containers,
    also kill each child in turn and confirm the unit fails and its sibling

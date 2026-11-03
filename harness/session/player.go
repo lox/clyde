@@ -4,17 +4,39 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"time"
 
 	agent "github.com/lox/agent-harness"
 	"github.com/lox/clyde/harness/body"
+	"github.com/lox/clyde/harness/goal"
+	"github.com/lox/clyde/harness/judge"
+	"github.com/lox/clyde/harness/llm"
+	"github.com/lox/clyde/harness/memory"
+	"github.com/lox/clyde/harness/planner"
 )
 
 // Player owns one continuing conversation and one body. The entry point must
 // hold the local body and memory leases for its entire lifetime.
 type Player struct {
-	Journal *Journal
-	Body    *body.Client
+	Journal         *Journal
+	Body            *body.Client
+	Provider        agent.Provider
+	Config          llm.Config
+	System          string
+	SkillsDir       string
+	Memory          *memory.Store
+	Candidates      *planner.Candidates
+	GoalSchema      json.RawMessage
+	Check           func(context.Context, goal.Goal) (goal.Result, error)
+	Judge           *judge.Judge
+	JudgeLog        io.Writer
+	Log             io.Writer
+	CallTimeout     time.Duration
+	PollInterval    time.Duration
+	MaxOutputTokens int
+	ContextBytes    int
+	pre             *judge.Prechecker
 }
 
 // Reconcile stops stale body work and observes before resolving crash windows.

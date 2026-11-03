@@ -3,16 +3,17 @@ module github.com/lox/clyde/harness
 go 1.27
 
 require (
+	github.com/anthropics/anthropic-sdk-go v1.58.0
 	github.com/google/jsonschema-go v0.4.3
-	github.com/lox/agent-harness v0.3.1-0.20261017002310-8117cc9dbc59
+	github.com/lox/agent-harness v0.3.1-0.20261103022158-582660e24f37
 	github.com/modelcontextprotocol/go-sdk v1.8.0
+	github.com/openai/openai-go/v3 v3.44.0
 	go.yaml.in/yaml/v3 v3.0.5
 	modernc.org/sqlite v1.46.1
 )
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
-	github.com/anthropics/anthropic-sdk-go v1.58.0 // indirect
 	github.com/atombender/go-jsonschema v0.24.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
@@ -25,7 +26,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
-	github.com/openai/openai-go/v3 v3.44.0 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/sanity-io/litter v1.5.8 // indirect

@@ -62,6 +62,7 @@ func Harness(tools []Tool) []harness.Tool {
 type Toolbox struct {
 	Body      *body.Client
 	SkillsDir string // admitted library; empty disables both skill tools
+	Immediate bool   // persistent play: return action receipts without waiting
 
 	mu        sync.Mutex
 	chatSince int
@@ -187,7 +188,7 @@ func (tb *Toolbox) observe(ctx context.Context, args json.RawMessage) (string, e
 	if err := decodeArgs(args, &a); err != nil {
 		return "", err
 	}
-	if a.Wait > 0 {
+	if a.Wait > 0 && !tb.Immediate {
 		card, err := tb.Body.State(ctx)
 		if err != nil {
 			return "", err
@@ -341,7 +342,7 @@ func (tb *Toolbox) act(ctx context.Context, args json.RawMessage) (string, error
 	}
 	// Immediate non-replacing chat has its own receipt. It deliberately never
 	// occupies current/last exclusive-action state, so do not poll for it there.
-	if status.Status != "running" {
+	if status.Status != "running" || tb.Immediate {
 		return tb.actionResult(ctx, status)
 	}
 	final, done, err := tb.waitAction(ctx, status.Token, seconds(wait))
@@ -415,7 +416,7 @@ func (tb *Toolbox) eval(ctx context.Context, req body.EvalAction) (string, error
 	if err != nil {
 		return "", err
 	}
-	if status.Status != body.ActionStatusStatusRunning {
+	if status.Status != body.ActionStatusStatusRunning || tb.Immediate {
 		return tb.actionResult(ctx, status)
 	}
 	final, _, err := tb.waitAction(ctx, status.Token, time.Duration(timeout)*time.Millisecond+time.Second)

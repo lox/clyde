@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 
+	anthropicoption "github.com/anthropics/anthropic-sdk-go/option"
 	harness "github.com/lox/agent-harness"
 	"github.com/lox/agent-harness/provider/anthropic"
 	"github.com/lox/agent-harness/provider/openai"
+	openaioption "github.com/openai/openai-go/v3/option"
 )
 
 // Defaults for the executor slot.
@@ -20,9 +22,10 @@ const (
 
 // Config picks a provider, model, and reasoning effort.
 type Config struct {
-	Provider string // openai (Responses API) or anthropic
-	Model    string
-	Effort   string // provider reasoning effort, e.g. low, medium, high
+	Provider  string // openai (Responses API) or anthropic
+	Model     string
+	Effort    string // provider reasoning effort, e.g. low, medium, high
+	NoRetries bool   // persistent sessions reserve each request before dispatch
 }
 
 // ExecutorConfig reads CLYDE_EXECUTOR_PROVIDER, CLYDE_EXECUTOR_MODEL, and
@@ -45,13 +48,21 @@ func New(cfg Config) (harness.Provider, error) {
 		if key == "" {
 			return nil, fmt.Errorf("llm: OPENAI_API_KEY is not set")
 		}
-		return openai.New(openai.WithAPIKey(key), openai.WithDefaultModel(cfg.Model)), nil
+		opts := []openai.Option{openai.WithAPIKey(key), openai.WithDefaultModel(cfg.Model)}
+		if cfg.NoRetries {
+			opts = append(opts, openai.WithRequestOption(openaioption.WithMaxRetries(0)))
+		}
+		return openai.New(opts...), nil
 	case "anthropic":
 		key := os.Getenv("ANTHROPIC_API_KEY")
 		if key == "" {
 			return nil, fmt.Errorf("llm: ANTHROPIC_API_KEY is not set")
 		}
-		return anthropic.New(anthropic.WithAPIKey(key), anthropic.WithDefaultModel(cfg.Model)), nil
+		opts := []anthropic.Option{anthropic.WithAPIKey(key), anthropic.WithDefaultModel(cfg.Model)}
+		if cfg.NoRetries {
+			opts = append(opts, anthropic.WithRequestOption(anthropicoption.WithMaxRetries(0)))
+		}
+		return anthropic.New(opts...), nil
 	}
 	return nil, fmt.Errorf("llm: unknown provider %q (want openai or anthropic)", cfg.Provider)
 }
