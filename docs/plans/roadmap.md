@@ -239,7 +239,7 @@ Each slice is one reviewable unit with its own plan file and gym evidence.
 | 12 | Authenticated Java access (deployed; owner Java login confirmed) | `12-java-access.md` | 7 |
 | 13 | Bounded model-led exploration (accepted, `52f135c`; not deployed) | `13-bounded-exploration.md` | 10, 11 |
 | 14 | Persistent player: durable session, continuity, bounded attention (accepted, `4fd3d1e`; not deployed) | `14-persistent-player.md` | 5, 6, 13 |
-| 15 | Local survival during frontier latency (audit/baseline `b0dbaf9`; narrower cancellation experiment approved) | `15-local-survival.md` | 5, 14 |
+| 15 | Local survival during frontier latency (narrow experiment `2b21099`; runtime admission still blocked) | `15-local-survival.md` | 5, 14 |
 
 Slices 1, 2, and 3 are independent and run as parallel threads.
 
@@ -431,6 +431,21 @@ choice and can be reversed by saying so.
   not promised away. Establish the responsible layer and the smallest fix
   from failing tests. No general arming API, paid trials, new dependency or
   production change in this experiment; see `15-local-survival.md` for gates.
+- The narrower experiment is published at `2b21099`, exact-head CI green.
+  Movement-only navigation passed wall/gap controls; five no-threat local
+  phase handoffs reached the refuge with 1–236ms handoff and 6–319ms first
+  command latency. These are mechanics results, not survival trials. The
+  heterogeneous matrix has 12/30 passing cases; its 18 no-go cases include
+  14 deliberately unrestricted controller/primitive negative controls, not
+  18 failures of the restricted candidate. Candidate blockers remain: body
+  replacement admits a new owner before entered equip settles, the ordinary
+  token-conditional danger stop cancels a same-owner retreat, and native
+  collectblock cannot harvest under `canDig=false`. Its shared-target cleanup
+  also interferes with replacement work. An uncooperative local operation
+  fails closed but misses latency/arrival gates. Prefer a narrow opt-in body
+  operation/ownership boundary using explicit collection primitives; no
+  upstream project has been shown necessary. No runtime source changed, no
+  paid calls or model admission, and the 18 survival trials remain unrun.
 - Judge: Jev first, behind a backend interface.
 - LLM providers: OpenAI first (Responses API), Anthropic second, behind one
   interface in `harness/llm`. Lachlan prefers OpenAI models.
@@ -456,8 +471,9 @@ choice and can be reversed by saying so.
 - The body refuses late pathfinder goals/digs attributed to an aborted
   action's async context. Slice 15 demonstrates that pathfinder physics
   callbacks and their delayed continuations can escape that attribution;
-  these guards are not a complete controller-drain guarantee. The upstream
-  prerequisite above remains unresolved.
+  these guards are not a complete ownership guarantee. Already-entered
+  Mineflayer primitives and collector cleanup also need a supported boundary;
+  that prerequisite remains unresolved, not assigned to pathfinder alone.
 - Issue tracking: GitHub issues on this repo (default).
 - Delivery: commit to `main` (Amp merge-to-main), no pull requests; Auto-review
   runs locally before every ship; no Codex.
